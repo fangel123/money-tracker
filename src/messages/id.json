@@ -1,0 +1,313 @@
+{
+  "common": {
+    "save": "Simpan",
+    "cancel": "Batal",
+    "delete": "Hapus",
+    "edit": "Edit",
+    "loading": "Memuat...",
+    "empty": "Tidak ada data",
+    "confirm": "Konfirmasi",
+    "yes": "Ya",
+    "no": "Tidak",
+    "close": "Tutup",
+    "search": "Cari",
+    "filter": "Filter",
+    "sort": "Urutkan",
+    "export": "Ekspor",
+    "import": "Impor",
+    "settings": "Pengaturan",
+    "profile": "Profil",
+    "logout": "Keluar",
+    "login": "Masuk",
+    "register": "Daftar",
+    "email": "Email",
+    "password": "Kata Sandi",
+    "confirmPassword": "Konfirmasi Kata Sandi",
+    "name": "Nama",
+    "currency": "Mata Uang",
+    "language": "Bahasa",
+    "theme": "Tema",
+    "dark": "Gelap",
+    "light": "Terang",
+    "system": "Sistem",
+    "today": "Hari Ini",
+    "thisWeek": "Minggu Ini",
+    "thisMonth": "Bulan Ini",
+    "thisYear": "Tahun Ini",
+    "custom": "Kustom",
+    "all": "Semua",
+    "income": "Pemasukan",
+    "expense": "Pengeluaran",
+    "balance": "Saldo",
+    "amount": "Jumlah",
+    "category": "Kategori",
+    "account": "Akun",
+    "date": "Tanggal",
+    "note": "Catatan",
+    "type": "Tipe",
+    "actions": "Aksi"
+  },
+  "auth": {
+    "login": {
+      "title": "Masuk ke Akun Anda",
+      "subtitle": "Masuk untuk melanjutkan ke Money Tracker",
+      "emailLabel": "Email",
+      "emailPlaceholder": "anda@email.com",
+      "passwordLabel": "Kata Sandi",
+      "passwordPlaceholder": "Masukkan kata sandi",
+      "rememberMe": "Ingat saya",
+      "forgotPassword": "Lupa kata sandi?",
+      "submit": "Masuk",
+      "noAccount": "Belum punya akun?",
+      "signUp": "Daftar di sini",
+      "error": "Email atau kata sandi salah"
+    },
+    "register": {
+      "title": "Buat Akun Baru",
+      "subtitle": "Mulai kelola keuangan Anda hari ini",
+      "nameLabel": "Nama Lengkap",
+      "namePlaceholder": "Nama Anda",
+      "emailLabel": "Email",
+      "emailPlaceholder": "anda@email.com",
+      "passwordLabel": "Kata Sandi",
+      "passwordPlaceholder": "Minimal 8 karakter",
+      "confirmPasswordLabel": "Konfirmasi Kata Sandi",
+      "confirmPasswordPlaceholder": "Ulangi kata sandi",
+      "submit": "Daftar",
+      "hasAccount": "Sudah punya akun?",
+      "signIn": "Masuk di sini",
+      "error": "Gagal mendaftar. Silakan coba lagi.",
+      "passwordMismatch": "Kata sandi tidak cocok"
+    },
+    "forgotPassword": {
+      "title": "Lupa Kata Sandi",
+      "subtitle": "Masukkan email Anda untuk reset kata sandi",
+      "emailLabel": "Email",
+      "submit": "Kirim Link Reset",
+      "success": "Link reset telah dikirim ke email Anda",
+      "backToLogin": "Kembali ke masuk"
+    }
+  },
+  "dashboard": {
+    "title": "Dashboard",
+    "welcome": "Selamat datang, {name}!",
+    "summary": {
+      "income": "Pemasukan",
+      "expense": "Pengeluaran",
+      "balance": "Saldo",
+      "savingsRate": "Rasio Tabungan"
+    },
+    "charts": {
+      "incomeVsExpense": "Pemasukan vs Pengeluaran",
+      "byCategory": "Per Kategori",
+      "trend": "Tren Bulanan"
+    },
+    "quickActions": {
+      "title": "Aksi Cepat",
+      "addIncome": "Tambah Pemasukan",
+      "addExpense": "Tambah Pengeluaran",
+      "viewTransactions": "Lihat Transaksi",
+      "manageBudgets": "Kelola Budget"
+    },
+    "recentTransactions": "Transaksi Terbaru",
+    "viewAll": "Lihat Semua",
+    "noTransactions": "Belum ada transaksi"
+  },
+  "transactions": {
+    "title": "Transaksi",
+    "addTitle": "Tambah Transaksi",
+    "editTitle": "Edit Transaksi",
+    "list": {
+      "filters": "Filter",
+      "searchPlaceholder": "Cari transaksi...",
+      "allTypes": "Semua Tipe",
+      "income": "Pemasukan",
+      "expense": "Pengeluaran",
+      "allCategories": "Semua Kategori",
+      "allAccounts": "Semua Akun",
+      "dateRange": "Rentang Tanggal",
+      "clearFilters": "Hapus Filter",
+      "noResults": "Tidak ada transaksi yang cocok"
+    },
+    "form": {
+      "typeLabel": "Tipe",
+      "typeIncome": "Pemasukan",
+      "typeExpense": "Pengeluaran",
+      "amountLabel": "Jumlah",
+      "amountPlaceholder": "0",
+      "categoryLabel": "Kategori",
+      "categoryPlaceholder": "Pilih kategori",
+      "accountLabel": "Akun",
+      "accountPlaceholder": "Pilih akun",
+      "dateLabel": "Tanggal",
+      "noteLabel": "Catatan (opsional)",
+      "notePlaceholder": "Tambahkan catatan...",
+      "recurringLabel": "Transaksi Berulang",
+      "recurringFrequency": "Frekuensi",
+      "recurringEndDate": "Tanggal Berakhir",
+      "submit": "Simpan Transaksi",
+      "submitting": "Menyimpan...",
+      "error": "Gagal menyimpan transaksi"
+    },
+    "empty": {
+      "title": "Belum ada transaksi",
+      "description": "Mulai catat pemasukan atau pengeluaran pertama Anda",
+      "action": "Tambah Transaksi"
+    },
+    "deleteConfirm": {
+      "title": "Hapus Transaksi",
+      "message": "Apakah Anda yakin ingin menghapus transaksi ini? Tindakan ini tidak dapat dibatalkan.",
+      "confirm": "Hapus",
+      "cancel": "Batal"
+    }
+  },
+  "categories": {
+    "title": "Kategori",
+    "addTitle": "Tambah Kategori",
+    "editTitle": "Edit Kategori",
+    "form": {
+      "nameLabel": "Nama Kategori",
+      "namePlaceholder": "Contoh: Makanan",
+      "typeLabel": "Tipe",
+      "typeIncome": "Pemasukan",
+      "typeExpense": "Pengeluaran",
+      "iconLabel": "Ikon",
+      "colorLabel": "Warna",
+      "parentLabel": "Kategori Induk (opsional)",
+      "submit": "Simpan Kategori",
+      "error": "Gagal menyimpan kategori"
+    },
+    "empty": {
+      "title": "Belum ada kategori",
+      "description": "Buat kategori untuk mengelompokkan transaksi Anda",
+      "action": "Tambah Kategori"
+    },
+    "defaultCategories": {
+      "income": ["Gaji", "Freelance", "Investasi", "Hadiah", "Lainnya"],
+      "expense": ["Makanan", "Transport", "Belanja", "Hiburan", "Kesehatan", "Pendidikan", "Tagihan", "Lainnya"]
+    }
+  },
+  "budgets": {
+    "title": "Budget",
+    "addTitle": "Tambah Budget",
+    "editTitle": "Edit Budget",
+    "list": {
+      "period": "Periode",
+      "weekly": "Mingguan",
+      "monthly": "Bulanan",
+      "yearly": "Tahunan",
+      "spent": "Terpakai",
+      "remaining": "Sisa",
+      "progress": "Progres",
+      "alert": "Peringatan",
+      "overBudget": "Melebihi Budget",
+      "nearLimit": "Mendekati Batas"
+    },
+    "form": {
+      "categoryLabel": "Kategori",
+      "amountLabel": "Jumlah Budget",
+      "periodLabel": "Periode",
+      "startDateLabel": "Tanggal Mulai",
+      "endDateLabel": "Tanggal Berakhir (opsional)",
+      "thresholdLabel": "Ambang Peringatan (%)",
+      "submit": "Simpan Budget",
+      "error": "Gagal menyimpan budget"
+    },
+    "empty": {
+      "title": "Belum ada budget",
+      "description": "Tetapkan batas pengeluaran per kategori",
+      "action": "Buat Budget"
+    }
+  },
+  "accounts": {
+    "title": "Akun",
+    "addTitle": "Tambah Akun",
+    "editTitle": "Edit Akun",
+    "types": {
+      "cash": "Tunai",
+      "bank": "Bank",
+      "ewallet": "E-Wallet",
+      "credit_card": "Kartu Kredit",
+      "investment": "Investasi",
+      "other": "Lainnya"
+    },
+    "form": {
+      "nameLabel": "Nama Akun",
+      "namePlaceholder": "Contoh: BCA, GoPay, Tunai",
+      "typeLabel": "Tipe Akun",
+      "currencyLabel": "Mata Uang",
+      "balanceLabel": "Saldo Awal",
+      "iconLabel": "Ikon",
+      "colorLabel": "Warna",
+      "submit": "Simpan Akun",
+      "error": "Gagal menyimpan akun"
+    },
+    "empty": {
+      "title": "Belum ada akun",
+      "description": "Tambah akun untuk mulai mencatat transaksi",
+      "action": "Tambah Akun"
+    },
+    "balance": "Saldo",
+    "totalBalance": "Total Saldo"
+  },
+  "settings": {
+    "title": "Pengaturan",
+    "profile": {
+      "title": "Profil",
+      "nameLabel": "Nama Lengkap",
+      "emailLabel": "Email",
+      "avatarLabel": "Foto Profil",
+      "save": "Simpan Perubahan",
+      "saved": "Perubahan disimpan"
+    },
+    "preferences": {
+      "title": "Preferensi",
+      "languageLabel": "Bahasa",
+      "currencyLabel": "Mata Uang Default",
+      "themeLabel": "Tema",
+      "themeLight": "Terang",
+      "themeDark": "Gelap",
+      "themeSystem": "Ikuti Sistem",
+      "save": "Simpan Preferensi"
+    },
+    "security": {
+      "title": "Keamanan",
+      "changePassword": "Ubah Kata Sandi",
+      "currentPasswordLabel": "Kata Sandi Saat Ini",
+      "newPasswordLabel": "Kata Sandi Baru",
+      "confirmNewPasswordLabel": "Konfirmasi Kata Sandi Baru",
+      "update": "Perbarui Kata Sandi"
+    },
+    "data": {
+      "title": "Data",
+      "exportTitle": "Ekspor Data",
+      "exportDescription": "Unduh semua data transaksi, kategori, budget, dan akun",
+      "exportButton": "Ekspor (CSV)",
+      "importTitle": "Impor Data",
+      "importDescription": "Impor data dari file CSV",
+      "importButton": "Pilih File"
+    },
+    "dangerZone": {
+      "title": "Zona Bahaya",
+      "deleteAccountTitle": "Hapus Akun",
+      "deleteAccountDescription": "Menghapus akun akan menghapus semua data Anda secara permanen. Tindakan ini tidak dapat dibatalkan.",
+      "deleteAccountButton": "Hapus Akun Saya",
+      "confirmDelete": "Ketik 'HAPUS' untuk konfirmasi"
+    }
+  },
+  "errors": {
+    "generic": "Terjadi kesalahan. Silakan coba lagi.",
+    "network": "Kesalahan jaringan. Periksa koneksi Anda.",
+    "unauthorized": "Sesi berakhir. Silakan masuk kembali.",
+    "forbidden": "Anda tidak memiliki akses ke halaman ini.",
+    "notFound": "Halaman tidak ditemukan.",
+    "validation": "Data tidak valid. Periksa kembali input Anda.",
+    "server": "Kesalahan server. Silakan coba lagi nanti."
+  },
+  "toast": {
+    "success": "Berhasil",
+    "error": "Gagal",
+    "warning": "Peringatan",
+    "info": "Informasi"
+  }
+}

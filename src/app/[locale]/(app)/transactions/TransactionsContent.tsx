@@ -1,0 +1,421 @@
+"use client";
+
+import { useState } from "react";
+import { useTranslations } from "next-intl";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { cn, formatCurrency, formatDate } from "@/lib/utils";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { EmptyState } from "@/components/common/EmptyState";
+import { Plus, Search, Filter, ChevronDown, ChevronUp, ChevronLeft, ChevronRight, MoreHorizontal, Edit, Trash2 } from "lucide-react";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
+import Link from "next/link";
+import { useRouter, useSearchParams } from "next/navigation";
+import { Transaction, Category, Account } from "@/types/domain";
+import { createBrowserSupabaseClient } from "@/lib/supabase/browser";
+
+interface TransactionsContentProps {
+  locale: "id" | "en" | "zh" | "ja" | "ko";
+  userId: string;
+  initialSearchParams: { [key: string]: string | string[] | undefined };
+}
+
+export function TransactionsContent({ locale, userId, initialSearchParams }: TransactionsContentProps) {
+  const router = useRouter();
+  const searchParams = useSearchParams();
+  const t = useTranslations("transactions");
+  const ct = useTranslations("common");
+  const queryClient = useQueryClient();
+  const [showFilters, setShowFilters] = useState(false);
+  const [searchQuery, setSearchQuery] = useState("");
+
+  const { data: categories = [] } = useQuery({
+    queryKey: ["categories", userId],
+    queryFn: async () => {
+      const supabase = createBrowserSupabaseClient();
+      const { data } = await supabase.from("categories").select("*").eq("user_id", userId).eq("is_active", true);
+      return data as Category[];
+    },
+  });
+
+  const { data: accounts = [] } = useQuery({
+    queryKey: ["accounts", userId],
+    queryFn: async () => {
+      const supabase = createBrowserSupabaseClient();
+      const { data } = await supabase.from("accounts").select("*").eq("user_id", userId).eq("is_active", true);
+      return data as Account[];
+    },
+  });
+
+  const params = new URLSearchParams();
+  params.set("user_id", userId);
+  if (searchParams.get("type")) params.set("type", searchParams.get("type")!);
+  if (searchParams.get("category_id")) params.set("category_id", searchParams.get("category_id")!);
+  if (searchParams.get("account_id")) params.set("account_id", searchParams.get("account_id")!);
+  if (searchParams.get("date_from")) params.set("date_from", searchParams.get("date_from")!);
+  if (searchParams.get("date_to")) params.set("date_to", searchParams.get("date_to")!);
+  if (searchQuery) params.set("search", searchQuery);
+  params.set("page", searchParams.get("page") || "1");
+  params.set("limit", "20");
+  params.set("sort", searchParams.get("sort") || "date");
+  params.set("order", searchParams.get("order") || "desc");
+
+  const { data: transactionsData, isLoading, error } = useQuery({
+    queryKey: ["transactions", params.toString()],
+    queryFn: async () => {
+      const supabase = createBrowserSupabaseClient();
+      let query = supabase.from("transactions").select("*").eq("user_id", userId);
+
+      const type = searchParams.get("type");
+      if (type && type !== "all") query = query.eq("type", type);
+
+      const category_id = searchParams.get("category_id");
+      if (category_id) query = query.eq("category_id", category_id);
+
+      const account_id = searchParams.get("account_id");
+      if (account_id) query = query.eq("account_id", account_id);
+
+      const date_from = searchParams.get("date_from");
+      if (date_from) query = query.gte("date", date_from);
+
+      const date_to = searchParams.get("date_to");
+      if (date_to) query = query.lte("date", date_to);
+
+      if (searchQuery) {
+        query = query.ilike("note", `%${searchQuery}%`);
+      }
+
+      const sort = searchParams.get("sort") || "date";
+      const order = searchParams.get("order") || "desc";
+      query = query.order(sort, { ascending: order === "asc" });
+
+      const page = parseInt(searchParams.get("page") || "1");
+      const limit = 20;
+      query = query.range((page - 1) * limit, page * limit - 1);
+
+      const { data, error } = await query;
+      if (error) throw error;
+      return data as Transaction[];
+    },
+  });
+
+  const deleteMutation = useMutation({
+    mutationFn: async (id: string) => {
+      const supabase = createBrowserSupabaseClient();
+      const { error } = await supabase.from("transactions").delete().eq("id", id).eq("user_id", userId);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["transactions"] });
+      queryClient.invalidateQueries({ queryKey: ["dashboard"] });
+    },
+  });
+
+  const handleDelete = (id: string) => {
+    if (confirm(t("deleteConfirm.message"))) {
+      deleteMutation.mutate(id);
+    }
+  };
+
+  const updateFilters = (key: string, value: string) => {
+    const newParams = new URLSearchParams(searchParams.toString());
+    if (value) newParams.set(key, value);
+    else newParams.delete(key);
+    newParams.set("page", "1");
+    router.push(`/transactions?${newParams.toString()}`);
+  };
+
+  const clearFilters = () => {
+    router.push("/transactions");
+  };
+
+  const hasActiveFilters =
+    searchParams.get("type") ||
+    searchParams.get("category_id") ||
+    searchParams.get("account_id") ||
+    searchParams.get("date_from") ||
+    searchParams.get("date_to");
+
+  return (
+    <div className="space-y-6">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+        <div>
+          <h1 className="text-2xl font-bold text-foreground">{t("title")}</h1>
+          <p className="text-muted-foreground">{transactionsData?.length || 0} {ct("transactions")}</p>
+        </div>
+        <Button asChild>
+          <Link href="/transactions/new">
+            <Plus className="mr-2 h-4 w-4" />
+            {t("addTitle")}
+          </Link>
+        </Button>
+      </div>
+
+      <Card>
+        <CardContent className="pt-6">
+          <div className="flex gap-2 mb-4">
+            <div className="relative flex-1">
+              <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+              <Input
+                placeholder={t("list.searchPlaceholder")}
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                onKeyDown={(e) => e.key === "Enter" && router.push(`/transactions?search=${encodeURIComponent(searchQuery)}&page=1`)}
+                className="pl-10"
+              />
+            </div>
+            <Button
+              variant="outline"
+              onClick={() => setShowFilters(!showFilters)}
+              className="lg:hidden"
+            >
+              <Filter className="mr-2 h-4 w-4" />
+              {t("list.filters")}
+            </Button>
+          </div>
+
+          <div className={cn("space-y-4", showFilters ? "lg:block" : "hidden")}>
+            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
+              <Select
+                value={searchParams.get("type") || "all"}
+                onValueChange={(value) => updateFilters("type", value)}
+              >
+                <SelectTrigger className="w-full">
+                  <SelectValue placeholder={t("list.allTypes")} />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">{t("list.allTypes")}</SelectItem>
+                  <SelectItem value="income">{t("list.income")}</SelectItem>
+                  <SelectItem value="expense">{t("list.expense")}</SelectItem>
+                </SelectContent>
+              </Select>
+
+              <Select
+                value={searchParams.get("category_id") || ""}
+                onValueChange={(value) => updateFilters("category_id", value)}
+              >
+                <SelectTrigger className="w-full">
+                  <SelectValue placeholder={t("list.allCategories")} />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="">{t("list.allCategories")}</SelectItem>
+                  {categories.map((cat) => (
+                    <SelectItem key={cat.id} value={cat.id}>
+                      {cat.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+
+              <Select
+                value={searchParams.get("account_id") || ""}
+                onValueChange={(value) => updateFilters("account_id", value)}
+              >
+                <SelectTrigger className="w-full">
+                  <SelectValue placeholder={t("list.allAccounts")} />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="">{t("list.allAccounts")}</SelectItem>
+                  {accounts.map((acc) => (
+                    <SelectItem key={acc.id} value={acc.id}>
+                      {acc.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+
+              <div className="space-y-2">
+                <label className="block text-sm font-medium text-muted-foreground">{t("list.dateRange")} (From)</label>
+                <Input
+                  type="date"
+                  value={searchParams.get("date_from") || ""}
+                  onChange={(e) => updateFilters("date_from", e.target.value)}
+                  className="w-full"
+                />
+              </div>
+
+              <div className="space-y-2">
+                <label className="block text-sm font-medium text-muted-foreground">{t("list.dateRange")} (To)</label>
+                <Input
+                  type="date"
+                  value={searchParams.get("date_to") || ""}
+                  onChange={(e) => updateFilters("date_to", e.target.value)}
+                  className="w-full"
+                />
+              </div>
+            </div>
+
+            {hasActiveFilters && (
+              <Button variant="ghost" size="sm" onClick={clearFilters}>
+                <ChevronLeft className="mr-1 h-4 w-4" />
+                {t("list.clearFilters")}
+              </Button>
+            )}
+          </div>
+        </CardContent>
+      </Card>
+
+      {isLoading ? (
+        <div className="space-y-3">
+          {[...Array(5)].map((_, i) => (
+            <div key={i} className="animate-pulse flex items-center gap-3 p-3 rounded-lg bg-muted">
+              <div className="h-10 w-10 rounded-lg bg-muted-foreground/20" />
+              <div className="flex-1 space-y-2">
+                <div className="h-4 w-3/4 bg-muted-foreground/20 rounded" />
+                <div className="h-3 w-1/2 bg-muted-foreground/20 rounded" />
+              </div>
+              <div className="h-6 w-24 bg-muted-foreground/20 rounded" />
+            </div>
+          ))}
+        </div>
+      ) : error ? (
+        <div className="rounded-lg bg-destructive/10 p-4 text-center text-destructive">
+          <p>Gagal memuat transaksi</p>
+          <Button onClick={() => queryClient.invalidateQueries({ queryKey: ["transactions"] })} className="mt-2">
+            {ct("retry")}
+          </Button>
+        </div>
+      ) : transactionsData && transactionsData.length > 0 ? (
+        <div className="space-y-2">
+          {transactionsData.map((tx) => (
+            <TransactionCard
+              key={tx.id}
+              transaction={tx}
+              categories={categories}
+              accounts={accounts}
+              locale={locale}
+              onDelete={handleDelete}
+            />
+          ))}
+        </div>
+      ) : (
+        <EmptyState
+          icon={<Search className="h-12 w-12" />}
+          titleKey="transactions.empty.title"
+          descriptionKey="transactions.empty.description"
+          actionKey="transactions.empty.action"
+          onAction={() => router.push("/transactions/new")}
+        />
+      )}
+
+      {transactionsData && transactionsData.length === 20 && (
+        <div className="flex justify-center gap-2">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => {
+              const page = parseInt(searchParams.get("page") || "1");
+              if (page > 1) {
+                const newParams = new URLSearchParams(searchParams.toString());
+                newParams.set("page", String(page - 1));
+                router.push(`/transactions?${newParams.toString()}`);
+              }
+            }}
+            disabled={parseInt(searchParams.get("page") || "1") <= 1}
+          >
+            <ChevronLeft className="h-4 w-4" />
+            Sebelumnya
+          </Button>
+          <span className="flex items-center px-4 text-sm text-muted-foreground">
+            Halaman {searchParams.get("page") || "1"}
+          </span>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => {
+              const page = parseInt(searchParams.get("page") || "1");
+              const newParams = new URLSearchParams(searchParams.toString());
+              newParams.set("page", String(page + 1));
+              router.push(`/transactions?${newParams.toString()}`);
+            }}
+          >
+            Selanjutnya <ChevronRight className="ml-1 h-4 w-4" />
+          </Button>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function TransactionCard({
+  transaction,
+  categories,
+  accounts,
+  locale,
+  onDelete,
+}: {
+  transaction: Transaction;
+  categories: Category[];
+  accounts: Account[];
+  locale: "id" | "en" | "zh" | "ja" | "ko";
+  onDelete: (id: string) => void;
+}) {
+  const t = useTranslations("transactions");
+  const category = categories.find((c) => c.id === transaction.category_id);
+  const account = accounts.find((a) => a.id === transaction.account_id);
+  const isIncome = transaction.type === "income";
+
+  return (
+    <Card className="p-3 hover:bg-accent/50 transition-colors">
+      <div className="flex items-center justify-between gap-3">
+        <div className="flex items-center gap-3 flex-1 min-w-0">
+          <div
+            className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg"
+            style={{ backgroundColor: category?.color ? `${category.color}20` : "var(--muted)" }}
+          >
+            {category?.icon && (
+              <span className="text-lg" style={{ color: category.color || "var(--foreground)" }}>
+                {category.icon}
+              </span>
+            )}
+          </div>
+          <div className="min-w-0">
+            <p className="font-medium truncate">{category?.name || "Kategori"}</p>
+            <p className="text-sm text-muted-foreground truncate">
+              {account?.name} \u2022 {formatDate(transaction.date, locale)}
+            </p>
+            {transaction.note && (
+              <p className="text-xs text-muted-foreground truncate">{transaction.note}</p>
+            )}
+          </div>
+        </div>
+        <div className="flex items-center gap-2 shrink-0">
+          <div className="text-right">
+            <p
+              className="font-medium"
+              style={{ color: isIncome ? "var(--primary)" : "var(--destructive)" }}
+            >
+              {isIncome ? "+" : "-"}
+              {formatCurrency(transaction.amount, "IDR", locale === "id" ? "id-ID" : locale === "en" ? "en-US" : locale)}
+            </p>
+          </div>
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <button className="p-1 rounded-lg hover:bg-muted transition-colors" aria-label="Opsi">
+                <MoreHorizontal className="h-5 w-5" />
+              </button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              <DropdownMenuItem asChild>
+                <Link href={`/transactions/${transaction.id}/edit`}>
+                  <Edit className="mr-2 h-4 w-4" />
+                  {t("edit")}
+                </Link>
+              </DropdownMenuItem>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem
+                onClick={() => onDelete(transaction.id)}
+                className="text-destructive focus:text-destructive"
+              >
+                <Trash2 className="mr-2 h-4 w-4" />
+                {t("delete")}
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+        </div>
+      </div>
+    </Card>
+  );
+}

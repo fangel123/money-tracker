@@ -1,0 +1,313 @@
+{
+  "common": {
+    "save": "保存",
+    "cancel": "キャンセル",
+    "delete": "削除",
+    "edit": "編集",
+    "loading": "読み込み中...",
+    "empty": "データがありません",
+    "confirm": "確認",
+    "yes": "はい",
+    "no": "いいえ",
+    "close": "閉じる",
+    "search": "検索",
+    "filter": "フィルター",
+    "sort": "並び替え",
+    "export": "エクスポート",
+    "import": "インポート",
+    "settings": "設定",
+    "profile": "プロフィール",
+    "logout": "ログアウト",
+    "login": "ログイン",
+    "register": "新規登録",
+    "email": "メールアドレス",
+    "password": "パスワード",
+    "confirmPassword": "パスワード確認",
+    "name": "名前",
+    "currency": "通貨",
+    "language": "言語",
+    "theme": "テーマ",
+    "dark": "ダーク",
+    "light": "ライト",
+    "system": "システム",
+    "today": "今日",
+    "thisWeek": "今週",
+    "thisMonth": "今月",
+    "thisYear": "今年",
+    "custom": "カスタム",
+    "all": "すべて",
+    "income": "収入",
+    "expense": "支出",
+    "balance": "残高",
+    "amount": "金額",
+    "category": "カテゴリ",
+    "account": "口座",
+    "date": "日付",
+    "note": "メモ",
+    "type": "タイプ",
+    "actions": "アクション"
+  },
+  "auth": {
+    "login": {
+      "title": "アカウントにログイン",
+      "subtitle": "Money Tracker を続けるにはログインしてください",
+      "emailLabel": "メールアドレス",
+      "emailPlaceholder": "you@email.com",
+      "passwordLabel": "パスワード",
+      "passwordPlaceholder": "パスワードを入力",
+      "rememberMe": "ログイン状態を保持",
+      "forgotPassword": "パスワードをお忘れですか？",
+      "submit": "ログイン",
+      "noAccount": "アカウントをお持ちでないですか？",
+      "signUp": "こちらから登録",
+      "error": "メールアドレスまたはパスワードが正しくありません"
+    },
+    "register": {
+      "title": "新規アカウント作成",
+      "subtitle": "今日から資産管理を始めましょう",
+      "nameLabel": "氏名",
+      "namePlaceholder": "お名前",
+      "emailLabel": "メールアドレス",
+      "emailPlaceholder": "you@email.com",
+      "passwordLabel": "パスワード",
+      "passwordPlaceholder": "8文字以上",
+      "confirmPasswordLabel": "パスワード確認",
+      "confirmPasswordPlaceholder": "パスワードを再入力",
+      "submit": "登録",
+      "hasAccount": "すでにアカウントをお持ちですか？",
+      "signIn": "こちらからログイン",
+      "error": "登録に失敗しました。再度お試しください。",
+      "passwordMismatch": "パスワードが一致しません"
+    },
+    "forgotPassword": {
+      "title": "パスワードをお忘れですか？",
+      "subtitle": "メールアドレスを入力してリセットリンクを受け取る",
+      "emailLabel": "メールアドレス",
+      "submit": "リセットリンクを送信",
+      "success": "リセットリンクをメールで送信しました",
+      "backToLogin": "ログインに戻る"
+    }
+  },
+  "dashboard": {
+    "title": "ダッシュボード",
+    "welcome": "おかえりなさい、{name}さん！",
+    "summary": {
+      "income": "収入",
+      "expense": "支出",
+      "balance": "残高",
+      "savingsRate": "貯蓄率"
+    },
+    "charts": {
+      "incomeVsExpense": "収入 vs 支出",
+      "byCategory": "カテゴリ別",
+      "trend": "月次トレンド"
+    },
+    "quickActions": {
+      "title": "クイックアクション",
+      "addIncome": "収入を追加",
+      "addExpense": "支出を追加",
+      "viewTransactions": "取引を見る",
+      "manageBudgets": "予算を管理"
+    },
+    "recentTransactions": "最近の取引",
+    "viewAll": "すべて見る",
+    "noTransactions": "取引がありません"
+  },
+  "transactions": {
+    "title": "取引履歴",
+    "addTitle": "取引を追加",
+    "editTitle": "取引を編集",
+    "list": {
+      "filters": "フィルター",
+      "searchPlaceholder": "取引を検索...",
+      "allTypes": "すべてのタイプ",
+      "income": "収入",
+      "expense": "支出",
+      "allCategories": "すべてのカテゴリ",
+      "allAccounts": "すべての口座",
+      "dateRange": "日付範囲",
+      "clearFilters": "フィルターをクリア",
+      "noResults": "一致する取引がありません"
+    },
+    "form": {
+      "typeLabel": "タイプ",
+      "typeIncome": "収入",
+      "typeExpense": "支出",
+      "amountLabel": "金額",
+      "amountPlaceholder": "0",
+      "categoryLabel": "カテゴリ",
+      "categoryPlaceholder": "カテゴリを選択",
+      "accountLabel": "口座",
+      "accountPlaceholder": "口座を選択",
+      "dateLabel": "日付",
+      "noteLabel": "メモ (任意)",
+      "notePlaceholder": "メモを追加...",
+      "recurringLabel": "定期取引",
+      "recurringFrequency": "頻度",
+      "recurringEndDate": "終了日",
+      "submit": "取引を保存",
+      "submitting": "保存中...",
+      "error": "取引の保存に失敗しました"
+    },
+    "empty": {
+      "title": "取引がありません",
+      "description": "最初の収入または支出を追加して始めましょう",
+      "action": "取引を追加"
+    },
+    "deleteConfirm": {
+      "title": "取引を削除",
+      "message": "この取引を削除してもよろしいですか？この操作は元に戻せません。",
+      "confirm": "削除",
+      "cancel": "キャンセル"
+    }
+  },
+  "categories": {
+    "title": "カテゴリ",
+    "addTitle": "カテゴリを追加",
+    "editTitle": "カテゴリを編集",
+    "form": {
+      "nameLabel": "カテゴリ名",
+      "namePlaceholder": "例: 食費",
+      "typeLabel": "タイプ",
+      "typeIncome": "収入",
+      "typeExpense": "支出",
+      "iconLabel": "アイコン",
+      "colorLabel": "色",
+      "parentLabel": "親カテゴリ (任意)",
+      "submit": "カテゴリを保存",
+      "error": "カテゴリの保存に失敗しました"
+    },
+    "empty": {
+      "title": "カテゴリがありません",
+      "description": "カテゴリを作成して取引を整理しましょう",
+      "action": "カテゴリを追加"
+    },
+    "defaultCategories": {
+      "income": ["給与", "フリーランス", "投資", "贈与", "その他"],
+      "expense": ["食費", "交通費", "買い物", "娯楽", "医療", "教育", "光熱費", "その他"]
+    }
+  },
+  "budgets": {
+    "title": "予算",
+    "addTitle": "予算を追加",
+    "editTitle": "予算を編集",
+    "list": {
+      "period": "期間",
+      "weekly": "週次",
+      "monthly": "月次",
+      "yearly": "年次",
+      "spent": "使用済み",
+      "remaining": "残り",
+      "progress": "進捗",
+      "alert": "アラート",
+      "overBudget": "予算超過",
+      "nearLimit": "限度額接近"
+    },
+    "form": {
+      "categoryLabel": "カテゴリ",
+      "amountLabel": "予算額",
+      "periodLabel": "期間",
+      "startDateLabel": "開始日",
+      "endDateLabel": "終了日 (任意)",
+      "thresholdLabel": "アラート閾値 (%)",
+      "submit": "予算を保存",
+      "error": "予算の保存に失敗しました"
+    },
+    "empty": {
+      "title": "予算がありません",
+      "description": "カテゴリごとに支出上限を設定しましょう",
+      "action": "予算を作成"
+    }
+  },
+  "accounts": {
+    "title": "口座",
+    "addTitle": "口座を追加",
+    "editTitle": "口座を編集",
+    "types": {
+      "cash": "現金",
+      "bank": "銀行",
+      "ewallet": "電子マネー",
+      "credit_card": "クレジットカード",
+      "investment": "投資",
+      "other": "その他"
+    },
+    "form": {
+      "nameLabel": "口座名",
+      "namePlaceholder": "例: 三菱UFJ、PayPay、現金",
+      "typeLabel": "口座タイプ",
+      "currencyLabel": "通貨",
+      "balanceLabel": "初期残高",
+      "iconLabel": "アイコン",
+      "colorLabel": "色",
+      "submit": "口座を保存",
+      "error": "口座の保存に失敗しました"
+    },
+    "empty": {
+      "title": "口座がありません",
+      "description": "口座を追加して取引を記録しましょう",
+      "action": "口座を追加"
+    },
+    "balance": "残高",
+    "totalBalance": "総残高"
+  },
+  "settings": {
+    "title": "設定",
+    "profile": {
+      "title": "プロフィール",
+      "nameLabel": "氏名",
+      "emailLabel": "メールアドレス",
+      "avatarLabel": "プロフィール画像",
+      "save": "変更を保存",
+      "saved": "保存しました"
+    },
+    "preferences": {
+      "title": "環境設定",
+      "languageLabel": "言語",
+      "currencyLabel": "デフォルト通貨",
+      "themeLabel": "テーマ",
+      "themeLight": "ライト",
+      "themeDark": "ダーク",
+      "themeSystem": "システム設定",
+      "save": "設定を保存"
+    },
+    "security": {
+      "title": "セキュリティ",
+      "changePassword": "パスワード変更",
+      "currentPasswordLabel": "現在のパスワード",
+      "newPasswordLabel": "新しいパスワード",
+      "confirmNewPasswordLabel": "新しいパスワード確認",
+      "update": "パスワードを更新"
+    },
+    "data": {
+      "title": "データ",
+      "exportTitle": "データをエクスポート",
+      "exportDescription": "すべての取引、カテゴリ、予算、口座をダウンロード",
+      "exportButton": "エクスポート (CSV)",
+      "importTitle": "データをインポート",
+      "importDescription": "CSVファイルからデータをインポート",
+      "importButton": "ファイルを選択"
+    },
+    "dangerZone": {
+      "title": "危険な操作",
+      "deleteAccountTitle": "アカウントを削除",
+      "deleteAccountDescription": "アカウントを削除するとすべてのデータが永久に削除されます。この操作は元に戻せません。",
+      "deleteAccountButton": "アカウントを削除",
+      "confirmDelete": "'DELETE' と入力して確認"
+    }
+  },
+  "errors": {
+    "generic": "エラーが発生しました。再度お試しください。",
+    "network": "ネットワークエラー。接続を確認してください。",
+    "unauthorized": "セッションが期限切れです。再度ログインしてください。",
+    "forbidden": "このページへのアクセス権がありません。",
+    "notFound": "ページが見つかりません。",
+    "validation": "無効なデータです。入力を確認してください。",
+    "server": "サーバーエラー。しばらくしてから再度お試しください。"
+  },
+  "toast": {
+    "success": "成功",
+    "error": "エラー",
+    "warning": "警告",
+    "info": "情報"
+  }
+}
