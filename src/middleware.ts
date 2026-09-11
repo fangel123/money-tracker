@@ -42,7 +42,7 @@ export async function middleware(request: NextRequest) {
   } = await supabase.auth.getUser();
 
   // Auth routes - redirect to dashboard if already logged in
-  const isAuthRoute = pathname.includes("/auth/");
+  const isAuthRoute = pathname.match(/^\/[a-z]{2}\/(login|register|forgot-password)/);
   if (isAuthRoute && user) {
     const locale = pathname.split("/")[1];
     return NextResponse.redirect(new URL(`/${locale}/dashboard`, request.url));
@@ -52,7 +52,7 @@ export async function middleware(request: NextRequest) {
   const isProtectedRoute = pathname.match(/^\/[a-z]{2}\/(dashboard|transactions|categories|budgets|accounts|settings)/);
   if (isProtectedRoute && !user) {
     const locale = pathname.split("/")[1];
-    return NextResponse.redirect(new URL(`/${locale}/auth/login`, request.url));
+    return NextResponse.redirect(new URL(`/${locale}/login`, request.url));
   }
 
   // Update session cookie
