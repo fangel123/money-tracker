@@ -10,7 +10,6 @@ import { loginSchema, type LoginFormData } from "@/lib/validators/auth";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { cn } from "@/lib/utils";
 import { Mail, Lock, Eye, EyeOff } from "lucide-react";
 import { createBrowserSupabaseClient } from "@/lib/supabase/browser";
 
@@ -22,7 +21,8 @@ export default function LoginPage() {
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
 
-  const locale = pathname.split("/")[1];
+  // AMAN DARI 500 ERROR: Cegah crash jika pathname null saat server rendering
+  const locale = pathname?.split("/")[1] || "id";
 
   const {
     register,
@@ -89,19 +89,21 @@ export default function LoginPage() {
               type="email"
               placeholder={t("emailPlaceholder")}
               className="pl-10"
-              error={errors.email?.message}
               disabled={isLoading}
               autoComplete="email"
             />
+            {/* Hapus properti error={} dari Shadcn Input bawaan untuk mencegah crash jika tidak didukung */}
           </div>
+          {errors.email && <p className="mt-1 text-sm text-destructive">{errors.email.message}</p>}
         </div>
 
         {/* Password */}
         <div>
           <div className="flex items-center justify-between">
             <Label htmlFor="password">{t("passwordLabel")}</Label>
+            {/* PERBAIKAN LINK: Hapus /auth */}
             <Link
-              href={`/${locale}/auth/forgot-password`}
+              href={`/${locale}/forgot-password`}
               className="text-sm text-primary hover:underline"
             >
               {t("forgotPassword")}
@@ -115,7 +117,6 @@ export default function LoginPage() {
               type={showPassword ? "text" : "password"}
               placeholder={t("passwordPlaceholder")}
               className="pl-10 pr-10"
-              error={errors.password?.message}
               disabled={isLoading}
               autoComplete="current-password"
             />
@@ -128,6 +129,7 @@ export default function LoginPage() {
               {showPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
             </button>
           </div>
+          {errors.password && <p className="mt-1 text-sm text-destructive">{errors.password.message}</p>}
         </div>
 
         {/* Remember me */}
@@ -151,7 +153,8 @@ export default function LoginPage() {
       {/* Register link */}
       <p className="text-center text-sm text-muted-foreground">
         {t("noAccount")}{" "}
-        <Link href={`/${locale}/auth/register`} className="text-primary font-medium hover:underline">
+        {/* PERBAIKAN LINK: Hapus /auth */}
+        <Link href={`/${locale}/register`} className="text-primary font-medium hover:underline">
           {t("signUp")}
         </Link>
       </p>
