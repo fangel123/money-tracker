@@ -196,7 +196,7 @@ export function PlannerContent({ user, initialPlanners, initialItems, accounts, 
                     <span className={cn("font-bold text-sm", isLunas ? "text-muted-foreground" : (item.type === 'expense' ? "text-red-500" : "text-green-500"))}>
                       {item.type === 'expense' ? "-" : "+"}{formatCurrency(item.amount)}
                     </span>
-                    {!isLunas && (
+                    {!isLunas ? (
                       <Button 
                         size="sm" 
                         variant="secondary"
@@ -205,10 +205,32 @@ export function PlannerContent({ user, initialPlanners, initialItems, accounts, 
                       >
                         <CheckSquare className="h-3 w-3 mr-1" /> {item.type === 'expense' ? "Bayar" : "Terima"}
                       </Button>
+                    ) : (
+                      <Button 
+                        size="sm" 
+                        variant="ghost"
+                        className="h-7 text-[10px] px-2 rounded-full font-bold text-muted-foreground hover:text-foreground" 
+                        onClick={() => handleUnrealize(item)}
+                        disabled={isSubmitting}
+                      >
+                        Batal
+                      </Button>
                     )}
-                    <button onClick={() => setItemToDelete(item)} className="text-muted-foreground hover:text-red-500 opacity-0 group-hover:opacity-100 transition-opacity">
-                      <Trash2 className="h-4 w-4" />
-                    </button>
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <button className="text-muted-foreground hover:text-foreground opacity-0 group-hover:opacity-100 transition-opacity outline-none">
+                          <MoreVertical className="h-4 w-4" />
+                        </button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="end" className="rounded-xl border-border/50 shadow-xl w-36 p-1.5">
+                        <DropdownMenuItem onClick={() => openEditItemModal(item)} className="cursor-pointer rounded-lg text-xs">
+                          <Edit className="h-3 w-3 mr-2" /> Edit Item
+                        </DropdownMenuItem>
+                        <DropdownMenuItem onClick={() => setItemToDelete(item)} className="cursor-pointer rounded-lg text-xs text-destructive focus:text-destructive focus:bg-destructive/10">
+                          <Trash2 className="h-3 w-3 mr-2" /> Hapus
+                        </DropdownMenuItem>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
                   </div>
                 </div>
               </div>
