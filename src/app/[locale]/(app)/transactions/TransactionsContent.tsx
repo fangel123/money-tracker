@@ -10,6 +10,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { EmptyState } from "@/components/common/EmptyState";
 import { Plus, Search, Filter, ChevronRight, MoreVertical, Edit, Trash2, ArrowLeftRight, X } from "lucide-react";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
+import { Label } from "@/components/ui/label";
 import { Link } from "@/i18n/navigation";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Transaction, Category, Account } from "@/types/domain";
@@ -385,8 +386,8 @@ function TransactionCard({
       </div>
       <div className="flex items-center gap-3 shrink-0">
         <div className="flex flex-col items-end gap-1">
-          <span className={cn("font-bold text-base md:text-lg tabular-nums", isExpense ? "text-red-500" : "text-green-500")}>
-            {isExpense ? "-" : "+"}{formatCurrency(transaction.amount, "IDR", locale)}
+          <span className={cn("font-bold text-base md:text-lg tabular-nums", !isIncome ? "text-red-500" : "text-green-500")}>
+            {!isIncome ? "-" : "+"}{formatCurrency(transaction.amount, "IDR", locale)}
           </span>
         </div>
         <DropdownMenu>
