@@ -2,13 +2,14 @@
 
 import { useState } from "react";
 import { formatCurrency, cn } from "@/lib/utils";
-import { CheckSquare, Plus, Trash2, CheckCircle2, ChevronRight, Activity } from "lucide-react";
+import { CheckSquare, Plus, Trash2, CheckCircle2, ChevronRight, Activity, MoreVertical, Edit } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { createPlanner, createPlannerItem, realizePlannerItem, deletePlannerItem } from "./actions";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
+import { createPlanner, createPlannerItem, realizePlannerItem, deletePlannerItem, updatePlanner, deletePlanner } from "./actions";
 
 export function PlannerContent({ user, initialPlanners, initialItems, accounts, categories }: any) {
   const [activeTab, setActiveTab] = useState(initialPlanners[0]?.id || "new");
@@ -24,6 +25,10 @@ export function PlannerContent({ user, initialPlanners, initialItems, accounts, 
 
   // Form states
   const [tabTitle, setTabTitle] = useState("");
+  const [duplicateFromId, setDuplicateFromId] = useState("none");
+  const [isEditTabOpen, setIsEditTabOpen] = useState(false);
+  const [editTabTitle, setEditTabTitle] = useState("");
+  
   const [itemData, setItemData] = useState({ name: "", amount: "", type: "expense", tag: "" });
   const [payData, setPayData] = useState({ accountId: "", categoryId: "" });
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -35,15 +40,46 @@ export function PlannerContent({ user, initialPlanners, initialItems, accounts, 
     e.preventDefault();
     setIsSubmitting(true);
     try {
-      const p = await createPlanner(tabTitle, "", "");
+      const p = await createPlanner(tabTitle, "", "", duplicateFromId === "none" ? undefined : duplicateFromId);
       setActiveTab(p.id);
       setIsAddTabOpen(false);
       setTabTitle("");
+      setDuplicateFromId("none");
     } catch (e) {
       alert("Error adding planner");
     } finally {
       setIsSubmitting(false);
     }
+  };
+
+  const handleDeleteTab = async () => {
+    if (!confirm("Apakah Anda yakin ingin menghapus bulan ini dan semua isinya?")) return;
+    try {
+      await deletePlanner(activeTab);
+      const remainingPlanners = initialPlanners.filter((p: any) => p.id !== activeTab);
+      setActiveTab(remainingPlanners[0]?.id || "new");
+    } catch (e) {
+      alert("Error deleting planner");
+    }
+  };
+
+  const handleEditTab = async (e: any) => {
+    e.preventDefault();
+    setIsSubmitting(true);
+    try {
+      await updatePlanner(activeTab, editTabTitle);
+      setIsEditTabOpen(false);
+    } catch (e) {
+      alert("Error updating planner");
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const openEditModal = () => {
+    if (!activePlanner) return;
+    setEditTabTitle(activePlanner.title);
+    setIsEditTabOpen(true);
   };
 
   const handleAddItem = async (e: any) => {
@@ -189,7 +225,7 @@ export function PlannerContent({ user, initialPlanners, initialItems, accounts, 
 
       {!activePlanner ? (
         <div className="flex flex-col items-center justify-center py-20 text-center animate-in fade-in">
-          <div className="text-6xl mb-4">📓</div>
+          <div className="text-6xl mb-4">📊</div>
           <h2 className="text-xl font-bold">Belum ada Rencana</h2>
           <p className="text-muted-foreground text-sm mt-2 max-w-sm mx-auto">
             Buat tab bulan baru untuk mulai merencanakan pengeluaran Anda.
@@ -198,6 +234,26 @@ export function PlannerContent({ user, initialPlanners, initialItems, accounts, 
       ) : (
         <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
           
+          {/* Header & Options */}
+          <div className="flex justify-between items-center bg-card border border-border/50 rounded-2xl p-4 shadow-sm">
+            <h2 className="text-lg md:text-xl font-bold text-foreground">Rencana {activePlanner.title}</h2>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="ghost" size="icon" className="h-8 w-8 rounded-full hover:bg-secondary text-muted-foreground">
+                  <MoreVertical className="h-4 w-4" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-48 rounded-2xl p-2 border-border/50 shadow-xl">
+                <DropdownMenuItem onClick={openEditModal} className="rounded-xl cursor-pointer">
+                  <Edit className="h-4 w-4 mr-2" /> Ubah Nama Bulan
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={handleDeleteTab} className="rounded-xl cursor-pointer text-destructive focus:text-destructive focus:bg-destructive/10">
+                  <Trash2 className="h-4 w-4 mr-2" /> Hapus Bulan Ini
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          </div>
+
           {/* Summaries */}
           <div className="grid grid-cols-3 gap-3">
             <div className="bg-card border border-border/50 rounded-2xl p-4 shadow-sm">
@@ -226,16 +282,47 @@ export function PlannerContent({ user, initialPlanners, initialItems, accounts, 
 
       {/* MODAL ADD TAB */}
       <Dialog open={isAddTabOpen} onOpenChange={setIsAddTabOpen}>
-        <DialogContent className="sm:max-w-[425px] rounded-[2rem]">
+        <DialogContent className="sm:max-w-[425px] rounded-[2rem] p-6 border-border/50 shadow-2xl">
           <DialogHeader>
             <DialogTitle>Buat Rencana Baru</DialogTitle>
           </DialogHeader>
           <form onSubmit={handleAddTab} className="space-y-4">
             <div className="space-y-2">
               <Label>Nama Bulan / Rencana</Label>
-              <Input placeholder="Contoh: Agustus 2026" required value={tabTitle} onChange={e => setTabTitle(e.target.value)} />
+              <Input placeholder="Contoh: Oktober 2026" className="rounded-xl h-11 border-border/50" required value={tabTitle} onChange={e => setTabTitle(e.target.value)} />
             </div>
-            <Button type="submit" className="w-full rounded-full" disabled={isSubmitting}>Simpan</Button>
+            <div className="space-y-2">
+              <Label>Duplikat Item Dari</Label>
+              <Select value={duplicateFromId} onValueChange={setDuplicateFromId}>
+                <SelectTrigger className="rounded-xl h-11 border-border/50 bg-secondary/20">
+                  <SelectValue placeholder="Pilih rencana..." />
+                </SelectTrigger>
+                <SelectContent className="rounded-2xl border-border/50">
+                  <SelectItem value="none" className="rounded-xl">Mulai Kosong</SelectItem>
+                  {initialPlanners.map((p: any) => (
+                    <SelectItem key={p.id} value={p.id} className="rounded-xl">{p.title}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <p className="text-xs text-muted-foreground mt-1">Item akan disalin, namun status 'Lunas' akan direset.</p>
+            </div>
+            <Button type="submit" className="w-full rounded-full h-11" disabled={isSubmitting}>Simpan Rencana</Button>
+          </form>
+        </DialogContent>
+      </Dialog>
+
+      {/* MODAL EDIT TAB */}
+      <Dialog open={isEditTabOpen} onOpenChange={setIsEditTabOpen}>
+        <DialogContent className="sm:max-w-[425px] rounded-[2rem] p-6 border-border/50 shadow-2xl">
+          <DialogHeader>
+            <DialogTitle>Ubah Nama Rencana</DialogTitle>
+          </DialogHeader>
+          <form onSubmit={handleEditTab} className="space-y-4">
+            <div className="space-y-2">
+              <Label>Nama Bulan / Rencana</Label>
+              <Input placeholder="Contoh: Oktober 2026" className="rounded-xl h-11 border-border/50" required value={editTabTitle} onChange={e => setEditTabTitle(e.target.value)} />
+            </div>
+            <Button type="submit" className="w-full rounded-full h-11" disabled={isSubmitting}>Simpan Perubahan</Button>
           </form>
         </DialogContent>
       </Dialog>

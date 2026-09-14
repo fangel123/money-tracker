@@ -3,7 +3,7 @@
 import { createServerSupabaseClient } from "@/lib/supabase/server";
 import { revalidatePath } from "next/cache";
 
-export async function createPlanner(title: string, notesTop: string, notesBottom: string) {
+export async function createPlanner(title: string, notesTop: string, notesBottom: string, duplicateFromId?: string) {
   const supabase = createServerSupabaseClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) throw new Error("Unauthorized");
@@ -20,8 +20,38 @@ export async function createPlanner(title: string, notesTop: string, notesBottom
     .single();
 
   if (error) throw new Error(error.message);
+
+  if (duplicateFromId) {
+    const { data: items } = await supabase.from("planner_items").select("*").eq("planner_id", duplicateFromId);
+    if (items && items.length > 0) {
+      const itemsToInsert = items.map(item => ({
+        planner_id: data.id,
+        category: item.category,
+        type: item.type,
+        name: item.name,
+        amount: item.amount,
+        status_tag: null, // Reset status
+      }));
+      await supabase.from("planner_items").insert(itemsToInsert);
+    }
+  }
+
   revalidatePath("/[locale]/planner", "layout");
   return data;
+}
+
+export async function updatePlanner(id: string, title: string) {
+  const supabase = createServerSupabaseClient();
+  const { error } = await supabase.from("planners").update({ title }).eq("id", id);
+  if (error) throw new Error(error.message);
+  revalidatePath("/[locale]/planner", "layout");
+}
+
+export async function deletePlanner(id: string) {
+  const supabase = createServerSupabaseClient();
+  const { error } = await supabase.from("planners").delete().eq("id", id);
+  if (error) throw new Error(error.message);
+  revalidatePath("/[locale]/planner", "layout");
 }
 
 export async function createPlannerItem(
