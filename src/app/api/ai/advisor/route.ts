@@ -84,7 +84,7 @@ You MUST respond in ONLY valid JSON format matching this schema (NO markdown blo
 Rules:
 - For add_transaction, if category or account is not specified, use the ID of the first available one.
 - Always use the UUIDs provided in the context for category_id, account_id, and transaction_id.
-- Never wrap the response in \`\`\`json. Return pure JSON.\`;
+- Never wrap the response in \`\`\`json. Return pure JSON.`;
 
     const response = await fetch("https://openrouter.ai/api/v1/chat/completions", {
       method: "POST",
