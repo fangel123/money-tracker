@@ -26,7 +26,7 @@ export default async function SettingsPage({
 
   return (
     <SettingsContent
-      locale={locale as "id" | "en" | "zh" | "ja" | "ko"}
+      locale={locale as "id" | "en"}
       user={{ id: user.id, email: user.email || "" }}
       profile={profile}
     />

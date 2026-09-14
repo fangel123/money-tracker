@@ -1,28 +1,23 @@
 "use client";
 
 import { useState } from "react";
-import Link from "next/link";
-import { useRouter, usePathname } from "next/navigation";
-import { useTranslations } from "next-intl";
+import { Link, useRouter } from "@/i18n/navigation";
+import { useLocale } from "next-intl";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { registerSchema, type RegisterFormData } from "@/lib/validators/auth";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { cn } from "@/lib/utils";
 import { Mail, Lock, User, Eye, EyeOff } from "lucide-react";
 import { createBrowserSupabaseClient } from "@/lib/supabase/browser";
 
 export default function RegisterPage() {
   const router = useRouter();
-  const pathname = usePathname();
-  const t = useTranslations("auth.register");
+  const locale = useLocale();
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
-
-  const locale = pathname.split("/")[1];
 
   const {
     register,
@@ -49,14 +44,14 @@ export default function RegisterPage() {
       });
 
       if (authError) {
-        setFormError("root", { message: t("error") });
+        setFormError("root", { message: authError.message || "Gagal mendaftar. Silakan coba lagi." });
         return;
       }
 
-      router.push(`/${locale}/auth/login?registered=true`);
+      router.push("/auth/login?registered=true");
       router.refresh();
     } catch {
-      setFormError("root", { message: t("error") });
+      setFormError("root", { message: "Terjadi kesalahan. Silakan coba lagi." });
     } finally {
       setIsLoading(false);
     }
@@ -66,8 +61,8 @@ export default function RegisterPage() {
     <div className="space-y-6">
       {/* Header */}
       <div className="text-center space-y-2">
-        <h1 className="text-2xl font-bold text-foreground">{t("title")}</h1>
-        <p className="text-muted-foreground">{t("subtitle")}</p>
+        <h1 className="text-2xl font-bold text-foreground">Buat Akun Baru</h1>
+        <p className="text-muted-foreground">Mulai kelola keuangan Anda hari ini</p>
       </div>
 
       {/* Error message */}
@@ -81,52 +76,51 @@ export default function RegisterPage() {
       <form onSubmit={handleSubmit(onSubmit)} className="space-y-4" noValidate>
         {/* Name */}
         <div>
-          <Label htmlFor="full_name">{t("nameLabel")}</Label>
+          <Label htmlFor="full_name">Nama Lengkap</Label>
           <div className="relative mt-1.5">
             <User className="absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2 text-muted-foreground" />
             <Input
               {...register("full_name")}
               id="full_name"
               type="text"
-              placeholder={t("namePlaceholder")}
+              placeholder="Nama Anda"
               className="pl-10"
-              error={errors.full_name?.message}
               disabled={isLoading}
               autoComplete="name"
             />
           </div>
+          {errors.full_name && <p className="mt-1 text-sm text-destructive">{errors.full_name.message}</p>}
         </div>
 
         {/* Email */}
         <div>
-          <Label htmlFor="email">{t("emailLabel")}</Label>
+          <Label htmlFor="email">Email</Label>
           <div className="relative mt-1.5">
             <Mail className="absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2 text-muted-foreground" />
             <Input
               {...register("email")}
               id="email"
               type="email"
-              placeholder={t("emailPlaceholder")}
+              placeholder="anda@email.com"
               className="pl-10"
-              error={errors.email?.message}
               disabled={isLoading}
               autoComplete="email"
             />
           </div>
+          {errors.email && <p className="mt-1 text-sm text-destructive">{errors.email.message}</p>}
         </div>
 
         {/* Password */}
         <div>
-          <Label htmlFor="password">{t("passwordLabel")}</Label>
+          <Label htmlFor="password">Kata Sandi</Label>
           <div className="relative mt-1.5">
             <Lock className="absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2 text-muted-foreground" />
             <Input
               {...register("password")}
               id="password"
               type={showPassword ? "text" : "password"}
-              placeholder={t("passwordPlaceholder")}
+              placeholder="Minimal 8 karakter"
               className="pl-10 pr-10"
-              error={errors.password?.message}
               disabled={isLoading}
               autoComplete="new-password"
             />
@@ -139,20 +133,20 @@ export default function RegisterPage() {
               {showPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
             </button>
           </div>
+          {errors.password && <p className="mt-1 text-sm text-destructive">{errors.password.message}</p>}
         </div>
 
         {/* Confirm Password */}
         <div>
-          <Label htmlFor="confirm_password">{t("confirmPasswordLabel")}</Label>
+          <Label htmlFor="confirm_password">Konfirmasi Kata Sandi</Label>
           <div className="relative mt-1.5">
             <Lock className="absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2 text-muted-foreground" />
             <Input
               {...register("confirm_password")}
               id="confirm_password"
               type={showConfirmPassword ? "text" : "password"}
-              placeholder={t("confirmPasswordPlaceholder")}
+              placeholder="Ulangi kata sandi"
               className="pl-10 pr-10"
-              error={errors.confirm_password?.message}
               disabled={isLoading}
               autoComplete="new-password"
             />
@@ -165,19 +159,20 @@ export default function RegisterPage() {
               {showConfirmPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
             </button>
           </div>
+          {errors.confirm_password && <p className="mt-1 text-sm text-destructive">{errors.confirm_password.message}</p>}
         </div>
 
         {/* Submit */}
         <Button type="submit" className="w-full" size="lg" disabled={isLoading}>
-          {isLoading ? "Memuat..." : t("submit")}
+          {isLoading ? "Memuat..." : "Daftar"}
         </Button>
       </form>
 
       {/* Login link */}
       <p className="text-center text-sm text-muted-foreground">
-        {t("hasAccount")}{" "}
-        <Link href={`/${locale}/auth/login`} className="text-primary font-medium hover:underline">
-          {t("signIn")}
+        Sudah punya akun?{" "}
+        <Link href="/auth/login" className="text-primary font-medium hover:underline">
+          Masuk di sini
         </Link>
       </p>
     </div>

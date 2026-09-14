@@ -16,11 +16,12 @@ import { createTransaction, updateTransaction } from "./actions";
 import { transactionSchema, type TransactionFormData } from "@/lib/validators/transaction";
 import { Category, Account } from "@/types/domain";
 import { ArrowLeft, Plus, Calendar } from "lucide-react";
+import { DynamicIcon } from "@/components/common/DynamicIcon";
 import Link from "next/link";
 import { useRouter, usePathname } from "next/navigation";
 
 interface TransactionFormContentProps {
-  locale: "id" | "en" | "zh" | "ja" | "ko";
+  locale: "id" | "en";
   userId: string;
   initialType: "income" | "expense";
   categories: Category[];
@@ -98,7 +99,7 @@ export function TransactionFormContent({
       router.push("/transactions");
       router.refresh();
     } catch (error) {
-      setSubmitError(error instanceof Error ? error.message : "Gagal menyimpan transaksi");
+      setSubmitError(error instanceof Error ? error.message : t("form.error"));
     } finally {
       setIsSubmitting(false);
     }
@@ -180,8 +181,10 @@ export function TransactionFormContent({
               <SelectContent>
                 {filteredCategories.map((cat) => (
                   <SelectItem key={cat.id} value={cat.id}>
-                    {cat.icon && <span className="mr-2" style={{ color: cat.color || undefined }}>{cat.icon}</span>}
-                    {cat.name}
+                    <span className="flex items-center">
+                      {cat.icon && <DynamicIcon name={cat.icon} className="mr-2 h-4 w-4" style={{ color: cat.color || undefined }} />}
+                      {cat.name}
+                    </span>
                   </SelectItem>
                 ))}
               </SelectContent>
@@ -205,8 +208,10 @@ export function TransactionFormContent({
               <SelectContent>
                 {accounts.map((acc) => (
                   <SelectItem key={acc.id} value={acc.id}>
-                    {acc.icon && <span className="mr-2" style={{ color: acc.color || undefined }}>{acc.icon}</span>}
-                    {acc.name} ({formatCurrency(acc.balance, acc.currency, localeObj)})
+                    <span className="flex items-center">
+                      {acc.icon && <DynamicIcon name={acc.icon} className="mr-2 h-4 w-4" style={{ color: acc.color || undefined }} />}
+                      {acc.name} ({formatCurrency(acc.balance, acc.currency, localeObj)})
+                    </span>
                   </SelectItem>
                 ))}
               </SelectContent>
@@ -287,13 +292,13 @@ export function TransactionFormContent({
                   }
                 >
                   <SelectTrigger className="w-full mt-1.5">
-                    <SelectValue placeholder="Pilih frekuensi" />
+                    <SelectValue placeholder={t("form.recurringFrequencyPlaceholder")} />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="daily">Harian</SelectItem>
-                    <SelectItem value="weekly">Mingguan</SelectItem>
-                    <SelectItem value="monthly">Bulanan</SelectItem>
-                    <SelectItem value="yearly">Tahunan</SelectItem>
+                    <SelectItem value="daily">{t("form.frequencyDaily")}</SelectItem>
+                    <SelectItem value="weekly">{t("form.frequencyWeekly")}</SelectItem>
+                    <SelectItem value="monthly">{t("form.frequencyMonthly")}</SelectItem>
+                    <SelectItem value="yearly">{t("form.frequencyYearly")}</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
@@ -330,7 +335,7 @@ export function TransactionFormContent({
           {ct("cancel")}
         </Button>
         <Button type="submit" className="flex-1" disabled={isSubmitting}>
-          {isSubmitting ? (isEdit ? "Mengupdate..." : "Menyimpan...") : ct("save")}
+          {isSubmitting ? (isEdit ? t("form.updating") : t("form.submitting")) : ct("save")}
         </Button>
       </div>
     </form>

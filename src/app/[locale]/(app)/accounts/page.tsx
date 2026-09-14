@@ -27,7 +27,7 @@ export default async function AccountsPage({
 
   return (
     <AccountsContent
-      locale={locale as "id" | "en" | "zh" | "ja" | "ko"}
+      locale={locale as "id" | "en"}
       userId={user.id}
       initialAccounts={accounts || []}
     />

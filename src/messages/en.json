@@ -45,7 +45,23 @@
     "date": "Date",
     "note": "Note",
     "type": "Type",
-    "actions": "Actions"
+    "actions": "Actions",
+    "viewAll": "View All",
+    "addExpense": "Add Expense",
+    "addIncome": "Add Income",
+    "budgets": "Budgets",
+    "accounts": "Accounts",
+    "categories": "Categories",
+    "transactions": "Transactions",
+    "percent": "Percentage",
+    "retry": "Try Again",
+    "saving": "Saving...",
+    "updating": "Updating...",
+    "active": "Active",
+    "previous": "Previous",
+    "next": "Next",
+    "page": "Page",
+    "user": "User"
   },
   "auth": {
     "login": {
@@ -91,6 +107,10 @@
   "dashboard": {
     "title": "Dashboard",
     "welcome": "Welcome, {name}!",
+    "subtitle": "Your financial summary for today",
+    "totalBalance": "Total Overall Balance",
+    "budgetAlerts": "Budget Alerts",
+    "noBudgetAlerts": "No budget alerts",
     "summary": {
       "income": "Income",
       "expense": "Expense",
@@ -117,6 +137,9 @@
     "title": "Transactions",
     "addTitle": "Add Transaction",
     "editTitle": "Edit Transaction",
+    "edit": "Edit",
+    "delete": "Delete",
+    "loadError": "Failed to load transactions",
     "list": {
       "filters": "Filters",
       "searchPlaceholder": "Search transactions...",
@@ -126,6 +149,8 @@
       "allCategories": "All Categories",
       "allAccounts": "All Accounts",
       "dateRange": "Date Range",
+      "dateFrom": "From",
+      "dateTo": "To",
       "clearFilters": "Clear Filters",
       "noResults": "No matching transactions"
     },
@@ -143,10 +168,17 @@
       "noteLabel": "Note (optional)",
       "notePlaceholder": "Add a note...",
       "recurringLabel": "Recurring Transaction",
+      "recurringDescription": "Set this transaction to repeat automatically",
       "recurringFrequency": "Frequency",
+      "recurringFrequencyPlaceholder": "Select frequency",
       "recurringEndDate": "End Date",
+      "frequencyDaily": "Daily",
+      "frequencyWeekly": "Weekly",
+      "frequencyMonthly": "Monthly",
+      "frequencyYearly": "Yearly",
       "submit": "Save Transaction",
       "submitting": "Saving...",
+      "updating": "Updating...",
       "error": "Failed to save transaction"
     },
     "empty": {
@@ -159,6 +191,31 @@
       "message": "Are you sure you want to delete this transaction? This action cannot be undone.",
       "confirm": "Delete",
       "cancel": "Cancel"
+    },
+    "pagination": {
+      "previous": "Previous",
+      "next": "Next",
+      "page": "Page"
+    },
+    "header": {
+      "description": "Manage all your income and expenses"
+    },
+    "filters": {
+      "title": "Filters",
+      "searchPlaceholder": "Search transactions...",
+      "typeLabel": "Type",
+      "typeAll": "All Types",
+      "typeIncome": "Income",
+      "typeExpense": "Expense",
+      "categoryLabel": "Category",
+      "categoryAll": "All Categories",
+      "accountLabel": "Account",
+      "accountAll": "All Accounts",
+      "sortLabel": "Sort By",
+      "sortDateDesc": "Newest First",
+      "sortDateAsc": "Oldest First",
+      "sortAmountDesc": "Highest Amount",
+      "sortAmountAsc": "Lowest Amount"
     }
   },
   "categories": {
@@ -174,8 +231,14 @@
       "iconLabel": "Icon",
       "colorLabel": "Color",
       "parentLabel": "Parent Category (optional)",
+      "parentNone": "None (Main Category)",
       "submit": "Save Category",
       "error": "Failed to save category"
+    },
+    "item": {
+      "default": "Default",
+      "custom": "Custom",
+      "order": "Order"
     },
     "empty": {
       "title": "No categories yet",
@@ -183,8 +246,30 @@
       "action": "Add Category"
     },
     "defaultCategories": {
-      "income": ["Salary", "Freelance", "Investment", "Gift", "Other"],
-      "expense": ["Food", "Transport", "Shopping", "Entertainment", "Health", "Education", "Bills", "Other"]
+      "income": [
+        "Salary",
+        "Freelance",
+        "Investment",
+        "Gift",
+        "Other"
+      ],
+      "expense": [
+        "Food",
+        "Transport",
+        "Shopping",
+        "Entertainment",
+        "Health",
+        "Education",
+        "Bills",
+        "Other"
+      ]
+    },
+    "header": {
+      "description": "Customize income and expense categories"
+    },
+    "tabs": {
+      "expense": "Expense",
+      "income": "Income"
     }
   },
   "budgets": {
@@ -201,7 +286,11 @@
       "progress": "Progress",
       "alert": "Alert",
       "overBudget": "Over Budget",
-      "nearLimit": "Near Limit"
+      "nearLimit": "Near Limit",
+      "safe": "Safe",
+      "remainingLabel": "Remaining",
+      "startLabel": "Start",
+      "endLabel": "End"
     },
     "form": {
       "categoryLabel": "Category",
@@ -210,13 +299,18 @@
       "startDateLabel": "Start Date",
       "endDateLabel": "End Date (optional)",
       "thresholdLabel": "Alert Threshold (%)",
+      "thresholdDescription": "Percentage of budget that triggers an alert",
       "submit": "Save Budget",
+      "saving": "Saving...",
       "error": "Failed to save budget"
     },
     "empty": {
       "title": "No budgets yet",
       "description": "Set spending limits per category",
       "action": "Create Budget"
+    },
+    "header": {
+      "description": "Manage your spending limits"
     }
   },
   "accounts": {
@@ -240,7 +334,11 @@
       "iconLabel": "Icon",
       "colorLabel": "Color",
       "submit": "Save Account",
+      "saving": "Saving...",
       "error": "Failed to save account"
+    },
+    "status": {
+      "active": "Active"
     },
     "empty": {
       "title": "No accounts yet",
@@ -248,41 +346,62 @@
       "action": "Add Account"
     },
     "balance": "Balance",
-    "totalBalance": "Total Balance"
+    "totalBalance": "Total Balance",
+    "header": {
+      "description": "Monitor all your wallets and accounts"
+    }
   },
   "settings": {
     "title": "Settings",
+    "subtitle": "Manage your profile, preferences, and account security",
     "profile": {
       "title": "Profile",
+      "description": "Update your profile information and photo",
       "nameLabel": "Full Name",
+      "namePlaceholder": "Your Name",
       "emailLabel": "Email",
+      "emailNote": "Email cannot be changed. Contact support to change your email.",
       "avatarLabel": "Profile Photo",
+      "avatarNote": "PNG/JPG, max 2MB",
       "save": "Save Changes",
-      "saved": "Changes saved"
+      "saving": "Saving...",
+      "saved": "Changes saved",
+      "error": "Failed to save profile"
     },
     "preferences": {
       "title": "Preferences",
+      "description": "Set your language, currency, and app appearance",
       "languageLabel": "Language",
       "currencyLabel": "Default Currency",
       "themeLabel": "Theme",
       "themeLight": "Light",
       "themeDark": "Dark",
       "themeSystem": "System",
-      "save": "Save Preferences"
+      "save": "Save Preferences",
+      "saving": "Saving...",
+      "saved": "Preferences saved",
+      "error": "Failed to save preferences"
     },
     "security": {
       "title": "Security",
+      "description": "Manage your password and account security",
       "changePassword": "Change Password",
       "currentPasswordLabel": "Current Password",
       "newPasswordLabel": "New Password",
+      "newPasswordNote": "At least 8 characters, uppercase, lowercase, number, symbol",
       "confirmNewPasswordLabel": "Confirm New Password",
-      "update": "Update Password"
+      "update": "Update Password",
+      "updating": "Updating...",
+      "passwordChanged": "Password changed successfully"
     },
     "data": {
       "title": "Data",
       "exportTitle": "Export Data",
       "exportDescription": "Download all your transactions, categories, budgets, and accounts",
+      "exportNote": "Export all transactions, categories, budgets, and accounts to CSV file.",
       "exportButton": "Export (CSV)",
+      "exportSuccess": "Data exported successfully",
+      "exportError": "Failed to export data",
       "importTitle": "Import Data",
       "importDescription": "Import data from CSV file",
       "importButton": "Choose File"
@@ -292,7 +411,9 @@
       "deleteAccountTitle": "Delete Account",
       "deleteAccountDescription": "Deleting your account will permanently remove all your data. This action cannot be undone.",
       "deleteAccountButton": "Delete My Account",
-      "confirmDelete": "Type 'DELETE' to confirm"
+      "confirmDelete": "Type 'DELETE' to confirm",
+      "confirmDeleteWord": "DELETE",
+      "deleteError": "Failed to delete account"
     }
   },
   "errors": {

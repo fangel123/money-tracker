@@ -1,12 +1,11 @@
 "use client";
 
-import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { Link, usePathname } from "@/i18n/navigation";
 import { cn } from "@/lib/utils";
 import { useTranslations } from "next-intl";
 import {
-  LayoutDashboard,
-  List,
+  LayoutGrid,
+  ArrowRightLeft,
   Target,
   Wallet,
   Settings,
@@ -18,8 +17,8 @@ import {
 import { useUIStore } from "@/store";
 
 const navigation = [
-  { name: "dashboard.title", href: "/dashboard", icon: LayoutDashboard },
-  { name: "transactions.title", href: "/transactions", icon: List },
+  { name: "dashboard.title", href: "/dashboard", icon: LayoutGrid },
+  { name: "transactions.title", href: "/transactions", icon: ArrowRightLeft },
   { name: "budgets.title", href: "/budgets", icon: Target },
   { name: "accounts.title", href: "/accounts", icon: Wallet },
   { name: "settings.title", href: "/settings", icon: Settings },
@@ -44,7 +43,7 @@ export function Sidebar() {
       {/* Sidebar */}
       <aside
         className={cn(
-          "fixed left-0 top-0 z-50 h-full border-r bg-card transition-transform duration-200 lg:relative lg:translate-x-0",
+          "fixed left-0 top-0 z-50 h-full w-64 border-r bg-card transition-transform duration-200 lg:sticky lg:translate-x-0 lg:flex-shrink-0",
           sidebarOpen ? "translate-x-0" : "-translate-x-full lg:translate-x-0"
         )}
         aria-label="Navigasi utama"
@@ -74,7 +73,7 @@ export function Sidebar() {
                   key={item.name}
                   href={item.href}
                   className={cn(
-                    "flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors",
+                    "flex items-center gap-3 rounded-2xl px-4 py-3 text-sm font-semibold transition-colors",
                     isActive
                       ? "bg-primary text-primary-foreground"
                       : "text-muted-foreground hover:bg-accent hover:text-accent-foreground"

@@ -1,14 +1,18 @@
 import { getRequestConfig } from "next-intl/server";
-import { locales } from "./routing";
+import { locales, defaultLocale } from "./routing";
 
-export default getRequestConfig(async ({ locale }) => {
-  // Validate that the incoming locale is valid
-  if (!locales.includes(locale as any)) {
-    locale = "id";
+export default getRequestConfig(async ({ requestLocale }) => {
+  // requestLocale is a Promise in next-intl 3.22+
+  let locale = await requestLocale;
+
+  // Validate that the incoming locale is valid, fallback to default
+  if (!locale || !locales.includes(locale as any)) {
+    locale = defaultLocale;
   }
 
   return {
-    messages: (await import(`../../messages/${locale}.json`)).default,
+    locale,
+    messages: (await import(`../messages/${locale}.json`)).default,
     timeZone: "Asia/Jakarta",
     now: new Date(),
   };

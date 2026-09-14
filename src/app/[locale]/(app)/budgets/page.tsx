@@ -25,7 +25,7 @@ export default async function BudgetsPage({
 
   return (
     <BudgetsContent
-      locale={locale as "id" | "en" | "zh" | "ja" | "ko"}
+      locale={locale as "id" | "en"}
       userId={user.id}
       initialBudgets={budgets || []}
       initialCategories={categories || []}

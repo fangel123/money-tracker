@@ -28,7 +28,7 @@ export default async function CategoriesPage({
 
   return (
     <CategoriesContent
-      locale={locale as "id" | "en" | "zh" | "ja" | "ko"}
+      locale={locale as "id" | "en"}
       userId={user.id}
       initialCategories={categories || []}
     />

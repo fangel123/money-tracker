@@ -129,3 +129,54 @@ export interface AccountSummary {
   income: number;
   expense: number;
 }
+export interface Goal {
+  id: string;
+  user_id: string;
+  name: string;
+  target_amount: number;
+  current_amount: number;
+  deadline: string | null;
+  icon: string | null;
+  color: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface Debt {
+  id: string;
+  user_id: string;
+  name: string;
+  type: "payable" | "receivable";
+  amount: number;
+  remaining_amount: number;
+  due_date: string | null;
+  status: "active" | "paid";
+  created_at: string;
+  updated_at: string;
+}
+
+export interface Planner {
+  id: string;
+  user_id: string;
+  title: string;
+  notes_top: string | null;
+  notes_bottom: string | null;
+  sort_order: number;
+  created_at: string;
+  updated_at: string;
+}
+
+export type PlannerCategory = "income" | "wajib" | "tabungan" | "kebutuhan";
+
+export interface PlannerItem {
+  id: string;
+  planner_id: string;
+  category: PlannerCategory;
+  type: "income" | "expense";
+  name: string;
+  amount: number;
+  status_tag: string | null;
+  sort_order: number;
+  created_at: string;
+  updated_at: string;
+}

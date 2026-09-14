@@ -15,17 +15,12 @@ import {
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Menu, Sun, Moon, Monitor, Globe, LogOut, User, Settings } from "lucide-react";
 import { useThemeStore, useLocaleStore } from "@/store";
-import { useRouter } from "next/navigation";
+import { Link, usePathname, useRouter } from "@/i18n/navigation";
 import { createBrowserSupabaseClient } from "@/lib/supabase/browser";
-import Link from "next/link";
-import { usePathname } from "next/navigation";
 
 const locales = [
   { code: "id", name: "Indonesia", flag: "🇮🇩" },
   { code: "en", name: "English", flag: "🇺🇸" },
-  { code: "zh", name: "中文", flag: "🇨🇳" },
-  { code: "ja", name: "日本語", flag: "🇯🇵" },
-  { code: "ko", name: "한국어", flag: "🇰🇷" },
 ] as const;
 
 export function Header() {
@@ -40,7 +35,7 @@ export function Header() {
 
   const handleSignOut = async () => {
     await supabase.auth.signOut();
-    router.push(`/${locale}/auth/login`);
+    router.push("/auth/login");
     router.refresh();
   };
 
@@ -81,7 +76,7 @@ export function Header() {
                 )}
               </Button>
             </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="w-40">
+            <DropdownMenuContent align="end" className="w-40 bg-background border shadow-md">
               <DropdownMenuItem onClick={() => setTheme("light")}>
                 <Sun className="mr-2 h-4 w-4" />
                 {t("common.light")}
@@ -106,16 +101,13 @@ export function Header() {
                 <span className="text-xs font-medium">{currentLocale.name}</span>
               </Button>
             </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="w-48">
+            <DropdownMenuContent align="end" className="w-48 bg-background border shadow-md">
               {locales.map((l) => (
                 <DropdownMenuItem
                   key={l.code}
                   onClick={() => {
                     setLocale(l.code);
-                    // Update URL with new locale
-                    const newPath = pathname.replace(/^\/[a-z]{2}/, `/${l.code}`);
-                    router.push(newPath);
-                    router.refresh();
+                    router.replace(pathname, { locale: l.code });
                   }}
                   className={cn("flex items-center gap-2", locale === l.code && "bg-accent")}
                 >
@@ -137,7 +129,7 @@ export function Header() {
                 </Avatar>
               </Button>
             </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="w-56">
+            <DropdownMenuContent align="end" className="w-56 bg-background border shadow-md">
               <DropdownMenuItem asChild>
                 <Link href="/settings" className="flex w-full items-center gap-2" onClick={() => setUserMenuOpen(false)}>
                   <User className="h-4 w-4" />
@@ -165,8 +157,8 @@ export function Header() {
 
 function getPageTitle(pathname: string, t: ReturnType<typeof useTranslations>) {
   const segments = pathname.split("/").filter(Boolean);
-  if (segments.length < 2) return "Money Tracker";
-  const page = segments[1];
+  if (segments.length === 0) return "Money Tracker";
+  const page = segments[0];
   switch (page) {
     case "dashboard":
       return t("dashboard.title");

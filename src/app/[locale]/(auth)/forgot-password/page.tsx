@@ -1,9 +1,8 @@
 "use client";
 
 import { useState } from "react";
-import Link from "next/link";
-import { useRouter, usePathname } from "next/navigation";
-import { useTranslations } from "next-intl";
+import { Link, useRouter } from "@/i18n/navigation";
+import { useLocale, useTranslations } from "next-intl";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { forgotPasswordSchema, type ForgotPasswordFormData } from "@/lib/validators/auth";
@@ -15,12 +14,10 @@ import { createBrowserSupabaseClient } from "@/lib/supabase/browser";
 
 export default function ForgotPasswordPage() {
   const router = useRouter();
-  const pathname = usePathname();
+  const locale = useLocale();
   const t = useTranslations("auth.forgotPassword");
   const [isLoading, setIsLoading] = useState(false);
   const [success, setSuccess] = useState(false);
-
-  const locale = pathname.split("/")[1];
 
   const {
     register,
@@ -103,7 +100,7 @@ export default function ForgotPasswordPage() {
 
       {/* Back to login */}
       <p className="text-center text-sm text-muted-foreground">
-        <Link href={`/${locale}/auth/login`} className="text-primary font-medium hover:underline">
+        <Link href="/auth/login" className="text-primary font-medium hover:underline">
           {t("backToLogin")}
         </Link>
       </p>

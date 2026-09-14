@@ -24,7 +24,7 @@ import { useLocaleStore, useThemeStore } from "@/store";
 import { toast } from "@/store";
 
 interface SettingsContentProps {
-  locale: "id" | "en" | "zh" | "ja" | "ko";
+  locale: "id" | "en";
   user: { id: string; email: string };
   profile: { full_name: string | null; avatar_url: string | null; default_currency: string; locale: string; theme: "light" | "dark" | "system" } | null;
 }
@@ -32,9 +32,6 @@ interface SettingsContentProps {
 const LOCALES = [
   { code: "id", name: "Indonesia", flag: "🇮🇩" },
   { code: "en", name: "English", flag: "🇺🇸" },
-  { code: "zh", name: "中文", flag: "🇨🇳" },
-  { code: "ja", name: "日本語", flag: "🇯🇵" },
-  {code: "ko", name: "한국어", flag: "🇰🇷" },
 ] as const;
 
 const CURRENCIES = [
@@ -93,7 +90,7 @@ export function SettingsContent({ locale, user, profile }: SettingsContentProps)
   const preferencesForm = useForm<PreferencesFormData>({
     resolver: zodResolver(preferencesSchema),
     defaultValues: {
-      locale: (profile?.locale as "id" | "en" | "zh" | "ja" | "ko") || "id",
+      locale: (profile?.locale as "id" | "en") || "id",
       currency: profile?.default_currency || "IDR",
       theme: profile?.theme || "system",
     },
@@ -119,7 +116,7 @@ export function SettingsContent({ locale, user, profile }: SettingsContentProps)
       toast.success(t("preferences.saved"));
     },
     onError: () => {
-      toast.error("Gagal menyimpan preferensi");
+      toast.error(t("preferences.error"));
     },
   });
 
@@ -146,7 +143,7 @@ export function SettingsContent({ locale, user, profile }: SettingsContentProps)
     },
     onSuccess: () => {
       passwordForm.reset();
-      toast.success("Kata sandi berhasil diubah");
+      toast.success(t("security.passwordChanged"));
     },
     onError: (error) => {
       toast.error(error.message);
@@ -172,10 +169,10 @@ export function SettingsContent({ locale, user, profile }: SettingsContentProps)
         a.download = `money-tracker-export-${new Date().toISOString().split("T")[0]}.csv`;
         a.click();
         window.URL.revokeObjectURL(url);
-        toast.success("Data berhasil diekspor");
+        toast.success(t("data.exportSuccess"));
       }
     } catch {
-      toast.error("Gagal mengekspor data");
+      toast.error(t("data.exportError"));
     }
   };
 
@@ -183,8 +180,8 @@ export function SettingsContent({ locale, user, profile }: SettingsContentProps)
   const [deleteConfirm, setDeleteConfirm] = useState("");
 
   const handleDeleteAccount = async () => {
-    if (deleteConfirm !== "HAPUS") {
-      toast.error("Ketik 'HAPUS' untuk konfirmasi");
+    if (deleteConfirm !== t("dangerZone.confirmDeleteWord")) {
+      toast.error(t("dangerZone.confirmDelete"));
       return;
     }
 
@@ -201,7 +198,7 @@ export function SettingsContent({ locale, user, profile }: SettingsContentProps)
       router.push(`/${locale}/auth/login`);
       router.refresh();
     } catch {
-      toast.error("Gagal menghapus akun");
+      toast.error(t("dangerZone.deleteError"));
     }
   };
 
@@ -283,12 +280,12 @@ export function SettingsContent({ locale, user, profile }: SettingsContentProps)
                     className="mt-1.5 bg-muted"
                   />
                   <p className="mt-1 text-xs text-muted-foreground">
-                    Email tidak dapat diubah. Hubungi support untuk mengubah email.
+                    {t("profile.emailNote")}
                   </p>
                 </div>
 
                 <Button type="submit" disabled={profileMutation.isPending}>
-                  {profileMutation.isPending ? "Menyimpan..." : t("profile.save")}
+                  {profileMutation.isPending ? t("profile.saving") : t("profile.save")}
                 </Button>
               </form>
             </CardContent>
@@ -359,23 +356,29 @@ export function SettingsContent({ locale, user, profile }: SettingsContentProps)
                     </SelectTrigger>
                     <SelectContent>
                       <SelectItem value="light">
-                        <Sun className="mr-2 h-4 w-4" />
-                        {t("preferences.themeLight")}
+                        <span className="flex items-center">
+                          <Sun className="mr-2 h-4 w-4" />
+                          {t("preferences.themeLight")}
+                        </span>
                       </SelectItem>
                       <SelectItem value="dark">
-                        <Moon className="mr-2 h-4 w-4" />
-                        {t("preferences.themeDark")}
+                        <span className="flex items-center">
+                          <Moon className="mr-2 h-4 w-4" />
+                          {t("preferences.themeDark")}
+                        </span>
                       </SelectItem>
                       <SelectItem value="system">
-                        <Monitor className="mr-2 h-4 w-4" />
-                        {t("preferences.themeSystem")}
+                        <span className="flex items-center">
+                          <Monitor className="mr-2 h-4 w-4" />
+                          {t("preferences.themeSystem")}
+                        </span>
                       </SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
 
                 <Button type="submit" disabled={preferencesMutation.isPending}>
-                  {preferencesMutation.isPending ? "Menyimpan..." : t("preferences.save")}
+                  {preferencesMutation.isPending ? t("preferences.saving") : t("preferences.save")}
                 </Button>
               </form>
             </CardContent>
@@ -422,7 +425,7 @@ export function SettingsContent({ locale, user, profile }: SettingsContentProps)
                     <p className="mt-1 text-sm text-destructive">{passwordForm.formState.errors.new_password.message}</p>
                   )}
                   <p className="mt-1 text-xs text-muted-foreground">
-                    Minimal 8 karakter, huruf besar, huruf kecil, angka, simbol
+                    {t("security.newPasswordNote")}
                   </p>
                 </div>
 
@@ -443,7 +446,7 @@ export function SettingsContent({ locale, user, profile }: SettingsContentProps)
                 </div>
 
                 <Button type="submit" disabled={passwordMutation.isPending}>
-                  {passwordMutation.isPending ? "Mengupdate..." : t("security.update")}
+                  {passwordMutation.isPending ? t("security.updating") : t("security.update")}
                 </Button>
               </form>
             </CardContent>
@@ -463,7 +466,7 @@ export function SettingsContent({ locale, user, profile }: SettingsContentProps)
                 {t("data.exportButton")}
               </Button>
               <p className="text-sm text-muted-foreground">
-                Ekspor semua transaksi, kategori, budget, dan akun ke file CSV.
+                {t("data.exportNote")}
               </p>
             </CardContent>
           </Card>
@@ -482,7 +485,7 @@ export function SettingsContent({ locale, user, profile }: SettingsContentProps)
                 <Input
                   id="delete_confirm"
                   type="text"
-                  placeholder="HAPUS"
+                  placeholder={t("dangerZone.confirmDeleteWord")}
                   value={deleteConfirm}
                   onChange={(e) => setDeleteConfirm(e.target.value)}
                   className="mt-1.5 font-mono"
@@ -490,7 +493,7 @@ export function SettingsContent({ locale, user, profile }: SettingsContentProps)
               </div>
               <AlertDialog>
                 <AlertDialogTrigger asChild>
-                  <Button variant="destructive" onClick={handleDeleteAccount} disabled={deleteConfirm !== "HAPUS"}>
+                  <Button variant="destructive" onClick={handleDeleteAccount} disabled={deleteConfirm !== t("dangerZone.confirmDeleteWord")}>
                     <Trash2 className="mr-2 h-4 w-4" />
                     {t("dangerZone.deleteAccountButton")}
                   </Button>
@@ -504,7 +507,7 @@ export function SettingsContent({ locale, user, profile }: SettingsContentProps)
                   </AlertDialogHeader>
                   <AlertDialogFooter>
                     <AlertDialogCancel>{ct("cancel")}</AlertDialogCancel>
-                    <AlertDialogAction onClick={handleDeleteAccount} disabled={deleteConfirm !== "HAPUS"}>
+                    <AlertDialogAction onClick={handleDeleteAccount} disabled={deleteConfirm !== t("dangerZone.confirmDeleteWord")}>
                       {t("dangerZone.deleteAccountButton")}
                     </AlertDialogAction>
                   </AlertDialogFooter>

@@ -7,9 +7,8 @@ import { cn, formatCurrency, ACCOUNT_TYPES } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { EmptyState } from "@/components/common/EmptyState";
-import { Plus, Edit, Trash2, CreditCard, Wallet, Building2, Smartphone, PiggyBank, TrendingUp, Briefcase } from "lucide-react";
+import { Plus, Edit, Trash2, CreditCard, Wallet, Building2, Smartphone, TrendingUp, Briefcase, MoreVertical } from "lucide-react";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -20,7 +19,7 @@ import { Account } from "@/types/domain";
 import { createBrowserSupabaseClient } from "@/lib/supabase/browser";
 
 interface AccountsContentProps {
-  locale: "id" | "en" | "zh" | "ja" | "ko";
+  locale: "id" | "en";
   userId: string;
   initialAccounts: Account[];
 }
@@ -40,79 +39,31 @@ export function AccountsContent({ locale, userId, initialAccounts }: AccountsCon
   const queryClient = useQueryClient();
   const [showForm, setShowForm] = useState(false);
   const [editingAccount, setEditingAccount] = useState<Account | null>(null);
-  const [selectedIcon, setSelectedIcon] = useState("");
-  const [selectedColor, setSelectedColor] = useState("");
 
   const { data: accounts = [] } = useQuery({
     queryKey: ["accounts", userId],
     queryFn: async () => {
       const supabase = createBrowserSupabaseClient();
       const { data } = await supabase.from("accounts").select("*").eq("user_id", userId).eq("is_active", true).order("sort_order");
-      return data as Account[];
+      return (data || []) as Account[];
     },
     initialData: initialAccounts,
   });
 
-  const { data: transactions = [] } = useQuery({
-    queryKey: ["transactions", userId],
-    queryFn: async () => {
-      const supabase = createBrowserSupabaseClient();
-      const { data } = await supabase.from("transactions").select("account_id, amount, type").eq("user_id", userId);
-      return data as any[];
-    },
-  });
-
-  const accountsWithBalance = accounts.map((account) => {
-    const accountTransactions = transactions.filter((tx) => tx.account_id === account.id);
-    const calculatedBalance = accountTransactions.reduce((sum, tx) => {
-      return tx.type === "income" ? sum + tx.amount : sum - tx.amount;
-    }, 0);
-    
-    return {
-      ...account,
-      currentBalance: account.balance + calculatedBalance,
-    };
-  });
-
-  const totalBalance = accountsWithBalance.reduce((sum, acc) => sum + acc.currentBalance, 0);
-
-  const createMutation = useMutation({
+  const saveMutation = useMutation({
     mutationFn: async (data: AccountFormData) => {
       const supabase = createBrowserSupabaseClient();
-      const { data: result, error } = await supabase.from("accounts").insert({
-        ...data,
-        user_id: userId,
-        balance: data.balance || 0,
-        color: data.color || ACCOUNT_TYPES.find(t => t.value === data.type)?.color || "#64748b",
-        icon: data.icon || "wallet",
-      }).select().single();
-      if (error) throw error;
-      return result;
+      if (editingAccount) {
+        const { error } = await supabase.from("accounts").update(data).eq("id", editingAccount.id);
+        if (error) throw error;
+      } else {
+        const { error } = await supabase.from("accounts").insert({ ...data, user_id: userId });
+        if (error) throw error;
+      }
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["accounts"] });
-      queryClient.invalidateQueries({ queryKey: ["transactions"] });
-      queryClient.invalidateQueries({ queryKey: ["dashboard"] });
       setShowForm(false);
-      setEditingAccount(null);
-    },
-  });
-
-  const updateMutation = useMutation({
-    mutationFn: async ({ id, data }: { id: string; data: Partial<AccountFormData> }) => {
-      const supabase = createBrowserSupabaseClient();
-      const { data: result, error } = await supabase.from("accounts").update({
-        ...data,
-        balance: data.balance ?? 0,
-        updated_at: new Date().toISOString(),
-      }).eq("id", id).eq("user_id", userId).select().single();
-      if (error) throw error;
-      return result;
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["accounts"] });
-      queryClient.invalidateQueries({ queryKey: ["transactions"] });
-      queryClient.invalidateQueries({ queryKey: ["dashboard"] });
       setEditingAccount(null);
     },
   });
@@ -120,118 +71,114 @@ export function AccountsContent({ locale, userId, initialAccounts }: AccountsCon
   const deleteMutation = useMutation({
     mutationFn: async (id: string) => {
       const supabase = createBrowserSupabaseClient();
-      const { data: txs } = await supabase.from("transactions").select("id").eq("account_id", id).limit(1);
-      if (txs && txs.length > 0) {
-        const { error } = await supabase.from("accounts").update({ is_active: false }).eq("id", id).eq("user_id", userId);
-        if (error) throw error;
-      } else {
-        const { error } = await supabase.from("accounts").delete().eq("id", id).eq("user_id", userId);
-        if (error) throw error;
-      }
+      const { error } = await supabase.from("accounts").update({ is_active: false }).eq("id", id);
+      if (error) throw error;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["accounts"] });
-      queryClient.invalidateQueries({ queryKey: ["dashboard"] });
     },
   });
 
-  const handleSubmit = (data: AccountFormData) => {
-    if (editingAccount) {
-      updateMutation.mutate({ id: editingAccount.id, data });
-    } else {
-      createMutation.mutate(data);
-    }
-  };
-
-  const openCreate = () => {
-    const defaultType = ACCOUNT_TYPES[0];
-    setSelectedIcon(defaultType.icon);
-    setSelectedColor(defaultType.color);
-    setEditingAccount(null);
-    setShowForm(true);
-  };
-
-  const openEdit = (account: Account) => {
-    setSelectedIcon(account.icon || "");
-    setSelectedColor(account.color || "");
+  const handleEdit = (account: Account) => {
     setEditingAccount(account);
     setShowForm(true);
   };
 
-  const closeForm = () => {
-    setShowForm(false);
-    setEditingAccount(null);
-  };
-
-  const localeObj = locale === "id" ? "id-ID" : locale === "en" ? "en-US" : locale;
+  const totalBalance = accounts.reduce((sum, account) => {
+    // Kurangi saldo kartu kredit dari total kekayaan
+    if (account.type === "credit_card") {
+      return sum - Number(account.balance);
+    }
+    return sum + Number(account.balance);
+  }, 0);
 
   return (
-    <div className="space-y-6">
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+    <div className="space-y-6 pb-24 p-4 md:p-6 lg:p-8 max-w-3xl mx-auto">
+      {/* Header */}
+      <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-foreground">{t("title")}</h1>
-          <p className="text-muted-foreground">{accounts.length} {ct("accounts")}</p>
+          <h1 className="text-2xl font-extrabold tracking-tight text-foreground flex items-center gap-2">
+            Aset & Rekening <Briefcase className="h-6 w-6 text-primary" />
+          </h1>
+          <p className="text-muted-foreground text-sm">{t("header.description")}</p>
         </div>
-        <div className="flex items-center gap-4">
-          <div className="text-right">
-            <p className="text-sm text-muted-foreground">{t("totalBalance")}</p>
-            <p className="text-2xl font-bold text-foreground">
-              {formatCurrency(totalBalance, "IDR", localeObj)}
-            </p>
-          </div>
-          <Button onClick={openCreate}>
-            <Plus className="mr-2 h-4 w-4" />
-            {t("addTitle")}
-          </Button>
-        </div>
+        <Button 
+          onClick={() => { setEditingAccount(null); setShowForm(true); }}
+          className="rounded-full h-12 w-12 p-0 shadow-lg" 
+          size="icon"
+        >
+          <Plus className="h-6 w-6" />
+        </Button>
       </div>
 
-      {accounts.length === 0 ? (
-        <Card>
-          <CardContent className="pt-6">
+      {/* Summary Card */}
+      {accounts.length > 0 && (
+        <div className="relative overflow-hidden rounded-[2rem] bg-[#111111] p-6 text-white shadow-lg border border-border/20">
+          <div className="flex items-center gap-2 text-xs font-semibold tracking-wider text-muted-foreground uppercase mb-4">
+            <Wallet className="h-4 w-4 text-primary" />
+            <span>TOTAL KEKAYAAN BERSIH</span>
+          </div>
+          <div className="flex items-center gap-3 mb-1">
+            <span className={cn("text-4xl font-black tracking-tight", totalBalance < 0 ? "text-destructive" : "text-primary")}>
+              {formatCurrency(totalBalance, "IDR", { locale })}
+            </span>
+          </div>
+          <p className="text-sm font-medium text-gray-400">
+            Kombinasi saldo positif dikurangi utang kartu kredit
+          </p>
+        </div>
+      )}
+
+      {/* List */}
+      <div className="space-y-4">
+        {accounts.length === 0 ? (
+          <div className="bg-card rounded-[2rem] border border-border/50 p-8">
             <EmptyState
-              icon={<PiggyBank className="h-12 w-12" />}
+              icon={<Wallet className="h-12 w-12" />}
               titleKey="accounts.empty.title"
               descriptionKey="accounts.empty.description"
               actionKey="accounts.empty.action"
-              onAction={openCreate}
+              onAction={() => setShowForm(true)}
             />
-          </CardContent>
-        </Card>
-      ) : (
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-          {accountsWithBalance.map((account) => (
+          </div>
+        ) : (
+          accounts.map((account) => (
             <AccountCard
               key={account.id}
               account={account}
               locale={locale}
-              onEdit={openEdit}
-              onDelete={deleteMutation.mutate}
+              onEdit={handleEdit}
+              onDelete={(id) => deleteMutation.mutate(id)}
             />
-          ))}
-        </div>
-      )}
+          ))
+        )}
+      </div>
 
-      <Dialog open={showForm} onOpenChange={closeForm}>
-        <DialogContent className="max-w-md">
+      {/* Form Modal */}
+      <Dialog open={showForm} onOpenChange={setShowForm}>
+        <DialogContent className="sm:max-w-[425px] rounded-[2rem] p-6 border-border/50 shadow-2xl">
           <DialogHeader>
-            <DialogTitle>{editingAccount ? t("editTitle") : t("addTitle")}</DialogTitle>
+            <DialogTitle className="text-xl font-bold">
+              {editingAccount ? t("form.editTitle") : t("form.createTitle")}
+            </DialogTitle>
           </DialogHeader>
-          <AccountForm
-            onSubmit={handleSubmit}
-            isEditing={!!editingAccount}
-            initialData={editingAccount}
-            selectedIcon={selectedIcon}
-            setSelectedIcon={setSelectedIcon}
-            selectedColor={selectedColor}
-            setSelectedColor={setSelectedColor}
-          />
+          <div className="py-4">
+            <AccountForm
+              initialData={editingAccount}
+              onSubmit={(data) => saveMutation.mutate(data)}
+            />
+          </div>
           <DialogFooter>
-            <Button type="button" variant="outline" onClick={closeForm}>
+            <Button variant="outline" className="rounded-full" onClick={() => setShowForm(false)}>
               {ct("cancel")}
             </Button>
-            <Button type="submit" form="account-form" disabled={createMutation.isPending || updateMutation.isPending}>
-              {createMutation.isPending || updateMutation.isPending ? "Menyimpan..." : ct("save")}
+            <Button 
+              type="submit" 
+              form="account-form" 
+              className="rounded-full font-bold"
+              disabled={saveMutation.isPending}
+            >
+              {saveMutation.isPending ? ct("saving") : ct("save")}
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -246,75 +193,67 @@ function AccountCard({
   onEdit,
   onDelete,
 }: {
-  account: Account & { currentBalance: number };
-  locale: "id" | "en" | "zh" | "ja" | "ko";
+  account: Account;
+  locale: "id" | "en";
   onEdit: (account: Account) => void;
   onDelete: (id: string) => void;
 }) {
   const t = useTranslations("accounts");
   const ct = useTranslations("common");
-  const localeObj = locale === "id" ? "id-ID" : locale === "en" ? "en-US" : locale;
-  const IconComponent = ACCOUNT_ICONS[account.type] || Wallet;
-  const typeInfo = ACCOUNT_TYPES.find((t) => t.value === account.type);
+  const localeObj = { locale };
+
+  const Icon = ACCOUNT_ICONS[account.type as keyof typeof ACCOUNT_ICONS] || Briefcase;
+  const isDebt = account.type === "credit_card";
 
   return (
-    <Card className="border-l-4" style={{ borderLeftColor: account.color || typeInfo?.color }}>
-      <CardContent className="pt-6">
-        <div className="flex items-start justify-between gap-4">
-          <div className="flex items-center gap-3">
-            <div
-              className="flex h-10 w-10 items-center justify-center rounded-lg"
-              style={{ backgroundColor: account.color ? `${account.color}20` : "var(--muted)" }}
-            >
-              <IconComponent className="h-5 w-5" style={{ color: account.color || typeInfo?.color }} />
-            </div>
-            <div>
-              <h3 className="font-medium">{account.name}</h3>
-              <p className="text-xs text-muted-foreground capitalize">{typeInfo?.label || account.type}</p>
-            </div>
+    <div className="bg-card border border-border/50 rounded-[2rem] p-5 shadow-sm relative overflow-hidden group">
+      <div className="flex items-start justify-between mb-4">
+        <div className="flex items-center gap-4">
+          <div 
+            className="h-12 w-12 rounded-full flex items-center justify-center text-xl bg-secondary"
+            style={{ color: account.color || undefined, backgroundColor: account.color ? `${account.color}20` : undefined }}
+          >
+            <Icon className="h-6 w-6" />
           </div>
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <button className="p-1 rounded-lg hover:bg-muted transition-colors shrink-0">
-                <span className="h-5 w-5">⋮</span>
-              </button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end">
-              <DropdownMenuItem onClick={() => onEdit(account)}>
-                <Edit className="mr-2 h-4 w-4" />
-                {ct("edit")}
-              </DropdownMenuItem>
-              <DropdownMenuSeparator />
-              <DropdownMenuItem
-                onClick={() => onDelete(account.id)}
-                className="text-destructive focus:text-destructive"
-              >
-                <Trash2 className="mr-2 h-4 w-4" />
-                {ct("delete")}
-              </DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
+          <div>
+            <h3 className="font-bold text-foreground text-lg">{account.name}</h3>
+            <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mt-1">
+              {t(`types.${account.type}`)}
+            </p>
+          </div>
         </div>
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <button className="h-8 w-8 rounded-full flex items-center justify-center hover:bg-secondary transition-colors text-muted-foreground">
+              <MoreVertical className="h-5 w-5" />
+            </button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end" className="rounded-2xl border-border/50">
+            <DropdownMenuItem onClick={() => onEdit(account)} className="rounded-xl cursor-pointer">
+              <Edit className="mr-2 h-4 w-4" />
+              {ct("edit")}
+            </DropdownMenuItem>
+            <DropdownMenuSeparator />
+            <DropdownMenuItem
+              onClick={() => onDelete(account.id)}
+              className="text-destructive focus:text-destructive rounded-xl cursor-pointer"
+            >
+              <Trash2 className="mr-2 h-4 w-4" />
+              {ct("delete")}
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
+      </div>
 
-        <div className="mt-4">
-          <p className="text-sm text-muted-foreground">{t("balance")}</p>
-          <p className="text-2xl font-bold text-foreground" style={{ color: account.currentBalance >= 0 ? "var(--primary)" : "var(--destructive)" }}>
-            {formatCurrency(account.currentBalance, account.currency, localeObj)}
-          </p>
-        </div>
-
-        <div className="mt-3 flex items-center gap-2 text-xs text-muted-foreground">
-          <span className="px-2 py-0.5 rounded-full bg-muted">
-            {account.currency}
+      <div className="space-y-2">
+        <div className="flex justify-between text-sm font-bold">
+          <span className="text-muted-foreground">Saldo Saat Ini</span>
+          <span className={cn("text-lg", isDebt ? "text-destructive" : "text-foreground")}>
+            {formatCurrency(account.balance, account.currency, localeObj)}
           </span>
-          {account.is_active && (
-            <span className="px-2 py-0.5 rounded-full bg-green-500/10 text-green-500">
-              Aktif
-            </span>
-          )}
         </div>
-      </CardContent>
-    </Card>
+      </div>
+    </div>
   );
 }
 
@@ -322,18 +261,10 @@ function AccountForm({
   onSubmit,
   isEditing,
   initialData,
-  selectedIcon,
-  setSelectedIcon,
-  selectedColor,
-  setSelectedColor,
 }: {
   onSubmit: (data: AccountFormData) => void;
-  isEditing: boolean;
+  isEditing?: boolean;
   initialData: Account | null;
-  selectedIcon: string;
-  setSelectedIcon: (icon: string) => void;
-  selectedColor: string;
-  setSelectedColor: (color: string) => void;
 }) {
   const t = useTranslations("accounts");
   const ct = useTranslations("common");
@@ -348,147 +279,65 @@ function AccountForm({
     resolver: zodResolver(accountSchema),
     defaultValues: {
       name: initialData?.name || "",
-      type: initialData?.type || "cash",
+      type: initialData?.type || "bank",
       currency: initialData?.currency || "IDR",
       balance: initialData?.balance || 0,
       icon: initialData?.icon || "",
       color: initialData?.color || "",
+      is_active: initialData?.is_active ?? true,
+      sort_order: initialData?.sort_order || 0,
     },
   });
 
-  const watchedType = watch("type");
-  const typeInfo = ACCOUNT_TYPES.find((t) => t.value === watchedType);
-  const defaultIcon = typeInfo?.icon || "wallet";
-  const defaultColor = typeInfo?.color || "#64748b";
-
-  const handleTypeChange = (value: string) => {
-    setValue("type", value as any);
-    const info = ACCOUNT_TYPES.find((t) => t.value === value);
-    if (info) {
-      setSelectedIcon(info.icon);
-      setSelectedColor(info.color);
-      setValue("icon", info.icon);
-      setValue("color", info.color);
-    }
-  };
-
   return (
-    <form id="account-form" onSubmit={handleSubmit(onSubmit)} className="space-y-4">
+    <form id="account-form" onSubmit={handleSubmit(onSubmit)} className="space-y-5">
       <div>
-        <Label htmlFor="name">{t("form.nameLabel")}</Label>
+        <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">{t("form.nameLabel")}</Label>
         <Input
           {...register("name")}
-          id="name"
           placeholder={t("form.namePlaceholder")}
-          error={errors.name?.message}
+          className="mt-1.5 h-12 text-base font-bold rounded-xl border-border/50 bg-secondary/50"
         />
-        {errors.name && <p className="mt-1 text-sm text-destructive">{errors.name.message}</p>}
+        {errors.name && <p className="mt-1 text-xs text-destructive">{errors.name.message}</p>}
       </div>
 
       <div>
-        <Label>{t("form.typeLabel")}</Label>
+        <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">{t("form.typeLabel")}</Label>
         <Select
-          value={watchedType}
-          onValueChange={handleTypeChange}
+          value={watch("type")}
+          onValueChange={(value) => setValue("type", value as Account["type"])}
         >
-          <SelectTrigger className="w-full mt-1.5">
+          <SelectTrigger className="w-full mt-1.5 rounded-xl h-12 border-border/50 bg-secondary/50">
             <SelectValue placeholder={t("form.typeLabel")} />
           </SelectTrigger>
-          <SelectContent>
-            {ACCOUNT_TYPES.map((type) => {
-              const Icon = ACCOUNT_ICONS[type.value as keyof typeof ACCOUNT_ICONS];
-              return (
-                <SelectItem key={type.value} value={type.value}>
-                  <Icon className="mr-2 h-4 w-4" style={{ color: type.color }} />
-                  {type.label}
-                </SelectItem>
-              );
-            })}
+          <SelectContent className="rounded-2xl border-border/50">
+            {ACCOUNT_TYPES.map((typeObj) => (
+              <SelectItem key={typeObj.value} value={typeObj.value} className="rounded-xl">
+                {t(`types.${typeObj.value}`)}
+              </SelectItem>
+            ))}
           </SelectContent>
         </Select>
       </div>
 
       <div>
-        <Label htmlFor="currency">{t("form.currencyLabel")}</Label>
-        <Select
-          value={watch("currency")}
-          onValueChange={(value) => setValue("currency", value)}
-        >
-          <SelectTrigger className="w-full mt-1.5">
-            <SelectValue placeholder={t("form.currencyLabel")} />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="IDR">IDR - Rupiah Indonesia</SelectItem>
-            <SelectItem value="USD">USD - US Dollar</SelectItem>
-            <SelectItem value="EUR">EUR - Euro</SelectItem>
-            <SelectItem value="SGD">SGD - Singapore Dollar</SelectItem>
-            <SelectItem value="MYR">MYR - Malaysian Ringgit</SelectItem>
-          </SelectContent>
-        </Select>
-      </div>
-
-      <div>
-        <Label htmlFor="balance">{t("form.balanceLabel")}</Label>
+        <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">{t("form.balanceLabel")}</Label>
         <Input
           {...register("balance", { valueAsNumber: true })}
-          id="balance"
           type="number"
           placeholder="0"
-          className="mt-1.5 text-right font-mono"
-          error={errors.balance?.message}
-          step="1000"
+          className="mt-1.5 h-12 text-lg font-bold rounded-xl border-border/50 bg-secondary/50"
         />
-        {errors.balance && <p className="mt-1 text-sm text-destructive">{errors.balance.message}</p>}
+        {errors.balance && <p className="mt-1 text-xs text-destructive">{errors.balance.message}</p>}
       </div>
 
       <div>
-        <Label>{t("form.iconLabel")}</Label>
-        <div className="mt-1.5 flex flex-wrap gap-1 max-h-40 overflow-y-auto p-2 border rounded-lg">
-          {Object.values(ACCOUNT_ICONS).map((Icon) => {
-            const iconName = Icon.displayName || "wallet";
-            return (
-              <button
-                key={iconName}
-                type="button"
-                onClick={() => {
-                  setSelectedIcon(iconName);
-                  setValue("icon", iconName);
-                }}
-                className={cn(
-                  "p-2 rounded-lg transition-colors",
-                  selectedIcon === iconName
-                    ? "bg-primary text-primary-foreground"
-                    : "hover:bg-accent"
-                )}
-              >
-                <Icon className="h-5 w-5" />
-              </button>
-            );
-          })}
-        </div>
-      </div>
-
-      <div>
-        <Label>{t("form.colorLabel")}</Label>
-        <div className="mt-1.5 flex flex-wrap gap-1">
-          {ACCOUNT_TYPES.map((type) => (
-            <button
-              key={type.color}
-              type="button"
-              onClick={() => {
-                setSelectedColor(type.color);
-                setValue("color", type.color);
-              }}
-              className={cn(
-                "h-8 w-8 rounded-lg border-2 transition-all",
-                selectedColor === type.color
-                  ? "border-primary scale-110"
-                  : "border-transparent hover:border-muted-foreground/50"
-              )}
-              style={{ backgroundColor: type.color }}
-            />
-          ))}
-        </div>
+        <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">{t("form.currencyLabel")}</Label>
+        <Input
+          {...register("currency")}
+          placeholder="IDR"
+          className="mt-1.5 h-12 rounded-xl border-border/50 bg-secondary/50"
+        />
       </div>
     </form>
   );

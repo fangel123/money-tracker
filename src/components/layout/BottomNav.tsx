@@ -1,75 +1,76 @@
 "use client";
 
-import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { Link, usePathname } from "@/i18n/navigation";
 import { cn } from "@/lib/utils";
-import { useTranslations } from "next-intl";
 import {
-  LayoutDashboard,
-  List,
-  Target,
+  LayoutGrid,
   Wallet,
-  Settings,
+  ArrowRightLeft,
+  User,
   Plus,
 } from "lucide-react";
 
 const navigation = [
-  { name: "dashboard.title", href: "/dashboard", icon: LayoutDashboard },
-  { name: "transactions.title", href: "/transactions", icon: List },
-  { name: "budgets.title", href: "/budgets", icon: Target },
-  { name: "accounts.title", href: "/accounts", icon: Wallet },
-  { name: "settings.title", href: "/settings", icon: Settings },
+  { name: "dashboard", href: "/dashboard", icon: LayoutGrid },
+  { name: "accounts", href: "/accounts", icon: Wallet },
+  { name: "transactions", href: "/transactions", icon: ArrowRightLeft },
+  { name: "settings", href: "/settings", icon: User },
 ] as const;
 
 export function BottomNav() {
   const pathname = usePathname();
-  const t = useTranslations();
 
   return (
-    <nav
-      className="fixed bottom-0 left-0 right-0 z-50 border-t bg-card/95 backdrop-blur supports-[backdrop-filter]:bg-card/60 lg:hidden"
-      aria-label="Navigasi bawah"
-    >
-      <div className="flex h-16 items-center justify-around">
-        {navigation.map((item) => {
-          const isActive = pathname === item.href || pathname.startsWith(item.href + "/");
-          return (
+    <>
+      <nav
+        className="fixed bottom-6 left-6 right-6 z-50 rounded-[2rem] bg-card/90 shadow-[0_8px_30px_rgb(0,0,0,0.12)] backdrop-blur-md border border-border lg:hidden supports-[backdrop-filter]:bg-card/75"
+        aria-label="Navigasi bawah"
+      >
+        <div className="flex h-[4.5rem] items-center justify-around px-2 relative">
+          
+          <NavItem item={navigation[0]} pathname={pathname} />
+          <NavItem item={navigation[1]} pathname={pathname} />
+
+          {/* Center FAB */}
+          <div className="flex flex-col items-center justify-center w-14">
             <Link
-              key={item.name}
-              href={item.href}
-              className={cn(
-                "flex flex-col items-center gap-1 px-3 py-2 text-xs font-medium transition-colors",
-                isActive
-                  ? "text-primary"
-                  : "text-muted-foreground"
-              )}
-              aria-current={isActive ? "page" : undefined}
+              href="/transactions/new"
+              className="absolute -top-3 flex h-16 w-16 items-center justify-center rounded-full bg-primary text-primary-foreground shadow-[0_8px_20px_rgba(204,255,0,0.4)] hover:bg-primary/90 transition-transform hover:scale-105 active:scale-95 border-[6px] border-background"
+              aria-label="Tambah transaksi"
             >
-              <item.icon className="h-5 w-5" aria-hidden="true" />
-              <span>{t(item.name)}</span>
+              <Plus className="h-8 w-8 stroke-[3]" />
             </Link>
-          );
-        })}
-      </div>
-    </nav>
+          </div>
+
+          <NavItem item={navigation[2]} pathname={pathname} />
+          <NavItem item={navigation[3]} pathname={pathname} />
+
+        </div>
+      </nav>
+      {/* Spacer so content isn't hidden behind the floating nav */}
+      <div className="h-28 lg:hidden" aria-hidden="true" />
+    </>
+  );
+}
+
+function NavItem({ item, pathname }: { item: { name: string, href: string, icon: any }, pathname: string }) {
+  const isActive = pathname === item.href || (item.href !== "/dashboard" && pathname.startsWith(item.href + "/"));
+  return (
+    <Link
+      href={item.href}
+      className={cn(
+        "flex flex-col items-center justify-center w-12 h-12 rounded-full transition-all",
+        isActive
+          ? "text-foreground bg-secondary"
+          : "text-muted-foreground hover:bg-secondary/50"
+      )}
+      aria-current={isActive ? "page" : undefined}
+    >
+      <item.icon className="h-[22px] w-[22px]" strokeWidth={isActive ? 2.5 : 2} aria-hidden="true" />
+    </Link>
   );
 }
 
 export function BottomFAB() {
-  const pathname = usePathname();
-  const isTransactions = pathname === "/transactions" || pathname.startsWith("/transactions/");
-
-  if (!isTransactions) return null;
-
-  return (
-    <Link
-      href="/transactions/new"
-      className="fixed bottom-20 right-4 z-50 lg:hidden"
-      aria-label="Tambah transaksi"
-    >
-      <button className="flex h-14 w-14 items-center justify-center rounded-full bg-primary text-primary-foreground shadow-lg hover:bg-primary/90 transition-colors">
-        <Plus className="h-7 w-7" />
-      </button>
-    </Link>
-  );
+  return null;
 }

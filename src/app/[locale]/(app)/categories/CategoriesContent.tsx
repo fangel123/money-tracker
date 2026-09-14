@@ -7,39 +7,33 @@ import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { EmptyState } from "@/components/common/EmptyState";
-import { Plus, Edit, Trash2, GripVertical, ChevronDown, ChevronUp, Palette, Square } from "lucide-react";
+import { Plus, Edit, Trash2, GripVertical, ChevronDown, ChevronUp, Palette, Square, Tags, MoreVertical } from "lucide-react";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Switch } from "@/components/ui/switch";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { categorySchema, type CategoryFormData } from "@/lib/validators/category";
 import { Category } from "@/types/domain";
 import { createBrowserSupabaseClient } from "@/lib/supabase/browser";
+import { DynamicIcon } from "@/components/common/DynamicIcon";
 
 interface CategoriesContentProps {
-  locale: "id" | "en" | "zh" | "ja" | "ko";
+  locale: "id" | "en";
   userId: string;
   initialCategories: Category[];
 }
 
 const DEFAULT_ICONS = [
-  "briefcase", "laptop", "trending-up", "gift", "plus-circle",
-  "utensils-crossed", "car", "shopping-bag", "gamepad-2", "heart-pulse",
-  "graduation-cap", "file-text", "building-2", "smartphone", "credit-card",
-  "wallet", "coffee", "shirt", "home", "car", "plane", "bus", "train",
-  "dumbbell", "pill", "stethoscope", "book", "music", "film", "camera",
-  "wifi", "zap", "droplet", "fire", "leaf", "sun", "moon", "cloud"
+  "briefcase", "laptop", "trending-up", "gift", "plus-circle", 
+  "utensils-crossed", "car", "shopping-bag", "gamepad-2", "heart-pulse", 
+  "graduation-cap", "file-text", "more-horizontal", "home", "coffee", "music"
 ];
 
 const DEFAULT_COLORS = [
-  "#059669", "#0891b2", "#0d9488", "#7c3aed", "#64748b",
-  "#ef4444", "#f97316", "#eab308", "#a855f7", "#ec4899",
-  "#06b6d4", "#6366f1", "#8b5cf6", "#d946ef", "#f43f5e",
-  "#fb923c", "#f59e0b", "#84cc16", "#22c55e", "#14b8a6",
+  "#CCFF00", "#059669", "#0891b2", "#0d9488", "#7c3aed", "#64748b",
+  "#ef4444", "#f97316", "#eab308", "#a855f7", "#ec4899", "#06b6d4", "#6366f1"
 ];
 
 export function CategoriesContent({ locale, userId, initialCategories }: CategoriesContentProps) {
@@ -48,177 +42,154 @@ export function CategoriesContent({ locale, userId, initialCategories }: Categor
   const queryClient = useQueryClient();
   const [showForm, setShowForm] = useState(false);
   const [editingCategory, setEditingCategory] = useState<Category | null>(null);
-  const [selectedIcon, setSelectedIcon] = useState("");
-  const [selectedColor, setSelectedColor] = useState("");
+  const [activeTab, setActiveTab] = useState<"expense" | "income">("expense");
 
-  // Use initial data as initial query data
   const { data: categories = [] } = useQuery({
     queryKey: ["categories", userId],
     queryFn: async () => {
       const supabase = createBrowserSupabaseClient();
-      const { data } = await supabase.from("categories").select("*").eq("user_id", userId).eq("is_active", true).order("type").order("sort_order");
-      return data as Category[];
+      const { data } = await supabase.from("categories").select("*").eq("user_id", userId).eq("is_active", true).order("sort_order");
+      return (data || []) as Category[];
     },
     initialData: initialCategories,
   });
 
-  // Separate income and expense categories
-  const incomeCategories = categories.filter((c) => c.type === "income");
-  const expenseCategories = categories.filter((c) => c.type === "expense");
-
-  // Create mutation
-  const createMutation = useMutation({
+  const saveMutation = useMutation({
     mutationFn: async (data: CategoryFormData) => {
       const supabase = createBrowserSupabaseClient();
-      const { data: result, error } = await supabase.from("categories").insert({
-        ...data,
-        user_id: userId,
-        is_default: false,
-        color: data.color || DEFAULT_COLORS[0],
-        icon: data.icon || "plus-circle",
-      }).select().single();
-      if (error) throw error;
-      return result;
+      if (editingCategory) {
+        const { error } = await supabase.from("categories").update(data).eq("id", editingCategory.id);
+        if (error) throw error;
+      } else {
+        const { error } = await supabase.from("categories").insert({ ...data, user_id: userId });
+        if (error) throw error;
+      }
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["categories"] });
-      queryClient.invalidateQueries({ queryKey: ["transactions"] });
       setShowForm(false);
       setEditingCategory(null);
     },
   });
 
-  // Update mutation
-  const updateMutation = useMutation({
-    mutationFn: async ({ id, data }: { id: string; data: Partial<CategoryFormData> }) => {
-      const supabase = createBrowserSupabaseClient();
-      const { data: result, error } = await supabase.from("categories").update({
-        ...data,
-        updated_at: new Date().toISOString(),
-      }).eq("id", id).eq("user_id", userId).select().single();
-      if (error) throw error;
-      return result;
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["categories"] });
-      queryClient.invalidateQueries({ queryKey: ["transactions"] });
-      setEditingCategory(null);
-    },
-  });
-
-  // Delete mutation
   const deleteMutation = useMutation({
     mutationFn: async (id: string) => {
       const supabase = createBrowserSupabaseClient();
-      const { error } = await supabase.from("categories").update({ is_active: false }).eq("id", id).eq("user_id", userId);
+      const { error } = await supabase.from("categories").update({ is_active: false }).eq("id", id);
       if (error) throw error;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["categories"] });
-      queryClient.invalidateQueries({ queryKey: ["transactions"] });
     },
   });
 
-  // Reorder mutation
-  const reorderMutation = useMutation({
-    mutationFn: async (updates: { id: string; sort_order: number }[]) => {
-      const supabase = createBrowserSupabaseClient();
-      for (const update of updates) {
-        await supabase.from("categories").update({ sort_order: update.sort_order }).eq("id", update.id);
-      }
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["categories"] });
-    },
-  });
-
-  const handleSubmit = (data: CategoryFormData) => {
-    if (editingCategory) {
-      updateMutation.mutate({ id: editingCategory.id, data });
-    } else {
-      createMutation.mutate(data);
-    }
-  };
-
-  const openCreate = (type: "income" | "expense") => {
-    setSelectedIcon(DEFAULT_ICONS[0]);
-    setSelectedColor(type === "income" ? DEFAULT_COLORS[0] : DEFAULT_COLORS[5]);
-    setEditingCategory(null);
-    setShowForm(true);
-  };
-
-  const openEdit = (category: Category) => {
-    setSelectedIcon(category.icon || "");
-    setSelectedColor(category.color || "");
+  const handleEdit = (category: Category) => {
     setEditingCategory(category);
     setShowForm(true);
   };
 
-  const closeForm = () => {
-    setShowForm(false);
-    setEditingCategory(null);
-  };
+  const filteredCategories = categories.filter((c) => c.type === activeTab);
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 pb-24 p-4 md:p-6 lg:p-8 max-w-3xl mx-auto">
       {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+      <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-foreground">{t("title")}</h1>
-          <p className="text-muted-foreground">{categories.length} {ct("categories")}</p>
+          <h1 className="text-2xl font-extrabold tracking-tight text-foreground flex items-center gap-2">
+            Kategori <Tags className="h-6 w-6 text-primary" />
+          </h1>
+          <p className="text-muted-foreground text-sm">{t("header.description")}</p>
         </div>
-        <div className="flex gap-2">
-          <Button variant="outline" onClick={() => openCreate("income")}>
-            <Plus className="mr-2 h-4 w-4" />
-            {t("addTitle")} ({ct("income")})
-          </Button>
-          <Button onClick={() => openCreate("expense")}>
-            <Plus className="mr-2 h-4 w-4" />
-            {t("addTitle")} ({ct("expense")})
-          </Button>
-        </div>
+        <Button 
+          onClick={() => { setEditingCategory(null); setShowForm(true); }}
+          className="rounded-full h-12 w-12 p-0 shadow-lg" 
+          size="icon"
+        >
+          <Plus className="h-6 w-6" />
+        </Button>
       </div>
 
-      {/* Income Categories */}
-      <CategorySection
-        title={ct("income")}
-        categories={incomeCategories}
-        onEdit={openEdit}
-        onDelete={deleteMutation.mutate}
-        locale={locale}
-      />
+      {/* Tabs */}
+      <div className="flex gap-2">
+        <Button
+          variant={activeTab === "expense" ? "default" : "outline"}
+          onClick={() => setActiveTab("expense")}
+          className={cn(
+            "rounded-full px-6 font-semibold flex-1",
+            activeTab === "expense" 
+              ? "bg-foreground text-background hover:bg-foreground/90" 
+              : "bg-card border-border/50 text-muted-foreground hover:text-foreground"
+          )}
+        >
+          {t("tabs.expense")}
+        </Button>
+        <Button
+          variant={activeTab === "income" ? "default" : "outline"}
+          onClick={() => setActiveTab("income")}
+          className={cn(
+            "rounded-full px-6 font-semibold flex-1",
+            activeTab === "income" 
+              ? "bg-foreground text-background hover:bg-foreground/90" 
+              : "bg-card border-border/50 text-muted-foreground hover:text-foreground"
+          )}
+        >
+          {t("tabs.income")}
+        </Button>
+      </div>
 
-      {/* Expense Categories */}
-      <CategorySection
-        title={ct("expense")}
-        categories={expenseCategories}
-        onEdit={openEdit}
-        onDelete={deleteMutation.mutate}
-        locale={locale}
-      />
+      {/* List */}
+      <div className="space-y-2">
+        {filteredCategories.length === 0 ? (
+          <div className="bg-card rounded-[2rem] border border-border/50 p-8">
+            <EmptyState
+              icon={<Square className="h-12 w-12" />}
+              titleKey="categories.empty.title"
+              descriptionKey="categories.empty.description"
+              actionKey="categories.empty.action"
+              onAction={() => setShowForm(true)}
+            />
+          </div>
+        ) : (
+          <div className="bg-card rounded-[2rem] border border-border/50 p-2 shadow-sm overflow-hidden">
+            {filteredCategories.map((category, idx) => (
+              <CategoryCard
+                key={category.id}
+                category={category}
+                onEdit={handleEdit}
+                onDelete={(id) => deleteMutation.mutate(id)}
+                isLast={idx === filteredCategories.length - 1}
+              />
+            ))}
+          </div>
+        )}
+      </div>
 
-      {/* Create/Edit Dialog */}
-      <Dialog open={showForm} onOpenChange={closeForm}>
-        <DialogContent className="max-w-md">
+      {/* Form Modal */}
+      <Dialog open={showForm} onOpenChange={setShowForm}>
+        <DialogContent className="sm:max-w-[425px] rounded-[2rem] p-6 border-border/50 shadow-2xl">
           <DialogHeader>
-            <DialogTitle>{editingCategory ? t("editTitle") : t("addTitle")}</DialogTitle>
+            <DialogTitle className="text-xl font-bold">
+              {editingCategory ? t("form.editTitle") : t("form.createTitle")}
+            </DialogTitle>
           </DialogHeader>
-          <CategoryForm
-            onSubmit={handleSubmit}
-            isEditing={!!editingCategory}
-            initialData={editingCategory}
-            selectedIcon={selectedIcon}
-            setSelectedIcon={setSelectedIcon}
-            selectedColor={selectedColor}
-            setSelectedColor={setSelectedColor}
-            defaultType={editingCategory?.type || "expense"}
-          />
+          <div className="py-4">
+            <CategoryForm
+              initialData={editingCategory}
+              onSubmit={(data) => saveMutation.mutate(data)}
+              defaultType={activeTab}
+            />
+          </div>
           <DialogFooter>
-            <Button type="button" variant="outline" onClick={closeForm}>
+            <Button variant="outline" className="rounded-full" onClick={() => setShowForm(false)}>
               {ct("cancel")}
             </Button>
-            <Button type="submit" form="category-form" disabled={createMutation.isPending || updateMutation.isPending}>
-              {createMutation.isPending || updateMutation.isPending ? "Menyimpan..." : ct("save")}
+            <Button 
+              type="submit" 
+              form="category-form" 
+              className="rounded-full font-bold"
+              disabled={saveMutation.isPending}
+            >
+              {saveMutation.isPending ? ct("saving") : ct("save")}
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -227,98 +198,60 @@ export function CategoriesContent({ locale, userId, initialCategories }: Categor
   );
 }
 
-function CategorySection({
-  title,
-  categories,
+function CategoryCard({
+  category,
   onEdit,
   onDelete,
-  locale,
+  isLast
 }: {
-  title: string;
-  categories: Category[];
-  onEdit: (cat: Category) => void;
+  category: Category;
+  onEdit: (category: Category) => void;
   onDelete: (id: string) => void;
-  locale: "id" | "en" | "zh" | "ja" | "ko";
+  isLast: boolean;
 }) {
   const t = useTranslations("categories");
   const ct = useTranslations("common");
 
-  if (categories.length === 0) {
-    return (
-      <Card>
-        <CardContent className="pt-6">
-          <EmptyState
-            icon={<Square className="h-12 w-12" />}
-            titleKey="categories.empty.title"
-            descriptionKey="categories.empty.description"
-            actionKey="categories.empty.action"
-            onAction={() => {}}
-          />
-        </CardContent>
-      </Card>
-    );
-  }
-
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle className="flex items-center gap-2">
-          <span className="text-lg">{title === ct("income") ? "📈" : "📉"}</span>
-          {title}
-        </CardTitle>
-      </CardHeader>
-      <CardContent>
-        <div className="space-y-2">
-          {categories.map((cat, index) => (
-            <div
-              key={cat.id}
-              className="flex items-center justify-between p-3 rounded-lg hover:bg-accent transition-colors"
-            >
-              <div className="flex items-center gap-3 flex-1">
-                <GripVertical className="h-5 w-5 text-muted-foreground cursor-grab" />
-                <div
-                  className="flex h-8 w-8 items-center justify-center rounded-lg"
-                  style={{ backgroundColor: cat.color ? `${cat.color}20` : "var(--muted)" }}
-                >
-                  {cat.icon && (
-                    <span className="text-lg" style={{ color: cat.color || "var(--foreground)" }}>
-                      {cat.icon}
-                    </span>
-                  )}
-                </div>
-                <div>
-                  <p className="font-medium">{cat.name}</p>
-                  <p className="text-xs text-muted-foreground">
-                    {cat.is_default ? "Default" : "Custom"} • Urutan: {cat.sort_order}
-                  </p>
-                </div>
-              </div>
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <button className="p-1 rounded-lg hover:bg-muted transition-colors">
-                    <ChevronDown className="h-5 w-5" />
-                  </button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="end">
-                  <DropdownMenuItem onClick={() => onEdit(cat)}>
-                    <Edit className="mr-2 h-4 w-4" />
-                    {ct("edit")}
-                  </DropdownMenuItem>
-                  <DropdownMenuSeparator />
-                  <DropdownMenuItem
-                    onClick={() => onDelete(cat.id)}
-                    className="text-destructive focus:text-destructive"
-                  >
-                    <Trash2 className="mr-2 h-4 w-4" />
-                    {ct("delete")}
-                  </DropdownMenuItem>
-                </DropdownMenuContent>
-              </DropdownMenu>
-            </div>
-          ))}
+    <div className={cn("p-4 hover:bg-secondary/30 transition-colors group flex items-center justify-between gap-3", !isLast && "border-b border-border/30")}>
+      <div className="flex items-center gap-4 flex-1 min-w-0">
+        <div 
+          className="h-12 w-12 rounded-2xl flex items-center justify-center bg-secondary"
+          style={{ color: category.color || undefined, backgroundColor: category.color ? `${category.color}20` : undefined }}
+        >
+          {category.icon ? <DynamicIcon name={category.icon} className="h-6 w-6" /> : <Square className="h-6 w-6" />}
         </div>
-      </CardContent>
-    </Card>
+        <div className="min-w-0">
+          <h3 className="font-bold text-foreground text-base truncate">{category.name}</h3>
+        </div>
+      </div>
+      
+      <DropdownMenu>
+        <DropdownMenuTrigger asChild>
+          <button className="h-8 w-8 rounded-full flex items-center justify-center hover:bg-secondary transition-colors text-muted-foreground opacity-0 group-hover:opacity-100 focus:opacity-100">
+            <MoreVertical className="h-5 w-5" />
+          </button>
+        </DropdownMenuTrigger>
+        <DropdownMenuContent align="end" className="rounded-2xl border-border/50 shadow-xl">
+          <DropdownMenuItem onClick={() => onEdit(category)} className="rounded-xl cursor-pointer">
+            <Edit className="mr-2 h-4 w-4" />
+            {ct("edit")}
+          </DropdownMenuItem>
+          {!category.is_default && (
+            <>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem
+                onClick={() => onDelete(category.id)}
+                className="text-destructive focus:text-destructive rounded-xl cursor-pointer"
+              >
+                <Trash2 className="mr-2 h-4 w-4" />
+                {ct("delete")}
+              </DropdownMenuItem>
+            </>
+          )}
+        </DropdownMenuContent>
+      </DropdownMenu>
+    </div>
   );
 }
 
@@ -326,23 +259,17 @@ function CategoryForm({
   onSubmit,
   isEditing,
   initialData,
-  selectedIcon,
-  setSelectedIcon,
-  selectedColor,
-  setSelectedColor,
   defaultType,
 }: {
   onSubmit: (data: CategoryFormData) => void;
-  isEditing: boolean;
+  isEditing?: boolean;
   initialData: Category | null;
-  selectedIcon: string;
-  setSelectedIcon: (icon: string) => void;
-  selectedColor: string;
-  setSelectedColor: (color: string) => void;
-  defaultType: "income" | "expense";
+  defaultType: "expense" | "income";
 }) {
   const t = useTranslations("categories");
-  const ct = useTranslations("common");
+
+  const [selectedIcon, setSelectedIcon] = useState(initialData?.icon || DEFAULT_ICONS[0]);
+  const [selectedColor, setSelectedColor] = useState(initialData?.color || DEFAULT_COLORS[0]);
 
   const {
     register,
@@ -355,53 +282,45 @@ function CategoryForm({
     defaultValues: {
       name: initialData?.name || "",
       type: initialData?.type || defaultType,
-      icon: initialData?.icon || "",
-      color: initialData?.color || "",
+      icon: initialData?.icon || DEFAULT_ICONS[0],
+      color: initialData?.color || DEFAULT_COLORS[0],
       parent_id: initialData?.parent_id || null,
+      is_active: initialData?.is_active ?? true,
+      sort_order: initialData?.sort_order || 0,
     },
   });
 
-  const watchedType = watch("type");
-
   return (
-    <form id="category-form" onSubmit={handleSubmit(onSubmit)} className="space-y-4">
-      {/* Name */}
+    <form id="category-form" onSubmit={handleSubmit(onSubmit)} className="space-y-5">
       <div>
-        <Label htmlFor="name">{t("form.nameLabel")}</Label>
+        <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">{t("form.nameLabel")}</Label>
         <Input
           {...register("name")}
-          id="name"
           placeholder={t("form.namePlaceholder")}
-          error={errors.name?.message}
+          className="mt-1.5 h-12 text-base font-bold rounded-xl border-border/50 bg-secondary/50"
         />
-        {errors.name && <p className="mt-1 text-sm text-destructive">{errors.name.message}</p>}
+        {errors.name && <p className="mt-1 text-xs text-destructive">{errors.name.message}</p>}
       </div>
 
-      {/* Type */}
       <div>
-        <Label>{t("form.typeLabel")}</Label>
+        <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">{t("form.typeLabel")}</Label>
         <Select
-          value={watchedType}
-          onValueChange={(value) => {
-            setValue("type", value as "income" | "expense");
-            setSelectedIcon("");
-            setSelectedColor(value === "income" ? DEFAULT_COLORS[0] : DEFAULT_COLORS[5]);
-          }}
+          value={watch("type")}
+          onValueChange={(value) => setValue("type", value as "income" | "expense")}
         >
-          <SelectTrigger className="w-full mt-1.5">
+          <SelectTrigger className="w-full mt-1.5 rounded-xl h-12 border-border/50 bg-secondary/50">
             <SelectValue placeholder={t("form.typeLabel")} />
           </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="income">{t("form.typeIncome")}</SelectItem>
-            <SelectItem value="expense">{t("form.typeExpense")}</SelectItem>
+          <SelectContent className="rounded-2xl border-border/50">
+            <SelectItem value="expense" className="rounded-xl">{t("tabs.expense")}</SelectItem>
+            <SelectItem value="income" className="rounded-xl">{t("tabs.income")}</SelectItem>
           </SelectContent>
         </Select>
       </div>
 
-      {/* Icon Picker */}
       <div>
-        <Label>{t("form.iconLabel")}</Label>
-        <div className="mt-1.5 flex flex-wrap gap-1 max-h-40 overflow-y-auto p-2 border rounded-lg">
+        <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">{t("form.iconLabel")}</Label>
+        <div className="mt-1.5 grid grid-cols-8 gap-2">
           {DEFAULT_ICONS.map((icon) => (
             <button
               key={icon}
@@ -411,23 +330,21 @@ function CategoryForm({
                 setValue("icon", icon);
               }}
               className={cn(
-                "p-2 rounded-lg transition-colors",
+                "flex h-10 w-10 items-center justify-center rounded-xl transition-all",
                 selectedIcon === icon
-                  ? "bg-primary text-primary-foreground"
-                  : "hover:bg-accent"
+                  ? "bg-primary text-primary-foreground scale-110 shadow-sm"
+                  : "bg-secondary text-muted-foreground hover:bg-secondary/80 hover:text-foreground"
               )}
-              aria-label={icon}
             >
-              <span className="text-lg">{icon}</span>
+              <DynamicIcon name={icon} className="h-5 w-5" />
             </button>
           ))}
         </div>
       </div>
 
-      {/* Color Picker */}
       <div>
-        <Label>{t("form.colorLabel")}</Label>
-        <div className="mt-1.5 flex flex-wrap gap-1">
+        <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">{t("form.colorLabel")}</Label>
+        <div className="mt-1.5 flex flex-wrap gap-2">
           {DEFAULT_COLORS.map((color) => (
             <button
               key={color}
@@ -437,33 +354,16 @@ function CategoryForm({
                 setValue("color", color);
               }}
               className={cn(
-                "h-8 w-8 rounded-lg border-2 transition-all",
+                "h-8 w-8 rounded-full border-2 transition-all",
                 selectedColor === color
-                  ? "border-primary scale-110"
-                  : "border-transparent hover:border-muted-foreground/50"
+                  ? "border-foreground scale-110 shadow-sm"
+                  : "border-transparent opacity-70 hover:opacity-100"
               )}
               style={{ backgroundColor: color }}
               aria-label={color}
             />
           ))}
         </div>
-      </div>
-
-      {/* Parent Category (optional) */}
-      <div>
-        <Label htmlFor="parent_id">{t("form.parentLabel")}</Label>
-        <Select
-          value={watch("parent_id") || ""}
-          onValueChange={(value) => setValue("parent_id", value || null)}
-        >
-          <SelectTrigger className="w-full mt-1.5">
-            <SelectValue placeholder={t("form.parentLabel")} />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="">Tidak ada (Kategori utama)</SelectItem>
-            {/* Parent categories would be loaded here */}
-          </SelectContent>
-        </Select>
       </div>
     </form>
   );

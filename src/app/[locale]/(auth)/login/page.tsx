@@ -1,9 +1,8 @@
 "use client";
 
 import { useState } from "react";
-import Link from "next/link";
-import { useRouter, usePathname } from "next/navigation";
-import { useTranslations } from "next-intl";
+import { Link, useRouter } from "@/i18n/navigation";
+import { useLocale } from "next-intl";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { loginSchema, type LoginFormData } from "@/lib/validators/auth";
@@ -15,14 +14,9 @@ import { createBrowserSupabaseClient } from "@/lib/supabase/browser";
 
 export default function LoginPage() {
   const router = useRouter();
-  const pathname = usePathname();
-  const t = useTranslations("auth.login");
+  const locale = useLocale();
   const [showPassword, setShowPassword] = useState(false);
-  const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
-
-  // AMAN DARI 500 ERROR: Cegah crash jika pathname null saat server rendering
-  const locale = pathname?.split("/")[1] || "id";
 
   const {
     register,
@@ -38,7 +32,6 @@ export default function LoginPage() {
 
   const onSubmit = async (data: LoginFormData) => {
     setIsLoading(true);
-    setError(null);
 
     try {
       const supabase = createBrowserSupabaseClient();
@@ -48,15 +41,17 @@ export default function LoginPage() {
       });
 
       if (authError) {
-        setFormError("root", { message: t("error") });
+        setFormError("root", { message: "Email atau kata sandi salah" });
+        setIsLoading(false);
         return;
       }
 
-      router.push(`/${locale}/dashboard`);
+      // Berhasil login, refresh router untuk memastikan cookies terbaru terbaca
       router.refresh();
+      // Pindah ke dashboard
+      router.push("/dashboard");
     } catch {
-      setFormError("root", { message: t("error") });
-    } finally {
+      setFormError("root", { message: "Terjadi kesalahan. Silakan coba lagi." });
       setIsLoading(false);
     }
   };
@@ -65,8 +60,8 @@ export default function LoginPage() {
     <div className="space-y-6">
       {/* Header */}
       <div className="text-center space-y-2">
-        <h1 className="text-2xl font-bold text-foreground">{t("title")}</h1>
-        <p className="text-muted-foreground">{t("subtitle")}</p>
+        <h1 className="text-2xl font-bold text-foreground">Masuk ke Akun Anda</h1>
+        <p className="text-muted-foreground">Masuk untuk melanjutkan ke Money Tracker</p>
       </div>
 
       {/* Error message */}
@@ -80,19 +75,18 @@ export default function LoginPage() {
       <form onSubmit={handleSubmit(onSubmit)} className="space-y-4" noValidate>
         {/* Email */}
         <div>
-          <Label htmlFor="email">{t("emailLabel")}</Label>
+          <Label htmlFor="email">Email</Label>
           <div className="relative mt-1.5">
             <Mail className="absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2 text-muted-foreground" />
             <Input
               {...register("email")}
               id="email"
               type="email"
-              placeholder={t("emailPlaceholder")}
+              placeholder="anda@email.com"
               className="pl-10"
               disabled={isLoading}
               autoComplete="email"
             />
-            {/* Hapus properti error={} dari Shadcn Input bawaan untuk mencegah crash jika tidak didukung */}
           </div>
           {errors.email && <p className="mt-1 text-sm text-destructive">{errors.email.message}</p>}
         </div>
@@ -100,13 +94,12 @@ export default function LoginPage() {
         {/* Password */}
         <div>
           <div className="flex items-center justify-between">
-            <Label htmlFor="password">{t("passwordLabel")}</Label>
-            {/* PERBAIKAN LINK: Hapus /auth */}
+            <Label htmlFor="password">Kata Sandi</Label>
             <Link
-              href={`/${locale}/forgot-password`}
+              href="/auth/forgot-password"
               className="text-sm text-primary hover:underline"
             >
-              {t("forgotPassword")}
+              Lupa kata sandi?
             </Link>
           </div>
           <div className="relative mt-1.5">
@@ -115,7 +108,7 @@ export default function LoginPage() {
               {...register("password")}
               id="password"
               type={showPassword ? "text" : "password"}
-              placeholder={t("passwordPlaceholder")}
+              placeholder="Masukkan kata sandi"
               className="pl-10 pr-10"
               disabled={isLoading}
               autoComplete="current-password"
@@ -140,22 +133,21 @@ export default function LoginPage() {
               {...register("remember")}
               className="h-4 w-4 rounded border-input text-primary focus:ring-primary"
             />
-            <span className="text-sm text-muted-foreground">{t("rememberMe")}</span>
+            <span className="text-sm text-muted-foreground">Ingat saya</span>
           </label>
         </div>
 
         {/* Submit */}
         <Button type="submit" className="w-full" size="lg" disabled={isLoading}>
-          {isLoading ? "Memuat..." : t("submit")}
+          {isLoading ? "Memuat..." : "Masuk"}
         </Button>
       </form>
 
       {/* Register link */}
       <p className="text-center text-sm text-muted-foreground">
-        {t("noAccount")}{" "}
-        {/* PERBAIKAN LINK: Hapus /auth */}
-        <Link href={`/${locale}/register`} className="text-primary font-medium hover:underline">
-          {t("signUp")}
+        Belum punya akun?{" "}
+        <Link href="/auth/register" className="text-primary font-medium hover:underline">
+          Daftar di sini
         </Link>
       </p>
     </div>

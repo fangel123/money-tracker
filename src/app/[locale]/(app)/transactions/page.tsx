@@ -22,7 +22,7 @@ export default async function TransactionsPage({
 
   return (
     <TransactionsContent
-      locale={locale as "id" | "en" | "zh" | "ja" | "ko"}
+      locale={locale as "id" | "en"}
       userId={user.id}
       initialSearchParams={await searchParams}
     />

@@ -18,25 +18,45 @@ export async function middleware(request: NextRequest) {
     );
   }
 
-  // Create Supabase client for auth
+  // 1. Buat objek response dasar terlebih dahulu
+  let response = NextResponse.next({
+    request: {
+      headers: request.headers,
+    },
+  });
+
+  // 2. Inisialisasi Supabase Server Client dengan sinkronisasi cookie ganda (Request & Response)
   const supabase = createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
     {
       cookies: {
-        getAll() {
-          return request.cookies.getAll();
+        get(name: string) {
+          return request.cookies.get(name)?.value;
         },
-        setAll(cookiesToSet: { name: string; value: string; options: any }[]) {
-          cookiesToSet.forEach(({ name, value, options }) =>
-            request.cookies.set(name, value)
-          );
+        set(name: string, value: string, options: any) {
+          request.cookies.set({ name, value, ...options });
+          response = NextResponse.next({
+            request: {
+              headers: request.headers,
+            }
+          });
+          response.cookies.set({ name, value, ...options });
+        },
+        remove(name: string, options: any) {
+          request.cookies.set({ name, value: "", ...options });
+          response = NextResponse.next({
+            request: {
+              headers: request.headers,
+            }
+          });
+          response.cookies.set({ name, value: "", ...options });
         },
       },
     }
   );
 
-  // Refresh session if expired
+  // 3. Validasi user sesi aktif
   const {
     data: { user },
   } = await supabase.auth.getUser();
@@ -55,23 +75,11 @@ export async function middleware(request: NextRequest) {
     return NextResponse.redirect(new URL(`/${locale}/login`, request.url));
   }
 
-  // Update session cookie
-  const response = NextResponse.next();
-  await supabase.auth.getSession(); // This refreshes the session
-
   return response;
 }
 
 export const config = {
   matcher: [
-    /*
-     * Match all request paths except for the ones starting with:
-     * - api (API routes)
-     * - _next/static (static files)
-     * - _next/image (image optimization files)
-     * - favicon.ico (favicon file)
-     * - public folder (static files like .webmanifest, .ico, .png)
-     */
     "/((?!api|_next/static|_next/image|favicon.ico|.*\\.webmanifest$|.*\\.ico$|.*\\.png$).*)",
   ],
 };

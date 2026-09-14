@@ -41,7 +41,7 @@ export default async function DashboardPage({
 
   return (
     <DashboardContent
-      locale={locale as "id" | "en" | "zh" | "ja" | "ko"}
+      locale={locale as "id" | "en"}
       user={user}
       transactions={transactions || []}
       accounts={accounts || []}

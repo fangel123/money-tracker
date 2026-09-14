@@ -29,7 +29,7 @@ export default async function TransactionNewPage({
 
   return (
     <TransactionFormContent
-      locale={locale as "id" | "en" | "zh" | "ja" | "ko"}
+      locale={locale as "id" | "en"}
       userId={user.id}
       initialType={(type as "income" | "expense") || "expense"}
       categories={categories || []}
