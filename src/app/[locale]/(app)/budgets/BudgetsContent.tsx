@@ -233,7 +233,6 @@ function BudgetCard({
 }) {
   const t = useTranslations("budgets");
   const ct = useTranslations("common");
-  const localeObj = { locale };
 
   // Note: progress calculation
   const spent = budget.spent || 0;
@@ -289,10 +288,10 @@ function BudgetCard({
       <div className="space-y-2">
         <div className="flex justify-between text-sm font-bold">
           <span className={cn(isOverBudget ? "text-destructive" : "text-foreground")}>
-            {formatCurrency(spent, "IDR", localeObj)} <span className="text-xs font-normal text-muted-foreground">Terpakai</span>
+            {formatCurrency(spent, "IDR", locale)} <span className="text-xs font-normal text-muted-foreground">Terpakai</span>
           </span>
           <span className="text-muted-foreground">
-            Batas {formatCurrency(budget.amount, "IDR", localeObj)}
+            Batas {formatCurrency(budget.amount, "IDR", locale)}
           </span>
         </div>
         
@@ -311,7 +310,7 @@ function BudgetCard({
             {isOverBudget ? 'Lebih Budget!' : isNearLimit ? 'Hampir Habis' : 'Aman'}
           </span>
           <span className="text-xs font-bold text-muted-foreground">
-            Sisa {formatCurrency(Math.max(remaining, 0), "IDR", localeObj)}
+            Sisa {formatCurrency(Math.max(remaining, 0), "IDR", locale)}
           </span>
         </div>
       </div>

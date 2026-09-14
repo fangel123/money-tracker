@@ -210,7 +210,7 @@ export function TransactionFormContent({
                   <SelectItem key={acc.id} value={acc.id}>
                     <span className="flex items-center">
                       {acc.icon && <DynamicIcon name={acc.icon} className="mr-2 h-4 w-4" style={{ color: acc.color || undefined }} />}
-                      {acc.name} ({formatCurrency(acc.balance, acc.currency, localeObj)})
+                      {acc.name} ({formatCurrency(acc.balance, acc.currency, locale)})
                     </span>
                   </SelectItem>
                 ))}

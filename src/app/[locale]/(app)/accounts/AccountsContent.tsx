@@ -200,7 +200,6 @@ function AccountCard({
 }) {
   const t = useTranslations("accounts");
   const ct = useTranslations("common");
-  const localeObj = { locale };
 
   const Icon = ACCOUNT_ICONS[account.type as keyof typeof ACCOUNT_ICONS] || Briefcase;
   const isDebt = account.type === "credit_card";
@@ -249,7 +248,7 @@ function AccountCard({
         <div className="flex justify-between text-sm font-bold">
           <span className="text-muted-foreground">Saldo Saat Ini</span>
           <span className={cn("text-lg", isDebt ? "text-destructive" : "text-foreground")}>
-            {formatCurrency(account.balance, account.currency, localeObj)}
+            {formatCurrency(account.balance, account.currency, locale)}
           </span>
         </div>
       </div>
