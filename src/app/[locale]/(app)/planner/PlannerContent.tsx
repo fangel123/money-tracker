@@ -4,12 +4,13 @@ import { useState } from "react";
 import { formatCurrency, cn } from "@/lib/utils";
 import { CheckSquare, Plus, Trash2, CheckCircle2, ChevronRight, Activity, MoreVertical, Edit } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
-import { createPlanner, createPlannerItem, realizePlannerItem, deletePlannerItem, updatePlanner, deletePlanner } from "./actions";
+import { createPlanner, createPlannerItem, realizePlannerItem, unrealizePlannerItem, updatePlannerItem, deletePlannerItem, updatePlanner, deletePlanner } from "./actions";
 
 export function PlannerContent({ user, initialPlanners, initialItems, accounts, categories }: any) {
   const [activeTab, setActiveTab] = useState(initialPlanners[0]?.id || "new");
@@ -27,6 +28,8 @@ export function PlannerContent({ user, initialPlanners, initialItems, accounts, 
   const [tabTitle, setTabTitle] = useState("");
   const [duplicateFromId, setDuplicateFromId] = useState("none");
   const [isEditTabOpen, setIsEditTabOpen] = useState(false);
+  const [isDeletePlannerOpen, setIsDeletePlannerOpen] = useState(false);
+  const [isEditItemOpen, setIsEditItemOpen] = useState(false);
   const [editTabTitle, setEditTabTitle] = useState("");
   
   const [itemData, setItemData] = useState({ name: "", amount: "", type: "expense", tag: "" });
@@ -52,15 +55,19 @@ export function PlannerContent({ user, initialPlanners, initialItems, accounts, 
     }
   };
 
-  const handleDeleteTab = async () => {
-    if (!confirm("Apakah Anda yakin ingin menghapus bulan ini dan semua isinya?")) return;
+  const confirmDeleteTab = async () => {
     try {
       await deletePlanner(activeTab);
       const remainingPlanners = initialPlanners.filter((p: any) => p.id !== activeTab);
       setActiveTab(remainingPlanners[0]?.id || "new");
+      setIsDeletePlannerOpen(false);
     } catch (e) {
       alert("Error deleting planner");
     }
+  };
+
+  const handleDeleteTab = () => {
+    setIsDeletePlannerOpen(true);
   };
 
   const handleEditTab = async (e: any) => {
@@ -80,6 +87,42 @@ export function PlannerContent({ user, initialPlanners, initialItems, accounts, 
     if (!activePlanner) return;
     setEditTabTitle(activePlanner.title);
     setIsEditTabOpen(true);
+  };
+
+  
+  const handleUnrealize = async (item: any) => {
+    setIsSubmitting(true);
+    try {
+      await unrealizePlannerItem(item.id);
+    } catch(e) {
+      alert("Gagal membatalkan realisasi");
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const openEditItemModal = (item: any) => {
+    setSelectedItem(item);
+    setItemData({
+      name: item.name,
+      amount: item.amount.toString(),
+      type: item.type,
+      tag: item.status_tag || ""
+    });
+    setIsEditItemOpen(true);
+  };
+
+  const handleEditItemSubmit = async (e: any) => {
+    e.preventDefault();
+    setIsSubmitting(true);
+    try {
+      await updatePlannerItem(selectedItem.id, itemData.name, Number(itemData.amount));
+      setIsEditItemOpen(false);
+    } catch(e) {
+      alert("Gagal mengupdate item");
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   const handleAddItem = async (e: any) => {
@@ -276,6 +319,43 @@ export function PlannerContent({ user, initialPlanners, initialItems, accounts, 
           {renderGroup("Wajib — Prioritas", "wajib", "expense")}
           {renderGroup("Tabungan & Investasi", "tabungan", "expense")}
           {renderGroup("Kebutuhan Pribadi", "kebutuhan", "expense")}
+
+      {/* MODAL EDIT ITEM */}
+      <Dialog open={isEditItemOpen} onOpenChange={setIsEditItemOpen}>
+        <DialogContent className="sm:max-w-[425px] rounded-[2rem] p-6 border-border/50 shadow-2xl">
+          <DialogHeader>
+            <DialogTitle>Edit Item Rencana</DialogTitle>
+          </DialogHeader>
+          <form onSubmit={handleEditItemSubmit} className="space-y-4">
+            <div className="space-y-2">
+              <Label>Nama Item</Label>
+              <Input required value={itemData.name} onChange={e => setItemData({...itemData, name: e.target.value})} className="rounded-xl h-11 border-border/50" />
+            </div>
+            <div className="space-y-2">
+              <Label>Jumlah (Rp)</Label>
+              <Input type="number" required value={itemData.amount} onChange={e => setItemData({...itemData, amount: e.target.value})} className="rounded-xl h-11 border-border/50" />
+            </div>
+            <Button type="submit" className="w-full rounded-full h-11" disabled={isSubmitting}>Simpan Perubahan</Button>
+          </form>
+        </DialogContent>
+      </Dialog>
+
+      {/* ALERT DIALOG DELETE PLANNER */}
+      <AlertDialog open={isDeletePlannerOpen} onOpenChange={setIsDeletePlannerOpen}>
+        <AlertDialogContent className="rounded-3xl border-border/50 shadow-2xl">
+          <AlertDialogHeader>
+            <AlertDialogTitle>Hapus Bulan Ini?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Apakah Anda yakin ingin menghapus bulan ini dan seluruh isinya? Tindakan ini tidak dapat dibatalkan.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel className="rounded-full">Batal</AlertDialogCancel>
+            <AlertDialogAction onClick={confirmDeleteTab} className="rounded-full bg-destructive text-destructive-foreground hover:bg-destructive/90">Hapus Permanen</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
           
         </div>
       )}

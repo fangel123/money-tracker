@@ -130,3 +130,29 @@ export async function deletePlannerItem(itemId: string) {
   if (error) throw new Error(error.message);
   revalidatePath("/[locale]/planner", "layout");
 }
+export async function unrealizePlannerItem(itemId: string) {
+  const supabase = createServerSupabaseClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) throw new Error("Unauthorized");
+
+  const { error: updateError } = await supabase
+    .from("planner_items")
+    .update({ status_tag: null })
+    .eq("id", itemId);
+
+  if (updateError) throw new Error("Gagal mengupdate planner: " + updateError.message);
+
+  revalidatePath("/[locale]", "layout");
+  return { success: true };
+}
+
+export async function updatePlannerItem(itemId: string, name: string, amount: number) {
+  const supabase = createServerSupabaseClient();
+  const { error } = await supabase
+    .from("planner_items")
+    .update({ name, amount })
+    .eq("id", itemId);
+
+  if (error) throw new Error(error.message);
+  revalidatePath("/[locale]/planner", "layout");
+}
