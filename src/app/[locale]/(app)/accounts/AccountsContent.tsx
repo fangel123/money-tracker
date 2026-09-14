@@ -120,7 +120,7 @@ export function AccountsContent({ locale, userId, initialAccounts }: AccountsCon
           </div>
           <div className="flex items-center gap-3 mb-1">
             <span className={cn("text-4xl font-black tracking-tight", totalBalance < 0 ? "text-destructive" : "text-primary")}>
-              {formatCurrency(totalBalance, "IDR", { locale })}
+              {formatCurrency(totalBalance, "IDR", locale)}
             </span>
           </div>
           <p className="text-sm font-medium text-gray-400">

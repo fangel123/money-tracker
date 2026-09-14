@@ -123,11 +123,11 @@ export function BudgetsContent({ locale, userId, initialBudgets, initialCategori
           </div>
           <div className="flex items-center gap-3 mb-1">
             <span className="text-4xl font-black tracking-tight text-primary">
-              {formatCurrency(totalBudgetSpent, "IDR", { locale })}
+              {formatCurrency(totalBudgetSpent, "IDR", locale)}
             </span>
           </div>
           <p className="text-sm font-medium text-gray-400">
-            dari total {formatCurrency(totalBudgetAmount, "IDR", { locale })}
+            dari total {formatCurrency(totalBudgetAmount, "IDR", locale)}
           </p>
           
           <div className="mt-6">

@@ -384,14 +384,10 @@ function TransactionCard({
         </div>
       </div>
       <div className="flex items-center gap-3 shrink-0">
-        <div className="text-right">
-          <p
-            className="font-bold text-sm md:text-base tracking-tight"
-            style={{ color: isIncome ? "var(--primary)" : "var(--destructive)" }}
-          >
-            {isIncome ? "+" : "-"}
-            {formatCurrency(transaction.amount, "IDR", { locale })}
-          </p>
+        <div className="flex flex-col items-end gap-1">
+          <span className={cn("font-bold text-base md:text-lg tabular-nums", isExpense ? "text-red-500" : "text-green-500")}>
+            {isExpense ? "-" : "+"}{formatCurrency(transaction.amount, "IDR", locale)}
+          </span>
         </div>
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
