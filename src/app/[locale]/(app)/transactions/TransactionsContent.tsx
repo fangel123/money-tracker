@@ -189,7 +189,7 @@ export function TransactionsContent({ locale, userId, initialSearchParams }: Tra
                   value={searchParams.get("type") || "all"}
                   onValueChange={(val) => updateFilter("type", val === "all" ? null : val)}
                 >
-                  <SelectTrigger className="rounded-xl border-border/50 bg-secondary/50 h-10">
+                  <SelectTrigger className="rounded-xl border-border/50 bg-secondary h-10">
                     <SelectValue placeholder={t("filters.typeAll")} />
                   </SelectTrigger>
                   <SelectContent className="rounded-2xl border-border/50">
@@ -206,7 +206,7 @@ export function TransactionsContent({ locale, userId, initialSearchParams }: Tra
                   value={searchParams.get("category_id") || "all"}
                   onValueChange={(val) => updateFilter("category_id", val === "all" ? null : val)}
                 >
-                  <SelectTrigger className="rounded-xl border-border/50 bg-secondary/50 h-10">
+                  <SelectTrigger className="rounded-xl border-border/50 bg-secondary h-10">
                     <SelectValue placeholder={t("filters.categoryAll")} />
                   </SelectTrigger>
                   <SelectContent className="rounded-2xl border-border/50 max-h-[200px]">
@@ -224,7 +224,7 @@ export function TransactionsContent({ locale, userId, initialSearchParams }: Tra
                   value={searchParams.get("account_id") || "all"}
                   onValueChange={(val) => updateFilter("account_id", val === "all" ? null : val)}
                 >
-                  <SelectTrigger className="rounded-xl border-border/50 bg-secondary/50 h-10">
+                  <SelectTrigger className="rounded-xl border-border/50 bg-secondary h-10">
                     <SelectValue placeholder={t("filters.accountAll")} />
                   </SelectTrigger>
                   <SelectContent className="rounded-2xl border-border/50 max-h-[200px]">
@@ -248,7 +248,7 @@ export function TransactionsContent({ locale, userId, initialSearchParams }: Tra
                     router.push(`/transactions?${newParams.toString()}`);
                   }}
                 >
-                  <SelectTrigger className="rounded-xl border-border/50 bg-secondary/50 h-10">
+                  <SelectTrigger className="rounded-xl border-border/50 bg-secondary h-10">
                     <SelectValue placeholder={t("filters.sortDateDesc")} />
                   </SelectTrigger>
                   <SelectContent className="rounded-2xl border-border/50">
@@ -362,7 +362,7 @@ function TransactionCard({
   const isIncome = transaction.type === "income";
 
   return (
-    <div className={cn("p-4 hover:bg-secondary/30 transition-colors group flex items-center justify-between gap-3", !isLast && "border-b border-border/30")}>
+    <div className={cn("p-4 hover:bg-secondary transition-colors group flex items-center justify-between gap-3", !isLast && "border-b border-border/30")}>
       <div className="flex items-center gap-4 flex-1 min-w-0">
         <div
           className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl"
@@ -375,7 +375,7 @@ function TransactionCard({
         <div className="min-w-0 flex-1">
           <p className="font-bold text-foreground truncate">{category?.name || "Kategori"}</p>
           <div className="flex items-center text-xs text-muted-foreground mt-0.5 truncate gap-1.5">
-            <span className="font-medium bg-secondary/50 px-1.5 py-0.5 rounded-md">{account?.name || "?"}</span>
+            <span className="font-medium bg-secondary px-1.5 py-0.5 rounded-md">{account?.name || "?"}</span>
             <span>•</span>
             <span>{formatDate(transaction.date, locale)}</span>
           </div>

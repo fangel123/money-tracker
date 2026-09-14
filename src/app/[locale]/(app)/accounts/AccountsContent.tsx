@@ -159,7 +159,7 @@ export function AccountsContent({ locale, userId, initialAccounts }: AccountsCon
         <DialogContent className="sm:max-w-[425px] rounded-[2rem] p-6 border-border/50 shadow-2xl">
           <DialogHeader>
             <DialogTitle className="text-xl font-bold">
-              {editingAccount ? t("form.editTitle") : t("form.createTitle")}
+              {editingAccount ? t("editTitle") : t("addTitle")}
             </DialogTitle>
           </DialogHeader>
           <div className="py-4">
@@ -293,7 +293,7 @@ function AccountForm({
         <Input
           {...register("name")}
           placeholder={t("form.namePlaceholder")}
-          className="mt-1.5 h-12 text-base font-bold rounded-xl border-border/50 bg-secondary/50"
+          className="mt-1.5 h-12 text-base font-bold rounded-xl border-border/50 bg-secondary"
         />
         {errors.name && <p className="mt-1 text-xs text-destructive">{errors.name.message}</p>}
       </div>
@@ -304,7 +304,7 @@ function AccountForm({
           value={watch("type")}
           onValueChange={(value) => setValue("type", value as Account["type"])}
         >
-          <SelectTrigger className="w-full mt-1.5 rounded-xl h-12 border-border/50 bg-secondary/50">
+          <SelectTrigger className="w-full mt-1.5 rounded-xl h-12 border-border/50 bg-secondary">
             <SelectValue placeholder={t("form.typeLabel")} />
           </SelectTrigger>
           <SelectContent className="rounded-2xl border-border/50">
@@ -323,7 +323,7 @@ function AccountForm({
           {...register("balance", { valueAsNumber: true })}
           type="number"
           placeholder="0"
-          className="mt-1.5 h-12 text-lg font-bold rounded-xl border-border/50 bg-secondary/50"
+          className="mt-1.5 h-12 text-lg font-bold rounded-xl border-border/50 bg-secondary"
         />
         {errors.balance && <p className="mt-1 text-xs text-destructive">{errors.balance.message}</p>}
       </div>
@@ -333,7 +333,7 @@ function AccountForm({
         <Input
           {...register("currency")}
           placeholder="IDR"
-          className="mt-1.5 h-12 rounded-xl border-border/50 bg-secondary/50"
+          className="mt-1.5 h-12 rounded-xl border-border/50 bg-secondary"
         />
       </div>
     </form>

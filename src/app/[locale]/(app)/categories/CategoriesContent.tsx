@@ -169,7 +169,7 @@ export function CategoriesContent({ locale, userId, initialCategories }: Categor
         <DialogContent className="sm:max-w-[425px] rounded-[2rem] p-6 border-border/50 shadow-2xl">
           <DialogHeader>
             <DialogTitle className="text-xl font-bold">
-              {editingCategory ? t("form.editTitle") : t("form.createTitle")}
+              {editingCategory ? t("editTitle") : t("addTitle")}
             </DialogTitle>
           </DialogHeader>
           <div className="py-4">
@@ -213,7 +213,7 @@ function CategoryCard({
   const ct = useTranslations("common");
 
   return (
-    <div className={cn("p-4 hover:bg-secondary/30 transition-colors group flex items-center justify-between gap-3", !isLast && "border-b border-border/30")}>
+    <div className={cn("p-4 hover:bg-secondary transition-colors group flex items-center justify-between gap-3", !isLast && "border-b border-border/30")}>
       <div className="flex items-center gap-4 flex-1 min-w-0">
         <div 
           className="h-12 w-12 rounded-2xl flex items-center justify-center bg-secondary"
@@ -295,7 +295,7 @@ function CategoryForm({
         <Input
           {...register("name")}
           placeholder={t("form.namePlaceholder")}
-          className="mt-1.5 h-12 text-base font-bold rounded-xl border-border/50 bg-secondary/50"
+          className="mt-1.5 h-12 text-base font-bold rounded-xl border-border/50 bg-secondary"
         />
         {errors.name && <p className="mt-1 text-xs text-destructive">{errors.name.message}</p>}
       </div>
@@ -306,7 +306,7 @@ function CategoryForm({
           value={watch("type")}
           onValueChange={(value) => setValue("type", value as "income" | "expense")}
         >
-          <SelectTrigger className="w-full mt-1.5 rounded-xl h-12 border-border/50 bg-secondary/50">
+          <SelectTrigger className="w-full mt-1.5 rounded-xl h-12 border-border/50 bg-secondary">
             <SelectValue placeholder={t("form.typeLabel")} />
           </SelectTrigger>
           <SelectContent className="rounded-2xl border-border/50">

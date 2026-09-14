@@ -62,7 +62,7 @@ function NavItem({ item, pathname }: { item: { name: string, href: string, icon:
         "flex flex-col items-center justify-center w-12 h-12 rounded-full transition-all",
         isActive
           ? "text-foreground bg-secondary"
-          : "text-muted-foreground hover:bg-secondary/50"
+          : "text-muted-foreground hover:bg-secondary"
       )}
       aria-current={isActive ? "page" : undefined}
     >

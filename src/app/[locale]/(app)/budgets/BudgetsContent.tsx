@@ -189,9 +189,9 @@ export function BudgetsContent({ locale, userId, initialBudgets, initialCategori
       <Dialog open={showForm} onOpenChange={setShowForm}>
         <DialogContent className="sm:max-w-[425px] rounded-[2rem] p-6 border-border/50 shadow-2xl">
           <DialogHeader>
-            <DialogTitle className="text-xl font-bold">
-              {editingBudget ? t("form.editTitle") : t("form.createTitle")}
-            </DialogTitle>
+              <DialogTitle className="text-xl font-bold">
+                {editingBudget ? t("editTitle") : t("addTitle")}
+              </DialogTitle>
           </DialogHeader>
           <div className="py-4">
             <BudgetForm
@@ -363,7 +363,7 @@ function BudgetForm({
           value={watch("category_id")}
           onValueChange={(value) => setValue("category_id", value)}
         >
-          <SelectTrigger className="w-full mt-1.5 rounded-xl h-12 border-border/50 bg-secondary/50">
+          <SelectTrigger className="w-full mt-1.5 rounded-xl h-12 border-border/50 bg-secondary">
             <SelectValue placeholder={t("form.categoryLabel")} />
           </SelectTrigger>
           <SelectContent className="rounded-2xl border-border/50">
@@ -386,7 +386,7 @@ function BudgetForm({
           {...register("amount", { valueAsNumber: true })}
           type="number"
           placeholder="0"
-          className="mt-1.5 h-12 text-lg font-bold rounded-xl border-border/50 bg-secondary/50"
+          className="mt-1.5 h-12 text-lg font-bold rounded-xl border-border/50 bg-secondary"
           min="1"
         />
         {errors.amount && <p className="mt-1 text-xs text-destructive">{errors.amount.message}</p>}
@@ -398,7 +398,7 @@ function BudgetForm({
           value={watch("period")}
           onValueChange={(value) => setValue("period", value as "weekly" | "monthly" | "yearly")}
         >
-          <SelectTrigger className="w-full mt-1.5 rounded-xl h-12 border-border/50 bg-secondary/50">
+          <SelectTrigger className="w-full mt-1.5 rounded-xl h-12 border-border/50 bg-secondary">
             <SelectValue placeholder={t("form.periodLabel")} />
           </SelectTrigger>
           <SelectContent className="rounded-2xl border-border/50">
@@ -414,7 +414,7 @@ function BudgetForm({
         <Input
           {...register("start_date")}
           type="date"
-          className="mt-1.5 h-12 rounded-xl border-border/50 bg-secondary/50"
+          className="mt-1.5 h-12 rounded-xl border-border/50 bg-secondary"
         />
         {errors.start_date && <p className="mt-1 text-xs text-destructive">{errors.start_date.message}</p>}
       </div>

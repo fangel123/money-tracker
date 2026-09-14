@@ -138,7 +138,7 @@ export function PlannerContent({ user, initialPlanners, initialItems, accounts, 
           {items.length === 0 && (
              <div className="p-4 text-center text-sm text-muted-foreground">Belum ada data</div>
           )}
-          <div className="flex items-center justify-between p-4 bg-secondary/30">
+          <div className="flex items-center justify-between p-4 bg-secondary">
             <span className="font-bold text-sm">Subtotal {catName}</span>
             <span className={cn("font-bold text-sm", isExpense ? "text-red-500" : "text-green-500")}>
               {isExpense ? "-" : "+"}{formatCurrency(subtotal)}
@@ -154,7 +154,7 @@ export function PlannerContent({ user, initialPlanners, initialItems, accounts, 
   const sisa = totalIncome - totalExpense;
 
   return (
-    <div className="space-y-6 pb-24 p-4 md:p-6 lg:p-8 max-w-3xl mx-auto bg-background/50 min-h-screen">
+    <div className="space-y-6 pb-24 p-4 md:p-6 lg:p-8 max-w-3xl mx-auto bg-background min-h-screen">
       
       {/* Header */}
       <div className="mb-6 flex justify-between items-start">
@@ -274,7 +274,7 @@ export function PlannerContent({ user, initialPlanners, initialItems, accounts, 
           </DialogHeader>
           {selectedItem && (
             <form onSubmit={handlePay} className="space-y-4">
-              <div className="bg-secondary/30 p-4 rounded-xl space-y-1">
+              <div className="bg-secondary p-4 rounded-xl space-y-1">
                 <p className="text-xs text-muted-foreground">Item yang direalisasikan:</p>
                 <p className="font-bold">{selectedItem.name}</p>
                 <p className={cn("text-lg font-black", selectedItem.type === 'expense' ? "text-red-500" : "text-green-500")}>
