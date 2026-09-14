@@ -285,8 +285,6 @@ function CategoryForm({
       icon: initialData?.icon || DEFAULT_ICONS[0],
       color: initialData?.color || DEFAULT_COLORS[0],
       parent_id: initialData?.parent_id || null,
-      is_active: initialData?.is_active ?? true,
-      sort_order: initialData?.sort_order || 0,
     },
   });
 

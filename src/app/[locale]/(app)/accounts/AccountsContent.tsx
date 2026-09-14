@@ -283,8 +283,6 @@ function AccountForm({
       balance: initialData?.balance || 0,
       icon: initialData?.icon || "",
       color: initialData?.color || "",
-      is_active: initialData?.is_active ?? true,
-      sort_order: initialData?.sort_order || 0,
     },
   });
 
