@@ -198,6 +198,7 @@ export function BudgetsContent({ locale, userId, initialBudgets, initialCategori
               initialData={editingBudget}
               categories={categories}
               defaultPeriod={currentPeriod}
+              isEditing={!!editingBudget}
               onSubmit={(data) => saveMutation.mutate(data)}
             />
           </div>
