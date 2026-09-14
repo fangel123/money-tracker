@@ -104,6 +104,17 @@ Rules:
     });
 
     const data = await response.json();
+
+    if (data.error) {
+      console.error("OpenRouter Error:", data.error);
+      return NextResponse.json({ error: data.error.message || "OpenRouter API error" }, { status: 500 });
+    }
+
+    if (!data.choices || !data.choices[0]) {
+      console.error("Invalid OpenRouter Response:", data);
+      return NextResponse.json({ error: "Invalid response from AI provider" }, { status: 500 });
+    }
+
     let content = data.choices[0].message.content;
     content = content.replace(/```json/gi, '').replace(/```/g, '').trim();
     

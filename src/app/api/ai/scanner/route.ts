@@ -40,14 +40,25 @@ Return ONLY a valid JSON object matching this structure, without markdown blocks
     });
 
     const data = await response.json();
+    
+    if (data.error) {
+      console.error("OpenRouter Error:", data.error);
+      return NextResponse.json({ error: data.error.message || "OpenRouter API error" }, { status: 500 });
+    }
+
+    if (!data.choices || !data.choices[0]) {
+      console.error("Invalid OpenRouter Response:", data);
+      return NextResponse.json({ error: "Invalid response from AI provider" }, { status: 500 });
+    }
+
     let content = data.choices[0].message.content;
     
     // Clean markdown if exists
     content = content.replace(/```json/gi, '').replace(/```/g, '').trim();
     
     return NextResponse.json(JSON.parse(content));
-  } catch (error) {
+  } catch (error: any) {
     console.error("Scanner Error:", error);
-    return NextResponse.json({ error: "Failed to scan receipt" }, { status: 500 });
+    return NextResponse.json({ error: error.message || "Failed to scan receipt" }, { status: 500 });
   }
 }
