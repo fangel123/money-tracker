@@ -91,11 +91,16 @@ export function TransactionFormContent({
     setSubmitError(null);
 
     try {
-      if (isEdit && transactionId) {
-        await updateTransaction(transactionId, data);
-      } else {
-        await createTransaction(data);
+      const result =
+        isEdit && transactionId
+          ? await updateTransaction(transactionId, data)
+          : await createTransaction(data);
+
+      if (!result.success) {
+        setSubmitError(result.error || t("form.error"));
+        return;
       }
+
       router.push("/transactions");
       router.refresh();
     } catch (error) {
