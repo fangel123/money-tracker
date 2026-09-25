@@ -14,7 +14,7 @@ export const transactionSchema = z.object({
       interval: z.number().int().positive().default(1),
       end_date: z.string().optional(),
     })
-    .optional(),
+    .nullish(),
 });
 
 export type TransactionFormData = z.infer<typeof transactionSchema>;

@@ -17,6 +17,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { accountSchema, type AccountFormData } from "@/lib/validators/account";
 import { Account } from "@/types/domain";
 import { createBrowserSupabaseClient } from "@/lib/supabase/browser";
+import { toast } from "sonner";
 
 interface AccountsContentProps {
   locale: "id" | "en";
@@ -281,8 +282,8 @@ function AccountForm({
       type: initialData?.type || "bank",
       currency: initialData?.currency || "IDR",
       balance: initialData?.balance || 0,
-      icon: initialData?.icon || "",
-      color: initialData?.color || "",
+      icon: initialData?.icon ?? undefined,
+      color: initialData?.color ?? undefined,
     },
   });
 
