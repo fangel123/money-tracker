@@ -21,6 +21,13 @@ export default async function DashboardPage({
 
   const t = await getTranslations({ locale, namespace: "dashboard" });
 
+  // Rentang bulan berjalan, supaya ringkasan Dashboard menghitung SEMUA transaksi
+  // bulan ini (bukan cuma 5 baris terakhir seperti sebelumnya)
+  const now = new Date();
+  const monthStart = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-01`;
+  const nextMonth = new Date(now.getFullYear(), now.getMonth() + 1, 1);
+  const monthEnd = `${nextMonth.getFullYear()}-${String(nextMonth.getMonth() + 1).padStart(2, "0")}-01`;
+
   // Fetch dashboard data
   const [
     { data: transactions },
@@ -32,8 +39,9 @@ export default async function DashboardPage({
       .from("transactions")
       .select("*")
       .eq("user_id", user.id)
-      .order("date", { ascending: false })
-      .limit(5),
+      .gte("date", monthStart)
+      .lt("date", monthEnd)
+      .order("date", { ascending: false }),
     supabase.from("accounts").select("*").eq("user_id", user.id).eq("is_active", true),
     supabase.from("budgets").select("*").eq("user_id", user.id),
     supabase.from("categories").select("*").eq("user_id", user.id).eq("is_active", true),
