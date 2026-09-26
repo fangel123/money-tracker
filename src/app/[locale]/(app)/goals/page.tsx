@@ -11,13 +11,19 @@ export default async function GoalsPage({ params: { locale } }: { params: { loca
   }
 
   // Coba ambil data goals, jika error (tabel belum ada), tangkap errornya
-  const { data: goals, error } = await supabase.from("goals").select("*").order("created_at", { ascending: false });
+  const [{ data: goals, error }, { data: accounts }, { data: categories }] = await Promise.all([
+    supabase.from("goals").select("*").order("created_at", { ascending: false }),
+    supabase.from("accounts").select("*").eq("user_id", user.id).eq("is_active", true),
+    supabase.from("categories").select("*").eq("user_id", user.id).eq("is_active", true),
+  ]);
 
   return (
     <GoalsContent 
       user={user} 
       initialGoals={goals || []} 
       dbReady={!error} 
+      accounts={accounts || []}
+      categories={categories || []}
     />
   );
 }

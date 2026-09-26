@@ -4,19 +4,19 @@ import { useState } from "react";
 import { useMutation } from "@tanstack/react-query";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
+import { z } from "zod";
 import { toast } from "sonner";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Flag, Plus, CheckCircle2, ChevronRight, Target } from "lucide-react";
 import { formatCurrency } from "@/lib/utils";
 import {
   goalSchema,
-  goalContributionSchema,
   type GoalFormData,
-  type GoalContributionData,
 } from "@/lib/validators/goal";
 import { createBrowserSupabaseClient } from "@/lib/supabase/browser";
 
@@ -24,9 +24,11 @@ interface GoalsContentProps {
   user: any;
   initialGoals: any[];
   dbReady: boolean;
+  accounts: any[];
+  categories: any[];
 }
 
-export function GoalsContent({ user, initialGoals, dbReady }: GoalsContentProps) {
+export function GoalsContent({ user, initialGoals, dbReady, accounts, categories }: GoalsContentProps) {
   const router = useRouter();
   const displayGoals = initialGoals;
   const [showForm, setShowForm] = useState(false);
@@ -56,13 +58,41 @@ export function GoalsContent({ user, initialGoals, dbReady }: GoalsContentProps)
   });
 
   const contributeMutation = useMutation({
-    mutationFn: async ({ id, amount, current }: { id: string; amount: number; current: number }) => {
+    mutationFn: async ({
+      id,
+      amount,
+      current,
+      accountId,
+      categoryId,
+      goalName,
+    }: {
+      id: string;
+      amount: number;
+      current: number;
+      accountId: string;
+      categoryId: string;
+      goalName: string;
+    }) => {
       const supabase = createBrowserSupabaseClient();
+
+      // 1. Catat sebagai transaksi pengeluaran sungguhan supaya saldo akun & riwayat ikut ter-update
+      const { error: txError } = await supabase.from("transactions").insert({
+        user_id: user.id,
+        account_id: accountId,
+        category_id: categoryId,
+        amount,
+        type: "expense",
+        date: new Date().toISOString(),
+        note: `(Tabungan) ${goalName}`,
+      });
+      if (txError) throw new Error("Gagal mencatat transaksi: " + txError.message);
+
+      // 2. Update jumlah terkumpul di goal
       const { error } = await supabase
         .from("goals")
         .update({ current_amount: current + amount })
         .eq("id", id);
-      if (error) throw error;
+      if (error) throw new Error("Gagal mengupdate tabungan: " + error.message);
     },
     onSuccess: () => {
       setContributingTo(null);
@@ -189,10 +219,19 @@ export function GoalsContent({ user, initialGoals, dbReady }: GoalsContentProps)
       />
       <ContributeDialog
         goal={contributingTo}
+        accounts={accounts}
+        categories={categories}
         onOpenChange={(open) => !open && setContributingTo(null)}
-        onSubmit={(amount) =>
+        onSubmit={(amount, accountId, categoryId) =>
           contributingTo &&
-          contributeMutation.mutate({ id: contributingTo.id, amount, current: Number(contributingTo.current_amount) })
+          contributeMutation.mutate({
+            id: contributingTo.id,
+            amount,
+            current: Number(contributingTo.current_amount),
+            accountId,
+            categoryId,
+            goalName: contributingTo.name,
+          })
         }
         isPending={contributeMutation.isPending}
       />
@@ -268,27 +307,42 @@ function GoalFormDialog({
 
 function ContributeDialog({
   goal,
+  accounts,
+  categories,
   onOpenChange,
   onSubmit,
   isPending,
 }: {
   goal: any | null;
+  accounts: any[];
+  categories: any[];
   onOpenChange: (open: boolean) => void;
-  onSubmit: (amount: number) => void;
+  onSubmit: (amount: number, accountId: string, categoryId: string) => void;
   isPending: boolean;
 }) {
+  const contributeSchema = z.object({
+    amount: z.coerce.number().positive("Jumlah harus lebih dari 0"),
+    account_id: z.string().min(1, "Pilih akun terlebih dahulu"),
+    category_id: z.string().min(1, "Pilih kategori terlebih dahulu"),
+  });
+  type ContributeFormData = z.infer<typeof contributeSchema>;
+
   const {
     register,
     handleSubmit,
+    watch,
+    setValue,
     reset,
     formState: { errors },
-  } = useForm<GoalContributionData>({
-    resolver: zodResolver(goalContributionSchema),
-    defaultValues: { amount: 0 },
+  } = useForm<ContributeFormData>({
+    resolver: zodResolver(contributeSchema),
+    defaultValues: { amount: 0, account_id: "", category_id: "" },
   });
 
-  const submit = (data: GoalContributionData) => {
-    onSubmit(data.amount);
+  const expenseCategories = categories.filter((c) => c.type === "expense");
+
+  const submit = (data: ContributeFormData) => {
+    onSubmit(data.amount, data.account_id, data.category_id);
     reset();
   };
 
@@ -298,10 +352,46 @@ function ContributeDialog({
         <DialogHeader>
           <DialogTitle className="text-xl font-bold">Isi Tabungan: {goal?.name}</DialogTitle>
         </DialogHeader>
-        <form id="contribute-form" onSubmit={handleSubmit(submit)} className="py-4">
-          <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Jumlah</Label>
-          <Input {...register("amount")} type="number" placeholder="0" autoFocus className="mt-1.5 h-12 rounded-xl bg-secondary border-border/50" />
-          {errors.amount && <p className="mt-1 text-xs text-destructive">{errors.amount.message}</p>}
+        <form id="contribute-form" onSubmit={handleSubmit(submit)} className="py-4 space-y-4">
+          <div>
+            <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Jumlah</Label>
+            <Input {...register("amount")} type="number" placeholder="0" autoFocus className="mt-1.5 h-12 rounded-xl bg-secondary border-border/50" />
+            {errors.amount && <p className="mt-1 text-xs text-destructive">{errors.amount.message}</p>}
+          </div>
+
+          <div>
+            <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Dari Akun</Label>
+            <Select value={watch("account_id")} onValueChange={(v) => setValue("account_id", v)}>
+              <SelectTrigger className="w-full mt-1.5 rounded-xl h-12 border-border/50 bg-secondary">
+                <SelectValue placeholder="Pilih akun" />
+              </SelectTrigger>
+              <SelectContent className="rounded-2xl border-border/50">
+                {accounts.map((acc) => (
+                  <SelectItem key={acc.id} value={acc.id} className="rounded-xl">
+                    {acc.name} ({formatCurrency(acc.balance)})
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            {errors.account_id && <p className="mt-1 text-xs text-destructive">{errors.account_id.message}</p>}
+          </div>
+
+          <div>
+            <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Kategori</Label>
+            <Select value={watch("category_id")} onValueChange={(v) => setValue("category_id", v)}>
+              <SelectTrigger className="w-full mt-1.5 rounded-xl h-12 border-border/50 bg-secondary">
+                <SelectValue placeholder="Pilih kategori" />
+              </SelectTrigger>
+              <SelectContent className="rounded-2xl border-border/50">
+                {expenseCategories.map((cat) => (
+                  <SelectItem key={cat.id} value={cat.id} className="rounded-xl">
+                    {cat.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            {errors.category_id && <p className="mt-1 text-xs text-destructive">{errors.category_id.message}</p>}
+          </div>
         </form>
         <DialogFooter>
           <Button variant="outline" className="rounded-full" onClick={() => onOpenChange(false)}>
