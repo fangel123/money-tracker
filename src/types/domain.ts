@@ -1,10 +1,11 @@
-export type TransactionType = "income" | "expense";
+export type TransactionType = "income" | "expense" | "transfer";
 
 export interface Transaction {
   id: string;
   user_id: string;
   account_id: string;
-  category_id: string;
+  category_id: string | null;
+  to_account_id: string | null; // diisi hanya kalau type === "transfer"
   amount: number;
   type: TransactionType;
   date: string; // ISO date string
@@ -16,6 +17,7 @@ export interface Transaction {
   updated_at: string;
   // Relations
   account?: Account;
+  to_account?: Account;
   category?: Category;
 }
 
@@ -29,7 +31,7 @@ export interface Category {
   id: string;
   user_id: string;
   name: string;
-  type: TransactionType;
+  type: "income" | "expense";
   icon: string | null;
   color: string | null;
   parent_id: string | null;

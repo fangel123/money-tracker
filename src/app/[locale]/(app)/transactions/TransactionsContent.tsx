@@ -196,6 +196,7 @@ export function TransactionsContent({ locale, userId, initialSearchParams }: Tra
                     <SelectItem value="all" className="rounded-xl">{t("filters.typeAll")}</SelectItem>
                     <SelectItem value="income" className="rounded-xl">{t("filters.typeIncome")}</SelectItem>
                     <SelectItem value="expense" className="rounded-xl">{t("filters.typeExpense")}</SelectItem>
+                    <SelectItem value="transfer" className="rounded-xl">{t("form.typeTransfer")}</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
@@ -359,23 +360,35 @@ function TransactionCard({
   const ct = useTranslations("common");
   const category = categories.find((c) => c.id === transaction.category_id);
   const account = accounts.find((a) => a.id === transaction.account_id);
+  const toAccount = accounts.find((a) => a.id === transaction.to_account_id);
   const isIncome = transaction.type === "income";
+  const isTransfer = transaction.type === "transfer";
 
   return (
     <div className={cn("p-4 hover:bg-secondary transition-colors group flex items-center justify-between gap-3", !isLast && "border-b border-border/30")}>
       <div className="flex items-center gap-4 flex-1 min-w-0">
         <div
           className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl"
-          style={{ backgroundColor: category?.color ? `${category.color}20` : "var(--muted)" }}
+          style={{ backgroundColor: isTransfer ? "var(--muted)" : category?.color ? `${category.color}20` : "var(--muted)" }}
         >
-          {category?.icon && (
-            <DynamicIcon name={category.icon} className="h-6 w-6" style={{ color: category.color || "var(--foreground)" }} />
+          {isTransfer ? (
+            <ArrowLeftRight className="h-6 w-6 text-muted-foreground" />
+          ) : (
+            category?.icon && (
+              <DynamicIcon name={category.icon} className="h-6 w-6" style={{ color: category.color || "var(--foreground)" }} />
+            )
           )}
         </div>
         <div className="min-w-0 flex-1">
-          <p className="font-bold text-foreground truncate">{category?.name || "Kategori"}</p>
+          <p className="font-bold text-foreground truncate">
+            {isTransfer ? `${account?.name || "?"} → ${toAccount?.name || "?"}` : category?.name || "Kategori"}
+          </p>
           <div className="flex items-center text-xs text-muted-foreground mt-0.5 truncate gap-1.5">
-            <span className="font-medium bg-secondary px-1.5 py-0.5 rounded-md">{account?.name || "?"}</span>
+            {isTransfer ? (
+              <span className="font-medium bg-secondary px-1.5 py-0.5 rounded-md">Transfer</span>
+            ) : (
+              <span className="font-medium bg-secondary px-1.5 py-0.5 rounded-md">{account?.name || "?"}</span>
+            )}
             <span>•</span>
             <span>{formatDate(transaction.date, locale)}</span>
           </div>
@@ -386,8 +399,8 @@ function TransactionCard({
       </div>
       <div className="flex items-center gap-3 shrink-0">
         <div className="flex flex-col items-end gap-1">
-          <span className={cn("font-bold text-base md:text-lg tabular-nums", !isIncome ? "text-red-500" : "text-green-500")}>
-            {!isIncome ? "-" : "+"}{formatCurrency(transaction.amount, "IDR", locale)}
+          <span className={cn("font-bold text-base md:text-lg tabular-nums", isTransfer ? "text-muted-foreground" : !isIncome ? "text-red-500" : "text-green-500")}>
+            {isTransfer ? "" : !isIncome ? "-" : "+"}{formatCurrency(transaction.amount, "IDR", locale)}
           </span>
         </div>
         <DropdownMenu>

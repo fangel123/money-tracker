@@ -30,12 +30,14 @@ export default async function TransactionEditPage({
   }
 
   const [{ data: categories }, { data: accounts }] = await Promise.all([
-    supabase
-      .from("categories")
-      .select("*")
-      .eq("user_id", user.id)
-      .eq("is_active", true)
-      .eq("type", transaction.type),
+    transaction.type === "transfer"
+      ? Promise.resolve({ data: [] as any[] })
+      : supabase
+          .from("categories")
+          .select("*")
+          .eq("user_id", user.id)
+          .eq("is_active", true)
+          .eq("type", transaction.type),
     supabase.from("accounts").select("*").eq("user_id", user.id).eq("is_active", true),
   ]);
 
@@ -43,7 +45,7 @@ export default async function TransactionEditPage({
     <TransactionFormContent
       locale={locale as "id" | "en"}
       userId={user.id}
-      initialType={transaction.type}
+      initialType={(transaction.type === "transfer" ? "expense" : transaction.type) as "income" | "expense"}
       categories={categories || []}
       accounts={accounts || []}
       isEdit={true}
@@ -53,6 +55,7 @@ export default async function TransactionEditPage({
         amount: transaction.amount,
         category_id: transaction.category_id,
         account_id: transaction.account_id,
+        to_account_id: transaction.to_account_id,
         date: transaction.date,
         note: transaction.note || "",
         is_recurring: transaction.is_recurring,

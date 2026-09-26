@@ -32,6 +32,8 @@ export async function createTransaction(data: TransactionFormData) {
     ...validatedData,
     user_id: user.id,
     amount: validatedData.amount,
+    category_id: validatedData.type === "transfer" ? null : validatedData.category_id,
+    to_account_id: validatedData.type === "transfer" ? validatedData.to_account_id : null,
     recurring_rule: validatedData.recurring_rule || null,
   });
 
@@ -74,6 +76,8 @@ export async function updateTransaction(id: string, data: TransactionFormData) {
     .update({
       ...validatedData,
       amount: validatedData.amount,
+      category_id: validatedData.type === "transfer" ? null : validatedData.category_id,
+      to_account_id: validatedData.type === "transfer" ? validatedData.to_account_id : null,
       recurring_rule: validatedData.recurring_rule || null,
       updated_at: new Date().toISOString(),
     })

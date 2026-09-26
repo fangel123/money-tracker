@@ -15,7 +15,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { createTransaction, updateTransaction } from "./actions";
 import { transactionSchema, type TransactionFormData } from "@/lib/validators/transaction";
 import { Category, Account } from "@/types/domain";
-import { ArrowLeft, Plus, Calendar } from "lucide-react";
+import { ArrowLeft, ArrowLeftRight, Plus, Calendar } from "lucide-react";
 import { DynamicIcon } from "@/components/common/DynamicIcon";
 import Link from "next/link";
 import { useRouter, usePathname } from "next/navigation";
@@ -58,6 +58,7 @@ export function TransactionFormContent({
     amount: 0,
     category_id: filteredCategories[0]?.id || "",
     account_id: accounts[0]?.id || "",
+    to_account_id: undefined,
     date: new Date().toISOString().split("T")[0],
     note: "",
     is_recurring: false,
@@ -126,7 +127,6 @@ export function TransactionFormContent({
                 className="flex-1"
                 onClick={() => setValue("type", "income")}
               >
-                <ArrowLeft className="mr-2 h-4 w-4" />
                 {t("form.typeIncome")}
               </Button>
               <Button
@@ -136,6 +136,15 @@ export function TransactionFormContent({
                 onClick={() => setValue("type", "expense")}
               >
                 {t("form.typeExpense")}
+              </Button>
+              <Button
+                type="button"
+                variant={watchedType === "transfer" ? "default" : "outline"}
+                className="flex-1"
+                onClick={() => setValue("type", "transfer")}
+              >
+                <ArrowLeftRight className="mr-2 h-4 w-4" />
+                {t("form.typeTransfer")}
               </Button>
             </div>
           </CardContent>
@@ -171,31 +180,62 @@ export function TransactionFormContent({
         </CardContent>
       </Card>
 
-      {/* Category & Account */}
+      {/* Category (income/expense) atau Akun Tujuan (transfer) & Akun Sumber */}
       <div className="grid gap-4 sm:grid-cols-2">
         <Card>
           <CardContent className="pt-6">
-            <Label htmlFor="category_id">{t("form.categoryLabel")}</Label>
-            <Select
-              value={watch("category_id")}
-              onValueChange={(value) => setValue("category_id", value)}
-            >
-              <SelectTrigger className="w-full mt-1.5">
-                <SelectValue placeholder={t("form.categoryPlaceholder")} />
-              </SelectTrigger>
-              <SelectContent>
-                {filteredCategories.map((cat) => (
-                  <SelectItem key={cat.id} value={cat.id}>
-                    <span className="flex items-center">
-                      {cat.icon && <DynamicIcon name={cat.icon} className="mr-2 h-4 w-4" style={{ color: cat.color || undefined }} />}
-                      {cat.name}
-                    </span>
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-            {errors.category_id && (
-              <p className="mt-1 text-sm text-destructive" role="alert">{errors.category_id.message}</p>
+            {watchedType === "transfer" ? (
+              <>
+                <Label htmlFor="to_account_id">{t("form.toAccountLabel")}</Label>
+                <Select
+                  value={watch("to_account_id") || ""}
+                  onValueChange={(value) => setValue("to_account_id", value)}
+                >
+                  <SelectTrigger className="w-full mt-1.5">
+                    <SelectValue placeholder={t("form.toAccountPlaceholder")} />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {accounts
+                      .filter((acc) => acc.id !== watch("account_id"))
+                      .map((acc) => (
+                        <SelectItem key={acc.id} value={acc.id}>
+                          <span className="flex items-center">
+                            {acc.icon && <DynamicIcon name={acc.icon} className="mr-2 h-4 w-4" style={{ color: acc.color || undefined }} />}
+                            {acc.name} ({formatCurrency(acc.balance, acc.currency, locale)})
+                          </span>
+                        </SelectItem>
+                      ))}
+                  </SelectContent>
+                </Select>
+                {errors.to_account_id && (
+                  <p className="mt-1 text-sm text-destructive" role="alert">{errors.to_account_id.message}</p>
+                )}
+              </>
+            ) : (
+              <>
+                <Label htmlFor="category_id">{t("form.categoryLabel")}</Label>
+                <Select
+                  value={watch("category_id") || ""}
+                  onValueChange={(value) => setValue("category_id", value)}
+                >
+                  <SelectTrigger className="w-full mt-1.5">
+                    <SelectValue placeholder={t("form.categoryPlaceholder")} />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {filteredCategories.map((cat) => (
+                      <SelectItem key={cat.id} value={cat.id}>
+                        <span className="flex items-center">
+                          {cat.icon && <DynamicIcon name={cat.icon} className="mr-2 h-4 w-4" style={{ color: cat.color || undefined }} />}
+                          {cat.name}
+                        </span>
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                {errors.category_id && (
+                  <p className="mt-1 text-sm text-destructive" role="alert">{errors.category_id.message}</p>
+                )}
+              </>
             )}
           </CardContent>
         </Card>

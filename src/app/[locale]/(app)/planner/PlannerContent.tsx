@@ -33,7 +33,8 @@ export function PlannerContent({ user, initialPlanners, initialItems, accounts, 
   const [editTabTitle, setEditTabTitle] = useState("");
   
   const [itemData, setItemData] = useState({ name: "", amount: "", type: "expense", tag: "" });
-  const [payData, setPayData] = useState({ accountId: "", categoryId: "" });
+  const [payData, setPayData] = useState({ accountId: "", categoryId: "", toAccountId: "" });
+  const [payAsTransfer, setPayAsTransfer] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const activePlanner = initialPlanners.find((p: any) => p.id === activeTab);
@@ -143,7 +144,15 @@ export function PlannerContent({ user, initialPlanners, initialItems, accounts, 
     e.preventDefault();
     setIsSubmitting(true);
     try {
-      await realizePlannerItem(selectedItem.id, selectedItem.amount, selectedItem.type, selectedItem.name, payData.accountId, payData.categoryId);
+      await realizePlannerItem(
+        selectedItem.id,
+        selectedItem.amount,
+        selectedItem.type,
+        selectedItem.name,
+        payData.accountId,
+        payData.categoryId,
+        payAsTransfer ? payData.toAccountId : undefined
+      );
       setIsPayOpen(false);
     } catch (e: any) {
       alert(e.message);
@@ -201,7 +210,7 @@ export function PlannerContent({ user, initialPlanners, initialItems, accounts, 
                         size="sm" 
                         variant="secondary"
                         className="h-7 text-[10px] px-2 rounded-full font-bold hover:bg-primary hover:text-primary-foreground" 
-                        onClick={() => { setSelectedItem(item); setIsPayOpen(true); }}
+                        onClick={() => { setSelectedItem(item); setPayData({ accountId: "", categoryId: "", toAccountId: "" }); setPayAsTransfer(false); setIsPayOpen(true); }}
                       >
                         <CheckSquare className="h-3 w-3 mr-1" /> {item.type === 'expense' ? "Bayar" : "Terima"}
                       </Button>
@@ -481,15 +490,54 @@ export function PlannerContent({ user, initialPlanners, initialItems, accounts, 
                 </Select>
               </div>
 
-              <div className="space-y-2">
-                <Label>Pilih Kategori Transaksi</Label>
-                <Select required onValueChange={v => setPayData({...payData, categoryId: v})}>
-                  <SelectTrigger><SelectValue placeholder="Pilih Kategori" /></SelectTrigger>
-                  <SelectContent>
-                    {categories.filter((c:any) => c.type === selectedItem.type).map((c:any) => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}
-                  </SelectContent>
-                </Select>
-              </div>
+              {selectedItem.type === 'expense' && (
+                <div className="space-y-2">
+                  <Label>Realisasikan Sebagai</Label>
+                  <div className="flex gap-2">
+                    <Button
+                      type="button"
+                      variant={!payAsTransfer ? "default" : "outline"}
+                      className="flex-1 h-9 text-xs"
+                      onClick={() => setPayAsTransfer(false)}
+                    >
+                      Pengeluaran Biasa
+                    </Button>
+                    <Button
+                      type="button"
+                      variant={payAsTransfer ? "default" : "outline"}
+                      className="flex-1 h-9 text-xs"
+                      onClick={() => setPayAsTransfer(true)}
+                    >
+                      Transfer Antar Akun
+                    </Button>
+                  </div>
+                  <p className="text-[11px] text-muted-foreground">
+                    Pilih Transfer kalau ini sebenarnya cuma pindah uang ke akun/dompet lain milikmu sendiri (mis. tarik tunai, top up e-wallet) — bukan pengeluaran sungguhan.
+                  </p>
+                </div>
+              )}
+
+              {payAsTransfer ? (
+                <div className="space-y-2">
+                  <Label>Ke Akun</Label>
+                  <Select required onValueChange={v => setPayData({...payData, toAccountId: v})}>
+                    <SelectTrigger><SelectValue placeholder="Pilih Akun Tujuan" /></SelectTrigger>
+                    <SelectContent>
+                      {accounts.filter((a: any) => a.id !== payData.accountId).map((a:any) => <SelectItem key={a.id} value={a.id}>{a.name}</SelectItem>)}
+                    </SelectContent>
+                  </Select>
+                </div>
+              ) : (
+                <div className="space-y-2">
+                  <Label>Pilih Kategori Transaksi</Label>
+                  <Select required onValueChange={v => setPayData({...payData, categoryId: v})}>
+                    <SelectTrigger><SelectValue placeholder="Pilih Kategori" /></SelectTrigger>
+                    <SelectContent>
+                      {categories.filter((c:any) => c.type === selectedItem.type).map((c:any) => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}
+                    </SelectContent>
+                  </Select>
+                </div>
+              )}
 
               <DialogFooter>
                 <Button type="button" variant="outline" onClick={() => setIsPayOpen(false)} className="rounded-full">Batal</Button>

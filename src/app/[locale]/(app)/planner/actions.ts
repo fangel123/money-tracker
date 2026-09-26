@@ -66,6 +66,18 @@ export async function createPlannerItem(
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) throw new Error("Unauthorized");
 
+  // Item baru selalu ditaruh setelah item terakhir di kategori yang sama,
+  // supaya urutan tampil konsisten (bukan kebetulan ikut urutan insert DB)
+  const { data: maxRow } = await supabase
+    .from("planner_items")
+    .select("sort_order")
+    .eq("planner_id", plannerId)
+    .eq("category", category)
+    .order("sort_order", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+  const nextSortOrder = (maxRow?.sort_order ?? -1) + 1;
+
   const { data, error } = await supabase
     .from("planner_items")
     .insert({
@@ -74,7 +86,8 @@ export async function createPlannerItem(
       type,
       name,
       amount,
-      status_tag: statusTag || null
+      status_tag: statusTag || null,
+      sort_order: nextSortOrder,
     })
     .select()
     .single();
@@ -90,24 +103,47 @@ export async function realizePlannerItem(
   type: "income" | "expense", 
   name: string, 
   accountId: string, 
-  categoryId: string
+  categoryId: string,
+  toAccountId?: string
 ) {
   const supabase = createServerSupabaseClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) throw new Error("Unauthorized");
 
+  // Jika toAccountId diisi, item ini direalisasikan sebagai Transfer Antar Akun
+  // (mis. "Angkot" = ambil cash dari BCA, "Kereta + Isi Gopay" = top up dari BCA ke Gopay)
+  // bukan sebagai pengeluaran biasa, supaya tidak dihitung ganda di laporan.
+  const isTransfer = !!toAccountId;
+
+  if (isTransfer && toAccountId === accountId) {
+    throw new Error("Akun asal dan tujuan transfer tidak boleh sama");
+  }
+
   // 1. Insert into transactions
   const { error: txError } = await supabase
     .from("transactions")
-    .insert({
-      user_id: user.id,
-      account_id: accountId,
-      category_id: categoryId,
-      amount: amount,
-      type: type,
-      date: new Date().toISOString(),
-      note: `(Planner) ${name}`
-    });
+    .insert(
+      isTransfer
+        ? {
+            user_id: user.id,
+            account_id: accountId,
+            to_account_id: toAccountId,
+            category_id: null,
+            amount: amount,
+            type: "transfer",
+            date: new Date().toISOString(),
+            note: `(Planner) ${name}`,
+          }
+        : {
+            user_id: user.id,
+            account_id: accountId,
+            category_id: categoryId,
+            amount: amount,
+            type: type,
+            date: new Date().toISOString(),
+            note: `(Planner) ${name}`,
+          }
+    );
 
   if (txError) throw new Error("Gagal menyimpan transaksi: " + txError.message);
 
