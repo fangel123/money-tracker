@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useMutation } from "@tanstack/react-query";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
+import { z } from "zod";
 import { toast } from "sonner";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
@@ -15,9 +16,7 @@ import { Coins, Plus, TrendingDown, TrendingUp, HandCoins, ChevronRight } from "
 import { formatCurrency, cn } from "@/lib/utils";
 import {
   debtSchema,
-  debtPaymentSchema,
   type DebtFormData,
-  type DebtPaymentData,
 } from "@/lib/validators/debt";
 import { createBrowserSupabaseClient } from "@/lib/supabase/browser";
 
@@ -25,9 +24,11 @@ interface DebtsContentProps {
   user: any;
   initialDebts: any[];
   dbReady: boolean;
+  accounts: any[];
+  categories: any[];
 }
 
-export function DebtsContent({ user, initialDebts, dbReady }: DebtsContentProps) {
+export function DebtsContent({ user, initialDebts, dbReady, accounts, categories }: DebtsContentProps) {
   const router = useRouter();
   const displayDebts = initialDebts;
   const [showForm, setShowForm] = useState(false);
@@ -62,14 +63,45 @@ export function DebtsContent({ user, initialDebts, dbReady }: DebtsContentProps)
   });
 
   const payMutation = useMutation({
-    mutationFn: async ({ id, amount, remaining }: { id: string; amount: number; remaining: number }) => {
+    mutationFn: async ({
+      id,
+      amount,
+      remaining,
+      accountId,
+      categoryId,
+      isPayable,
+      debtName,
+    }: {
+      id: string;
+      amount: number;
+      remaining: number;
+      accountId: string;
+      categoryId: string;
+      isPayable: boolean;
+      debtName: string;
+    }) => {
       const supabase = createBrowserSupabaseClient();
+
+      // 1. Catat sebagai transaksi sungguhan supaya saldo akun & riwayat ikut ter-update
+      //    (bayar cicilan = expense, terima pembayaran piutang = income)
+      const { error: txError } = await supabase.from("transactions").insert({
+        user_id: user.id,
+        account_id: accountId,
+        category_id: categoryId,
+        amount,
+        type: isPayable ? "expense" : "income",
+        date: new Date().toISOString(),
+        note: `(${isPayable ? "Utang" : "Piutang"}) ${debtName}`,
+      });
+      if (txError) throw new Error("Gagal mencatat transaksi: " + txError.message);
+
+      // 2. Update sisa utang/piutang
       const newRemaining = Math.max(0, remaining - amount);
       const { error } = await supabase
         .from("debts")
         .update({ remaining_amount: newRemaining, status: newRemaining === 0 ? "paid" : "active" })
         .eq("id", id);
-      if (error) throw error;
+      if (error) throw new Error("Gagal mengupdate sisa: " + error.message);
     },
     onSuccess: () => {
       setPayingDebt(null);
@@ -189,9 +221,20 @@ export function DebtsContent({ user, initialDebts, dbReady }: DebtsContentProps)
       />
       <PayDebtDialog
         debt={payingDebt}
+        accounts={accounts}
+        categories={categories}
         onOpenChange={(open) => !open && setPayingDebt(null)}
-        onSubmit={(amount) =>
-          payingDebt && payMutation.mutate({ id: payingDebt.id, amount, remaining: Number(payingDebt.remaining_amount) })
+        onSubmit={(amount, accountId, categoryId) =>
+          payingDebt &&
+          payMutation.mutate({
+            id: payingDebt.id,
+            amount,
+            remaining: Number(payingDebt.remaining_amount),
+            accountId,
+            categoryId,
+            isPayable: payingDebt.type === "payable",
+            debtName: payingDebt.name,
+          })
         }
         isPending={payMutation.isPending}
       />
@@ -277,31 +320,45 @@ function DebtFormDialog({
 
 function PayDebtDialog({
   debt,
+  accounts,
+  categories,
   onOpenChange,
   onSubmit,
   isPending,
 }: {
   debt: any | null;
+  accounts: any[];
+  categories: any[];
   onOpenChange: (open: boolean) => void;
-  onSubmit: (amount: number) => void;
+  onSubmit: (amount: number, accountId: string, categoryId: string) => void;
   isPending: boolean;
 }) {
+  const paySchema = z.object({
+    amount: z.coerce.number().positive("Jumlah harus lebih dari 0"),
+    account_id: z.string().min(1, "Pilih akun terlebih dahulu"),
+    category_id: z.string().min(1, "Pilih kategori terlebih dahulu"),
+  });
+  type PayFormData = z.infer<typeof paySchema>;
+
   const {
     register,
     handleSubmit,
+    watch,
+    setValue,
     reset,
     formState: { errors },
-  } = useForm<DebtPaymentData>({
-    resolver: zodResolver(debtPaymentSchema),
-    defaultValues: { amount: 0 },
+  } = useForm<PayFormData>({
+    resolver: zodResolver(paySchema),
+    defaultValues: { amount: 0, account_id: "", category_id: "" },
   });
 
-  const submit = (data: DebtPaymentData) => {
-    onSubmit(data.amount);
+  const isPayable = debt?.type === "payable";
+  const relevantCategories = categories.filter((c) => c.type === (isPayable ? "expense" : "income"));
+
+  const submit = (data: PayFormData) => {
+    onSubmit(data.amount, data.account_id, data.category_id);
     reset();
   };
-
-  const isPayable = debt?.type === "payable";
 
   return (
     <Dialog open={!!debt} onOpenChange={onOpenChange}>
@@ -311,11 +368,49 @@ function PayDebtDialog({
             {isPayable ? "Bayar Cicilan" : "Terima Pembayaran"}: {debt?.name}
           </DialogTitle>
         </DialogHeader>
-        <form id="pay-debt-form" onSubmit={handleSubmit(submit)} className="py-4">
-          <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Jumlah</Label>
-          <Input {...register("amount")} type="number" placeholder="0" autoFocus className="mt-1.5 h-12 rounded-xl bg-secondary border-border/50" />
-          {errors.amount && <p className="mt-1 text-xs text-destructive">{errors.amount.message}</p>}
-          {debt && <p className="mt-2 text-xs text-muted-foreground">Sisa saat ini: {formatCurrency(debt.remaining_amount)}</p>}
+        <form id="pay-debt-form" onSubmit={handleSubmit(submit)} className="py-4 space-y-4">
+          <div>
+            <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Jumlah</Label>
+            <Input {...register("amount")} type="number" placeholder="0" autoFocus className="mt-1.5 h-12 rounded-xl bg-secondary border-border/50" />
+            {errors.amount && <p className="mt-1 text-xs text-destructive">{errors.amount.message}</p>}
+            {debt && <p className="mt-2 text-xs text-muted-foreground">Sisa saat ini: {formatCurrency(debt.remaining_amount)}</p>}
+          </div>
+
+          <div>
+            <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
+              {isPayable ? "Bayar dari Akun" : "Terima ke Akun"}
+            </Label>
+            <Select value={watch("account_id")} onValueChange={(v) => setValue("account_id", v)}>
+              <SelectTrigger className="w-full mt-1.5 rounded-xl h-12 border-border/50 bg-secondary">
+                <SelectValue placeholder="Pilih akun" />
+              </SelectTrigger>
+              <SelectContent className="rounded-2xl border-border/50">
+                {accounts.map((acc) => (
+                  <SelectItem key={acc.id} value={acc.id} className="rounded-xl">
+                    {acc.name} ({formatCurrency(acc.balance)})
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            {errors.account_id && <p className="mt-1 text-xs text-destructive">{errors.account_id.message}</p>}
+          </div>
+
+          <div>
+            <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Kategori</Label>
+            <Select value={watch("category_id")} onValueChange={(v) => setValue("category_id", v)}>
+              <SelectTrigger className="w-full mt-1.5 rounded-xl h-12 border-border/50 bg-secondary">
+                <SelectValue placeholder="Pilih kategori" />
+              </SelectTrigger>
+              <SelectContent className="rounded-2xl border-border/50">
+                {relevantCategories.map((cat) => (
+                  <SelectItem key={cat.id} value={cat.id} className="rounded-xl">
+                    {cat.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            {errors.category_id && <p className="mt-1 text-xs text-destructive">{errors.category_id.message}</p>}
+          </div>
         </form>
         <DialogFooter>
           <Button variant="outline" className="rounded-full" onClick={() => onOpenChange(false)}>
