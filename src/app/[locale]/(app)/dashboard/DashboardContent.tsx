@@ -5,7 +5,7 @@ import { cn, formatCurrency, formatDate } from "@/lib/utils";
 import { Card, CardContent } from "@/components/ui/card";
 import { DynamicIcon } from "@/components/common/DynamicIcon";
 import { Button } from "@/components/ui/button";
-import { Plus, TrendingUp, TrendingDown, Wallet, Target, ArrowRight, Zap, PieChart, ScanLine, Flag, Briefcase, Coins, LineChart, MessageSquare, BarChart3, Lock, Settings } from "lucide-react";
+import { Plus, TrendingUp, TrendingDown, Wallet, Target, ArrowRight, Zap, PieChart, ScanLine, Flag, Briefcase, Coins, LineChart, MessageSquare, BarChart3, Lock, Settings, AlertTriangle, CalendarClock } from "lucide-react";
 import { Link } from "@/i18n/navigation";
 import { Transaction, Account, Budget, Category, User } from "@/types/domain";
 
@@ -16,6 +16,8 @@ interface DashboardContentProps {
   accounts: Account[];
   budgets: Budget[];
   categories: Category[];
+  budgetAlerts: (Budget & { spent: number; percent: number })[];
+  debtReminders: any[];
 }
 
 const mainMenuItems = [
@@ -36,6 +38,8 @@ export function DashboardContent({
   accounts,
   budgets,
   categories,
+  budgetAlerts,
+  debtReminders,
 }: DashboardContentProps) {
   const t = useTranslations("dashboard");
   const ct = useTranslations("common");
@@ -110,6 +114,58 @@ export function DashboardContent({
           </p>
         </div>
       </div>
+
+      {/* Peringatan: Budget hampir/lewat batas & Utang-Piutang jatuh tempo */}
+      {(budgetAlerts.length > 0 || debtReminders.length > 0) && (
+        <div className="space-y-3">
+          {budgetAlerts.map((b) => (
+            <Link
+              key={`budget-${b.id}`}
+              href="/budgets"
+              className={cn(
+                "flex items-center gap-3 rounded-2xl p-4 border",
+                b.percent >= 100 ? "bg-destructive/10 border-destructive/30" : "bg-orange-500/10 border-orange-500/30"
+              )}
+            >
+              <AlertTriangle className={cn("h-5 w-5 shrink-0", b.percent >= 100 ? "text-destructive" : "text-orange-500")} />
+              <div className="flex-1 min-w-0">
+                <p className="text-sm font-bold truncate">
+                  Budget {b.category?.name || "Kategori"} {b.percent >= 100 ? "sudah lebih dari batas" : "hampir habis"}
+                </p>
+                <p className="text-xs text-muted-foreground">
+                  Terpakai {formatCurrency(b.spent, "IDR", locale)} dari {formatCurrency(b.amount, "IDR", locale)} ({b.percent}%)
+                </p>
+              </div>
+              <ArrowRight className="h-4 w-4 text-muted-foreground shrink-0" />
+            </Link>
+          ))}
+
+          {debtReminders.map((d) => {
+            const isOverdue = d.due_date < new Date().toISOString().split("T")[0];
+            return (
+              <Link
+                key={`debt-${d.id}`}
+                href="/debts"
+                className={cn(
+                  "flex items-center gap-3 rounded-2xl p-4 border",
+                  isOverdue ? "bg-destructive/10 border-destructive/30" : "bg-orange-500/10 border-orange-500/30"
+                )}
+              >
+                <CalendarClock className={cn("h-5 w-5 shrink-0", isOverdue ? "text-destructive" : "text-orange-500")} />
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-bold truncate">
+                    {d.type === "payable" ? "Utang" : "Piutang"} "{d.name}" {isOverdue ? "sudah lewat jatuh tempo" : "segera jatuh tempo"}
+                  </p>
+                  <p className="text-xs text-muted-foreground">
+                    Sisa {formatCurrency(d.remaining_amount, "IDR", locale)} • {formatDate(d.due_date, locale)}
+                  </p>
+                </div>
+                <ArrowRight className="h-4 w-4 text-muted-foreground shrink-0" />
+              </Link>
+            );
+          })}
+        </div>
+      )}
 
       {/* Black Summary Card */}
       <div className="relative overflow-hidden rounded-[2rem] bg-[#111111] p-6 text-white shadow-lg">
