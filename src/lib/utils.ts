@@ -161,3 +161,38 @@ export const RECURRING_FREQUENCIES = [
   { value: "monthly", label: "Bulanan" },
   { value: "yearly", label: "Tahunan" },
 ] as const;
+
+function toDateStr(d: Date): string {
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+}
+
+/**
+ * Menghitung rentang tanggal periode SAAT INI (mingguan/bulanan/tahunan)
+ * relatif terhadap tanggal referensi (default: hari ini).
+ * Dipakai untuk menghitung "spent" budget secara dinamis dari transaksi,
+ * bukan dari kolom statis di database (kolom itu memang tidak ada).
+ * Minggu dihitung Senin-Minggu. end bersifat eksklusif (pakai `<`, bukan `<=`).
+ */
+export function getPeriodRange(
+  period: "weekly" | "monthly" | "yearly",
+  reference: Date = new Date()
+): { start: string; end: string } {
+  if (period === "weekly") {
+    const day = reference.getDay(); // 0 = Minggu, 1 = Senin, ...
+    const diffToMonday = day === 0 ? -6 : 1 - day;
+    const monday = new Date(reference.getFullYear(), reference.getMonth(), reference.getDate() + diffToMonday);
+    const nextMonday = new Date(monday.getFullYear(), monday.getMonth(), monday.getDate() + 7);
+    return { start: toDateStr(monday), end: toDateStr(nextMonday) };
+  }
+  if (period === "yearly") {
+    return {
+      start: toDateStr(new Date(reference.getFullYear(), 0, 1)),
+      end: toDateStr(new Date(reference.getFullYear() + 1, 0, 1)),
+    };
+  }
+  // monthly (default)
+  return {
+    start: toDateStr(new Date(reference.getFullYear(), reference.getMonth(), 1)),
+    end: toDateStr(new Date(reference.getFullYear(), reference.getMonth() + 1, 1)),
+  };
+}

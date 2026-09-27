@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { useTranslations } from "next-intl";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { cn, formatCurrency, formatDate } from "@/lib/utils";
+import { cn, formatCurrency, formatDate, getPeriodRange } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -39,7 +39,27 @@ export function BudgetsContent({ locale, userId, initialBudgets, initialCategori
     queryFn: async () => {
       const supabase = createBrowserSupabaseClient();
       const { data } = await supabase.from("budgets").select("*, category:categories(*)").eq("user_id", userId);
-      return (data || []) as Budget[];
+      const rows = (data || []) as Budget[];
+      if (rows.length === 0) return rows;
+
+      // "spent" tidak ada di database — dihitung dinamis dari transaksi expense
+      // sepanjang tahun ini, lalu di-filter per rentang periode masing-masing budget.
+      const now = new Date();
+      const yearStart = `${now.getFullYear()}-01-01`;
+      const { data: txs } = await supabase
+        .from("transactions")
+        .select("category_id, amount, date")
+        .eq("user_id", userId)
+        .eq("type", "expense")
+        .gte("date", yearStart);
+
+      return rows.map((b) => {
+        const { start, end } = getPeriodRange(b.period, now);
+        const spent = (txs || [])
+          .filter((t) => t.category_id === b.category_id && t.date >= start && t.date < end)
+          .reduce((sum, t) => sum + Number(t.amount), 0);
+        return { ...b, spent, remaining: Number(b.amount) - spent };
+      });
     },
     initialData: initialBudgets,
   });
