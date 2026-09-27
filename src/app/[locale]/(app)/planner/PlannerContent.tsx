@@ -10,7 +10,29 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
-import { createPlanner, createPlannerItem, realizePlannerItem, unrealizePlannerItem, updatePlannerItem, deletePlannerItem, updatePlanner, deletePlanner } from "./actions";
+import { createPlanner, createPlannerItem, realizePlannerItem, unrealizePlannerItem, updatePlannerItem, deletePlannerItem, updatePlanner, deletePlanner, carryOverUnpaidItems } from "./actions";
+
+const INDONESIAN_MONTHS = [
+  "januari", "februari", "maret", "april", "mei", "juni",
+  "juli", "agustus", "september", "oktober", "november", "desember",
+];
+
+// Coba tebak nama bulan berikutnya dari judul planner sekarang, mis. "September 2026" -> "Oktober 2026".
+// Kalau polanya tidak ketemu, fallback ke "<judul lama> (Lanjutan)".
+function guessNextMonthTitle(currentTitle: string): string {
+  const match = currentTitle.match(/([A-Za-zÀ-ÿ]+)\s+(\d{4})/);
+  if (match) {
+    const monthIdx = INDONESIAN_MONTHS.indexOf(match[1].toLowerCase());
+    if (monthIdx !== -1) {
+      const year = parseInt(match[2], 10);
+      const nextMonthIdx = (monthIdx + 1) % 12;
+      const nextYear = nextMonthIdx === 0 ? year + 1 : year;
+      const capitalized = INDONESIAN_MONTHS[nextMonthIdx].charAt(0).toUpperCase() + INDONESIAN_MONTHS[nextMonthIdx].slice(1);
+      return `${capitalized} ${nextYear}`;
+    }
+  }
+  return `${currentTitle} (Lanjutan)`;
+}
 
 export function PlannerContent({ user, initialPlanners, initialItems, accounts, categories }: any) {
   const [activeTab, setActiveTab] = useState(initialPlanners[0]?.id || "new");
@@ -36,6 +58,8 @@ export function PlannerContent({ user, initialPlanners, initialItems, accounts, 
   const [payData, setPayData] = useState({ accountId: "", categoryId: "", toAccountId: "" });
   const [payAsTransfer, setPayAsTransfer] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isCarryOverOpen, setIsCarryOverOpen] = useState(false);
+  const [carryOverTitle, setCarryOverTitle] = useState("");
 
   const activePlanner = initialPlanners.find((p: any) => p.id === activeTab);
   const activeItems = initialItems.filter((i: any) => i.planner_id === activeTab);
@@ -88,6 +112,30 @@ export function PlannerContent({ user, initialPlanners, initialItems, accounts, 
     if (!activePlanner) return;
     setEditTabTitle(activePlanner.title);
     setIsEditTabOpen(true);
+  };
+
+  const openCarryOverModal = () => {
+    if (!activePlanner) return;
+    setCarryOverTitle(guessNextMonthTitle(activePlanner.title));
+    setIsCarryOverOpen(true);
+  };
+
+  const unpaidCount = activeItems.filter(
+    (i: any) => !(i.status_tag?.includes("lunas") || i.status_tag?.includes("diterima"))
+  ).length;
+
+  const handleCarryOver = async (e: any) => {
+    e.preventDefault();
+    setIsSubmitting(true);
+    try {
+      const result = await carryOverUnpaidItems(activeTab, carryOverTitle);
+      setActiveTab(result.planner.id);
+      setIsCarryOverOpen(false);
+    } catch (e: any) {
+      alert(e.message || "Gagal melanjutkan ke bulan berikutnya");
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   
@@ -317,7 +365,10 @@ export function PlannerContent({ user, initialPlanners, initialItems, accounts, 
                   <MoreVertical className="h-4 w-4" />
                 </Button>
               </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" className="w-48 rounded-2xl p-2 border-border/50 shadow-xl">
+              <DropdownMenuContent align="end" className="w-56 rounded-2xl p-2 border-border/50 shadow-xl">
+                <DropdownMenuItem onClick={openCarryOverModal} className="rounded-xl cursor-pointer text-primary focus:text-primary focus:bg-primary/10">
+                  <ChevronRight className="h-4 w-4 mr-2" /> Lanjutkan ke Bulan Berikutnya
+                </DropdownMenuItem>
                 <DropdownMenuItem onClick={openEditModal} className="rounded-xl cursor-pointer">
                   <Edit className="h-4 w-4 mr-2" /> Ubah Nama Bulan
                 </DropdownMenuItem>
@@ -418,6 +469,34 @@ export function PlannerContent({ user, initialPlanners, initialItems, accounts, 
               <p className="text-xs text-muted-foreground mt-1">Item akan disalin, namun status 'Lunas' akan direset.</p>
             </div>
             <Button type="submit" className="w-full rounded-full h-11" disabled={isSubmitting}>Simpan Rencana</Button>
+          </form>
+        </DialogContent>
+      </Dialog>
+
+      {/* MODAL LANJUTKAN KE BULAN BERIKUTNYA */}
+      <Dialog open={isCarryOverOpen} onOpenChange={setIsCarryOverOpen}>
+        <DialogContent className="sm:max-w-[425px] rounded-[2rem] p-6 border-border/50 shadow-2xl">
+          <DialogHeader>
+            <DialogTitle>Lanjutkan ke Bulan Berikutnya</DialogTitle>
+          </DialogHeader>
+          <form onSubmit={handleCarryOver} className="space-y-4">
+            <p className="text-sm text-muted-foreground">
+              {unpaidCount > 0
+                ? `${unpaidCount} item yang belum lunas akan dibawa ke rencana baru ini. Item yang sudah lunas tidak akan ikut.`
+                : "Semua item bulan ini sudah lunas — rencana baru akan dibuat kosong."}
+            </p>
+            <div className="space-y-2">
+              <Label>Nama Bulan Baru</Label>
+              <Input
+                required
+                value={carryOverTitle}
+                onChange={(e) => setCarryOverTitle(e.target.value)}
+                className="rounded-xl h-11 border-border/50"
+              />
+            </div>
+            <Button type="submit" className="w-full rounded-full h-11" disabled={isSubmitting}>
+              {isSubmitting ? "Memproses..." : "Lanjutkan"}
+            </Button>
           </form>
         </DialogContent>
       </Dialog>

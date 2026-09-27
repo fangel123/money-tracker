@@ -166,6 +166,7 @@ export async function deletePlannerItem(itemId: string) {
   if (error) throw new Error(error.message);
   revalidatePath("/[locale]/planner", "layout");
 }
+
 export async function unrealizePlannerItem(itemId: string) {
   const supabase = createServerSupabaseClient();
   const { data: { user } } = await supabase.auth.getUser();
@@ -191,4 +192,49 @@ export async function updatePlannerItem(itemId: string, name: string, amount: nu
 
   if (error) throw new Error(error.message);
   revalidatePath("/[locale]/planner", "layout");
+}
+
+// Bawa cuma item yang BELUM lunas dari planner lama ke planner baru
+// (beda dari createPlanner+duplicateFromId yang menyalin SEMUA item).
+export async function carryOverUnpaidItems(fromPlannerId: string, newTitle: string) {
+  const supabase = createServerSupabaseClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) throw new Error("Unauthorized");
+
+  // 1. Buat planner baru
+  const { data: newPlanner, error: plannerError } = await supabase
+    .from("planners")
+    .insert({ user_id: user.id, title: newTitle, notes_top: "", notes_bottom: "" })
+    .select()
+    .single();
+  if (plannerError) throw new Error(plannerError.message);
+
+  // 2. Ambil semua item planner lama, filter yang belum lunas
+  //    (pola sama seperti "isLunas" di tampilan: tag mengandung "lunas" atau "diterima")
+  const { data: oldItems } = await supabase
+    .from("planner_items")
+    .select("*")
+    .eq("planner_id", fromPlannerId)
+    .order("sort_order", { ascending: true });
+
+  const unpaidItems = (oldItems || []).filter(
+    (i) => !(i.status_tag?.includes("lunas") || i.status_tag?.includes("diterima"))
+  );
+
+  if (unpaidItems.length > 0) {
+    const itemsToInsert = unpaidItems.map((item) => ({
+      planner_id: newPlanner.id,
+      category: item.category,
+      type: item.type,
+      name: item.name,
+      amount: item.amount,
+      status_tag: null,
+      sort_order: item.sort_order,
+    }));
+    const { error: insertError } = await supabase.from("planner_items").insert(itemsToInsert);
+    if (insertError) throw new Error(insertError.message);
+  }
+
+  revalidatePath("/[locale]/planner", "layout");
+  return { planner: newPlanner, carriedCount: unpaidItems.length };
 }
