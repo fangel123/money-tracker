@@ -8,7 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { EmptyState } from "@/components/common/EmptyState";
-import { Plus, Search, Filter, ChevronRight, MoreVertical, Edit, Trash2, ArrowLeftRight, X } from "lucide-react";
+import { Plus, Search, Filter, ChevronRight, MoreVertical, Edit, Trash2, ArrowLeftRight, X, Download } from "lucide-react";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { Label } from "@/components/ui/label";
 import { Link } from "@/i18n/navigation";
@@ -31,6 +31,7 @@ export function TransactionsContent({ locale, userId, initialSearchParams }: Tra
   const queryClient = useQueryClient();
   const [showFilters, setShowFilters] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
+  const [isExporting, setIsExporting] = useState(false);
 
   const { data: categories = [] } = useQuery({
     queryKey: ["categories", userId],
@@ -125,6 +126,73 @@ export function TransactionsContent({ locale, userId, initialSearchParams }: Tra
     router.push(`/transactions?${newParams.toString()}`);
   };
 
+  // Escape satu field CSV: bungkus dengan tanda kutip kalau mengandung koma, kutip, atau baris baru
+  const csvEscape = (value: string) => {
+    if (/[",\n]/.test(value)) {
+      return `"${value.replace(/"/g, '""')}"`;
+    }
+    return value;
+  };
+
+  const handleExport = async () => {
+    setIsExporting(true);
+    try {
+      const supabase = createBrowserSupabaseClient();
+      // Pakai filter yang sama seperti tampilan (tipe, kategori, akun, tanggal, pencarian),
+      // tapi TANPA pagination — supaya semua transaksi yang cocok filter ikut ter-export.
+      let query = supabase.from("transactions").select("*").eq("user_id", userId);
+      if (params.get("type")) query = query.eq("type", params.get("type"));
+      if (params.get("category_id")) query = query.eq("category_id", params.get("category_id"));
+      if (params.get("account_id")) query = query.eq("account_id", params.get("account_id"));
+      if (params.get("date_from")) query = query.gte("date", params.get("date_from"));
+      if (params.get("date_to")) query = query.lte("date", params.get("date_to"));
+      if (params.get("search")) query = query.ilike("note", `%${params.get("search")}%`);
+      query = query.order("date", { ascending: false });
+
+      const { data, error } = await query;
+      if (error) throw new Error(error.message);
+
+      const rows = (data || []) as Transaction[];
+      const header = ["Tanggal", "Tipe", "Kategori", "Akun", "Akun Tujuan", "Catatan", "Jumlah"];
+      const lines = [header.join(",")];
+
+      for (const tx of rows) {
+        const cat = categories.find((c) => c.id === tx.category_id);
+        const acc = accounts.find((a) => a.id === tx.account_id);
+        const toAcc = accounts.find((a) => a.id === tx.to_account_id);
+        const typeLabel = tx.type === "income" ? "Pemasukan" : tx.type === "expense" ? "Pengeluaran" : "Transfer";
+        lines.push(
+          [
+            tx.date,
+            typeLabel,
+            tx.type === "transfer" ? "" : cat?.name || "",
+            acc?.name || "",
+            tx.type === "transfer" ? toAcc?.name || "" : "",
+            csvEscape(tx.note || ""),
+            tx.amount.toString(),
+          ].join(",")
+        );
+      }
+
+      // BOM di depan supaya Excel membaca karakter non-ASCII (mis. huruf é, tanda kutip pintar) dengan benar
+      const csvContent = "\uFEFF" + lines.join("\n");
+      const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      const todayStr = new Date().toISOString().split("T")[0];
+      link.href = url;
+      link.download = `transaksi-${todayStr}.csv`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(url);
+    } catch (e: any) {
+      alert("Gagal export: " + e.message);
+    } finally {
+      setIsExporting(false);
+    }
+  };
+
   return (
     <div className="space-y-6 pb-24 p-4 md:p-6 lg:p-8 max-w-3xl mx-auto">
       {/* Header */}
@@ -176,6 +244,15 @@ export function TransactionsContent({ locale, userId, initialSearchParams }: Tra
           >
             <Filter className="h-4 w-4 md:mr-2" />
             <span className="hidden md:inline">{t("filters.title")}</span>
+          </Button>
+          <Button
+            variant="outline"
+            className="rounded-full h-12 px-4 border-border/50"
+            onClick={handleExport}
+            disabled={isExporting}
+          >
+            <Download className="h-4 w-4 md:mr-2" />
+            <span className="hidden md:inline">{isExporting ? "Mengekspor..." : "Export CSV"}</span>
           </Button>
         </div>
 
