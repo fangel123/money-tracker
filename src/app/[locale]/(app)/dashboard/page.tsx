@@ -43,7 +43,8 @@ export default async function DashboardPage({
       .eq("user_id", user.id)
       .gte("date", monthStart)
       .lt("date", monthEnd)
-      .order("date", { ascending: false }),
+      .order("date", { ascending: false })
+      .order("created_at", { ascending: false }),
     supabase.from("accounts").select("*").eq("user_id", user.id).eq("is_active", true),
     supabase.from("budgets").select("*, category:categories(*)").eq("user_id", user.id),
     supabase.from("categories").select("*").eq("user_id", user.id).eq("is_active", true),

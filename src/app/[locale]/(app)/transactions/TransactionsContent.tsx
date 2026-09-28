@@ -87,6 +87,8 @@ export function TransactionsContent({ locale, userId, initialSearchParams }: Tra
       const sort = params.get("sort") || "date";
       const order = params.get("order") || "desc";
       query = query.order(sort, { ascending: order === "asc" });
+      // Kunci pengurut kedua: transaksi dengan tanggal sama diurutkan berdasarkan waktu input (terbaru di atas)
+      query = query.order("created_at", { ascending: false });
 
       const page = parseInt(params.get("page") || "1");
       const limit = parseInt(params.get("limit") || "20");
@@ -147,7 +149,7 @@ export function TransactionsContent({ locale, userId, initialSearchParams }: Tra
       if (params.get("date_from")) query = query.gte("date", params.get("date_from"));
       if (params.get("date_to")) query = query.lte("date", params.get("date_to"));
       if (params.get("search")) query = query.ilike("note", `%${params.get("search")}%`);
-      query = query.order("date", { ascending: false });
+      query = query.order("date", { ascending: false }).order("created_at", { ascending: false });
 
       const { data, error } = await query;
       if (error) throw new Error(error.message);
