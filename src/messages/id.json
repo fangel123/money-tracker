@@ -201,6 +201,7 @@
     },
     "pagination": {
       "previous": "Sebelumnya",
+      "prev": "Sebelumnya",
       "next": "Selanjutnya",
       "page": "Halaman"
     },

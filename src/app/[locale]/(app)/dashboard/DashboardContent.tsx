@@ -1,11 +1,13 @@
 "use client";
 
+import { useState } from "react";
 import { useTranslations } from "next-intl";
 import { cn, formatCurrency, formatDate } from "@/lib/utils";
 import { Card, CardContent } from "@/components/ui/card";
 import { DynamicIcon } from "@/components/common/DynamicIcon";
 import { Button } from "@/components/ui/button";
-import { Plus, TrendingUp, TrendingDown, Wallet, Target, ArrowRight, Zap, PieChart, ScanLine, Flag, Briefcase, Coins, LineChart, MessageSquare, BarChart3, Lock, Settings, AlertTriangle, CalendarClock } from "lucide-react";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Plus, TrendingUp, TrendingDown, Wallet, Target, ArrowRight, Zap, PieChart, ScanLine, Flag, Briefcase, Coins, LineChart, MessageSquare, BarChart3, Lock, Settings, AlertTriangle, CalendarClock, ArrowLeftRight } from "lucide-react";
 import { Link } from "@/i18n/navigation";
 import { Transaction, Account, Budget, Category, User } from "@/types/domain";
 
@@ -43,6 +45,7 @@ export function DashboardContent({
 }: DashboardContentProps) {
   const t = useTranslations("dashboard");
   const ct = useTranslations("common");
+  const [selectedDay, setSelectedDay] = useState<string | null>(null);
 
   // Calculate summary
   const currentMonth = new Date().toISOString().slice(0, 7);
@@ -291,29 +294,78 @@ export function DashboardContent({
             const dateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
             const dayTxs = monthlyTransactions.filter(tx => tx.date.startsWith(dateStr));
             const dayExpense = dayTxs.filter(tx => tx.type === "expense").reduce((sum, tx) => sum + tx.amount, 0);
-            const hasActivity = dayExpense > 0;
+            const dayIncome = dayTxs.filter(tx => tx.type === "income").reduce((sum, tx) => sum + tx.amount, 0);
+            const hasActivity = dayTxs.length > 0;
 
             return (
-              <div 
-                key={day} 
+              <button
+                key={day}
+                type="button"
+                disabled={!hasActivity}
+                onClick={() => hasActivity && setSelectedDay(dateStr)}
                 className={cn(
                   "aspect-square rounded-xl flex flex-col items-center justify-center font-bold relative",
-                  isToday ? "border-2 border-primary text-foreground" : 
-                  hasActivity ? "bg-secondary text-foreground" : "bg-transparent text-muted-foreground/50",
+                  isToday ? "border-2 border-primary text-foreground" :
+                  hasActivity ? "bg-secondary text-foreground hover:bg-secondary/70 cursor-pointer transition-colors" : "bg-transparent text-muted-foreground/50 cursor-default",
                   (isToday && hasActivity) && "bg-secondary"
                 )}
               >
                 <span>{day}</span>
                 {hasActivity && (
-                  <span className="text-[8px] text-pink-500 absolute bottom-1 leading-none">
-                    -{formatShortCurrency(dayExpense)}
+                  <span className={cn("text-[8px] absolute bottom-1 leading-none", dayExpense > 0 ? "text-pink-500" : "text-primary")}>
+                    {dayExpense > 0 ? `-${formatShortCurrency(dayExpense)}` : `+${formatShortCurrency(dayIncome)}`}
                   </span>
                 )}
-              </div>
+              </button>
             );
           })}
         </div>
       </div>
+
+      {/* Popup detail transaksi per tanggal */}
+      <Dialog open={!!selectedDay} onOpenChange={(open) => !open && setSelectedDay(null)}>
+        <DialogContent className="sm:max-w-[425px] rounded-[2rem] p-6 border-border/50 shadow-2xl">
+          <DialogHeader>
+            <DialogTitle className="text-lg font-bold">
+              {selectedDay && formatDate(selectedDay, locale)}
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-3 max-h-[60vh] overflow-y-auto">
+            {selectedDay &&
+              monthlyTransactions
+                .filter((tx) => tx.date.startsWith(selectedDay))
+                .map((tx) => {
+                  const category = categories.find((c) => c.id === tx.category_id);
+                  const account = accounts.find((a) => a.id === tx.account_id);
+                  const toAccount = accounts.find((a) => a.id === tx.to_account_id);
+                  const isTransfer = tx.type === "transfer";
+                  const isIncome = tx.type === "income";
+                  return (
+                    <div key={tx.id} className="flex items-center gap-3 border-b border-border/30 pb-3 last:border-0">
+                      <div className="h-10 w-10 rounded-xl bg-secondary flex items-center justify-center shrink-0">
+                        {isTransfer ? (
+                          <ArrowLeftRight className="h-5 w-5 text-muted-foreground" />
+                        ) : category?.icon ? (
+                          <DynamicIcon name={category.icon} className="h-5 w-5" style={{ color: category.color || undefined }} />
+                        ) : null}
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-bold truncate">
+                          {isTransfer ? `${account?.name || "?"} → ${toAccount?.name || "?"}` : category?.name || "Kategori"}
+                        </p>
+                        <p className="text-xs text-muted-foreground truncate">
+                          {account?.name}{tx.note ? ` • "${tx.note}"` : ""}
+                        </p>
+                      </div>
+                      <span className={cn("text-sm font-bold shrink-0", isTransfer ? "text-muted-foreground" : isIncome ? "text-green-500" : "text-red-500")}>
+                        {isTransfer ? "" : isIncome ? "+" : "-"}{formatCurrency(tx.amount, "IDR", locale)}
+                      </span>
+                    </div>
+                  );
+                })}
+          </div>
+        </DialogContent>
+      </Dialog>
 
     </div>
   );
