@@ -119,8 +119,8 @@ export async function realizePlannerItem(
     throw new Error("Akun asal dan tujuan transfer tidak boleh sama");
   }
 
-  // 1. Insert into transactions
-  const { error: txError } = await supabase
+  // 1. Insert into transactions (ambil id-nya supaya item planner bisa "mengingat" transaksi ini)
+  const { data: newTx, error: txError } = await supabase
     .from("transactions")
     .insert(
       isTransfer
@@ -143,15 +143,17 @@ export async function realizePlannerItem(
             date: new Date().toISOString(),
             note: `(Planner) ${name}`,
           }
-    );
+    )
+    .select("id")
+    .single();
 
-  if (txError) throw new Error("Gagal menyimpan transaksi: " + txError.message);
+  if (txError || !newTx) throw new Error("Gagal menyimpan transaksi: " + (txError?.message || "tidak ada data"));
 
-  // 2. Update planner item status to 'bayar lunas!' or 'diterima'
+  // 2. Update planner item: tandai lunas + simpan tautan ke transaksinya
   const tag = type === "income" ? "diterima!" : "bayar lunas!";
   const { error: updateError } = await supabase
     .from("planner_items")
-    .update({ status_tag: tag })
+    .update({ status_tag: tag, transaction_id: newTx.id })
     .eq("id", itemId);
 
   if (updateError) throw new Error("Gagal mengupdate planner: " + updateError.message);
@@ -172,15 +174,35 @@ export async function unrealizePlannerItem(itemId: string) {
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) throw new Error("Unauthorized");
 
+  // Kalau item ini punya tautan ke transaksi, hapus transaksinya juga.
+  // Trigger saldo di database otomatis mengembalikan uang ke akun yang dipakai.
+  const { data: item } = await supabase
+    .from("planner_items")
+    .select("transaction_id")
+    .eq("id", itemId)
+    .single();
+
+  let deletedTransaction = false;
+  if (item?.transaction_id) {
+    const { error: delError } = await supabase
+      .from("transactions")
+      .delete()
+      .eq("id", item.transaction_id)
+      .eq("user_id", user.id);
+    if (delError) throw new Error("Gagal menghapus transaksi: " + delError.message);
+    deletedTransaction = true;
+  }
+
   const { error: updateError } = await supabase
     .from("planner_items")
-    .update({ status_tag: null })
+    .update({ status_tag: null, transaction_id: null })
     .eq("id", itemId);
 
   if (updateError) throw new Error("Gagal mengupdate planner: " + updateError.message);
 
   revalidatePath("/[locale]", "layout");
-  return { success: true };
+  // deletedTransaction = false artinya item lama yang dibayar sebelum fitur tautan ada
+  return { success: true, deletedTransaction };
 }
 
 export async function updatePlannerItem(itemId: string, name: string, amount: number) {

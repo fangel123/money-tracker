@@ -142,9 +142,13 @@ export function PlannerContent({ user, initialPlanners, initialItems, accounts, 
   const handleUnrealize = async (item: any) => {
     setIsSubmitting(true);
     try {
-      await unrealizePlannerItem(item.id);
-    } catch(e) {
-      alert("Gagal membatalkan realisasi");
+      const result = await unrealizePlannerItem(item.id);
+      if (!result.deletedTransaction) {
+        // Item lama yang dibayar sebelum fitur tautan ada: transaksinya tidak diketahui, jadi tidak bisa dihapus otomatis
+        alert("Status lunas dibatalkan, tapi transaksi lamanya tidak ikut terhapus (item ini dibayar sebelum fitur tautan ada). Kalau perlu, hapus manual di halaman Transaksi supaya saldo kembali.");
+      }
+    } catch(e: any) {
+      alert(e?.message || "Gagal membatalkan realisasi");
     } finally {
       setIsSubmitting(false);
     }
