@@ -13,15 +13,27 @@ import {
   X,
   ChevronLeft,
   ChevronRight,
+  Flag,
+  Coins,
+  LineChart,
+  BarChart3,
+  MessageSquare,
+  ScanLine,
 } from "lucide-react";
 import { useUIStore } from "@/store";
 
 const navigation = [
-  { name: "dashboard.title", href: "/dashboard", icon: LayoutGrid },
-  { name: "transactions.title", href: "/transactions", icon: ArrowRightLeft },
-  { name: "budgets.title", href: "/budgets", icon: Target },
-  { name: "accounts.title", href: "/accounts", icon: Wallet },
-  { name: "settings.title", href: "/settings", icon: Settings },
+  { name: "dashboard.title", label: null, href: "/dashboard", icon: LayoutGrid },
+  { name: "transactions.title", label: null, href: "/transactions", icon: ArrowRightLeft },
+  { name: "budgets.title", label: null, href: "/budgets", icon: Target },
+  { name: "accounts.title", label: null, href: "/accounts", icon: Wallet },
+  { name: "", label: "Goals", href: "/goals", icon: Flag },
+  { name: "", label: "Utang", href: "/debts", icon: Coins },
+  { name: "", label: "Rencana", href: "/planner", icon: LineChart },
+  { name: "", label: "Statistik", href: "/statistics", icon: BarChart3 },
+  { name: "", label: "Scanner", href: "/scanner", icon: ScanLine },
+  { name: "", label: "AI Advisor", href: "/ai-advisor", icon: MessageSquare },
+  { name: "settings.title", label: null, href: "/settings", icon: Settings },
 ] as const;
 
 export function Sidebar() {
@@ -65,12 +77,12 @@ export function Sidebar() {
           </div>
 
           {/* Navigation */}
-          <nav className="flex-1 space-y-1 p-4" aria-label="Menu navigasi">
+          <nav className="flex-1 space-y-1 p-4 overflow-y-auto" aria-label="Menu navigasi">
             {navigation.map((item) => {
               const isActive = pathname === item.href || pathname.startsWith(item.href + "/");
               return (
                 <Link
-                  key={item.name}
+                  key={item.href}
                   href={item.href}
                   className={cn(
                     "flex items-center gap-3 rounded-2xl px-4 py-3 text-sm font-semibold transition-colors",
@@ -81,7 +93,7 @@ export function Sidebar() {
                   aria-current={isActive ? "page" : undefined}
                 >
                   <item.icon className="h-5 w-5 flex-shrink-0" aria-hidden="true" />
-                  <span>{t(item.name)}</span>
+                  <span>{item.label || t(item.name)}</span>
                 </Link>
               );
             })}
