@@ -13,7 +13,7 @@ export async function createTransaction(data: TransactionFormData) {
   } = await supabase.auth.getUser();
 
   if (!user) {
-    redirect("/auth/login");
+    redirect("/login");
   }
 
   const parsed = transactionSchema.safeParse({
@@ -56,7 +56,7 @@ export async function updateTransaction(id: string, data: TransactionFormData) {
   } = await supabase.auth.getUser();
 
   if (!user) {
-    redirect("/auth/login");
+    redirect("/login");
   }
 
   const parsed = transactionSchema.safeParse({
@@ -103,7 +103,7 @@ export async function deleteTransaction(id: string) {
   } = await supabase.auth.getUser();
 
   if (!user) {
-    redirect("/auth/login");
+    redirect("/login");
   }
 
   const { error } = await supabase.from("transactions").delete().eq("id", id).eq("user_id", user.id);
@@ -127,7 +127,7 @@ export async function duplicateTransaction(id: string) {
   } = await supabase.auth.getUser();
 
   if (!user) {
-    redirect("/auth/login");
+    redirect("/login");
   }
 
   const { data: transaction, error: fetchError } = await supabase
@@ -170,7 +170,7 @@ export async function bulkDeleteTransactions(ids: string[]) {
   } = await supabase.auth.getUser();
 
   if (!user) {
-    redirect("/auth/login");
+    redirect("/login");
   }
 
   const { error } = await supabase.from("transactions").delete().in("id", ids).eq("user_id", user.id);

@@ -18,7 +18,7 @@ export default async function TransactionNewPage({
   } = await supabase.auth.getUser();
 
   if (!user) {
-    redirect(`/${locale}/auth/login`);
+    redirect(`/${locale}/login`);
   }
 
   // Fetch categories and accounts for the form

@@ -7,7 +7,7 @@ export default async function PlannerPage({ params: { locale } }: { params: { lo
   const { data: { user } } = await supabase.auth.getUser();
 
   if (!user) {
-    redirect(`/${locale}/auth/login`);
+    redirect(`/${locale}/login`);
   }
 
   const { data: planners, error: plannersError } = await supabase

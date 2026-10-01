@@ -7,7 +7,7 @@ export default async function DebtsPage({ params: { locale } }: { params: { loca
   const { data: { user } } = await supabase.auth.getUser();
 
   if (!user) {
-    redirect(`/${locale}/auth/login`);
+    redirect(`/${locale}/login`);
   }
 
   // Coba ambil data debts, tangkap error jika tabel belum ada

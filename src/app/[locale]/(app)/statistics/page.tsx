@@ -7,7 +7,7 @@ export default async function StatisticsPage({ params: { locale } }: { params: {
   const { data: { user } } = await supabase.auth.getUser();
 
   if (!user) {
-    redirect(`/${locale}/auth/login`);
+    redirect(`/${locale}/login`);
   }
 
   // Fetch all transactions for the current year or month to build statistics
