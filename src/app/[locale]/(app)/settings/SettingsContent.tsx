@@ -195,7 +195,7 @@ export function SettingsContent({ locale, user, profile }: SettingsContentProps)
       await supabase.auth.admin.deleteUser(user.id); // Requires service role key
       
       await supabase.auth.signOut();
-      router.push(`/${locale}/auth/login`);
+      router.push(`/${locale}/login`);
       router.refresh();
     } catch {
       toast.error(t("dangerZone.deleteError"));

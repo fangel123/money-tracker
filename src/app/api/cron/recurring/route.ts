@@ -33,8 +33,9 @@ function addInterval(dateStr: string, frequency: RecurringRule["frequency"], int
 export async function GET(request: Request) {
   // Lindungi endpoint ini dari akses publik — Vercel Cron otomatis mengirim
   // header ini kalau env var CRON_SECRET diset (lihat instruksi setup).
+  // Tanpa CRON_SECRET endpoint ditolak, karena route ini memakai admin client.
   const authHeader = request.headers.get("authorization");
-  if (process.env.CRON_SECRET && authHeader !== `Bearer ${process.env.CRON_SECRET}`) {
+  if (!process.env.CRON_SECRET || authHeader !== `Bearer ${process.env.CRON_SECRET}`) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 

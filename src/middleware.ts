@@ -68,9 +68,9 @@ export async function middleware(request: NextRequest) {
     return NextResponse.redirect(new URL(`/${locale}/dashboard`, request.url));
   }
 
-  // Protected routes - redirect to login if not authenticated
-  const isProtectedRoute = pathname.match(/^\/[a-z]{2}\/(dashboard|transactions|categories|budgets|accounts|settings)/);
-  if (isProtectedRoute && !user) {
+  // Protected routes - semua halaman di bawah /[locale]/ kecuali halaman auth
+  // butuh login (termasuk goals, debts, planner, statistics, scanner, ai-advisor)
+  if (!isAuthRoute && !user) {
     const locale = pathname.split("/")[1];
     return NextResponse.redirect(new URL(`/${locale}/login`, request.url));
   }
@@ -80,6 +80,6 @@ export async function middleware(request: NextRequest) {
 
 export const config = {
   matcher: [
-    "/((?!api|_next/static|_next/image|favicon.ico|.*\\.webmanifest$|.*\\.ico$|.*\\.png$).*)",
+    "/((?!api|_next/static|_next/image|favicon.ico|.*\\.webmanifest$|.*\\.ico$|.*\\.png$|.*\\.svg$).*)",
   ],
 };

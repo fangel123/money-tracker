@@ -13,7 +13,7 @@ export const pathnames = {
   "/budgets": "/budgets",
   "/accounts": "/accounts",
   "/settings": "/settings",
-  "/auth/login": "/auth/login",
-  "/auth/register": "/auth/register",
-  "/auth/forgot-password": "/auth/forgot-password",
+  "/login": "/login",
+  "/register": "/register",
+  "/forgot-password": "/forgot-password",
 } as const;

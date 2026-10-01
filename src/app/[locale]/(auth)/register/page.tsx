@@ -48,7 +48,7 @@ export default function RegisterPage() {
         return;
       }
 
-      router.push("/auth/login?registered=true");
+      router.push("/login?registered=true");
       router.refresh();
     } catch {
       setFormError("root", { message: "Terjadi kesalahan. Silakan coba lagi." });
@@ -171,7 +171,7 @@ export default function RegisterPage() {
       {/* Login link */}
       <p className="text-center text-sm text-muted-foreground">
         Sudah punya akun?{" "}
-        <Link href="/auth/login" className="text-primary font-medium hover:underline">
+        <Link href="/login" className="text-primary font-medium hover:underline">
           Masuk di sini
         </Link>
       </p>

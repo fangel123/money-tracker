@@ -7,7 +7,7 @@ export default async function GoalsPage({ params: { locale } }: { params: { loca
   const { data: { user } } = await supabase.auth.getUser();
 
   if (!user) {
-    redirect(`/${locale}/auth/login`);
+    redirect(`/${locale}/login`);
   }
 
   // Coba ambil data goals, jika error (tabel belum ada), tangkap errornya
