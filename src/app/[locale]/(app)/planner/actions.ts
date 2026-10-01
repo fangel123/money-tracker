@@ -156,7 +156,11 @@ export async function realizePlannerItem(
     .update({ status_tag: tag, transaction_id: newTx.id })
     .eq("id", itemId);
 
-  if (updateError) throw new Error("Gagal mengupdate planner: " + updateError.message);
+  if (updateError) {
+    // Batalkan transaksi yang barusan dibuat supaya saldo tidak berubah tanpa item tertandai lunas
+    await supabase.from("transactions").delete().eq("id", newTx.id).eq("user_id", user.id);
+    throw new Error("Gagal mengupdate planner: " + updateError.message);
+  }
 
   revalidatePath("/[locale]", "layout"); // Revalidate everything (dashboard, planner, accounts)
   return { success: true };
