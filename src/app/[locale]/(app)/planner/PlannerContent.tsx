@@ -2,6 +2,8 @@
 
 import { useState } from "react";
 import { formatCurrency, cn } from "@/lib/utils";
+import { PageHeader } from "@/components/common/PageHeader";
+import { Mascot } from "@/components/common/Mascot";
 import { CheckSquare, Plus, Trash2, CheckCircle2, ChevronRight, Activity, MoreVertical, Edit } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
@@ -33,6 +35,8 @@ function guessNextMonthTitle(currentTitle: string): string {
   }
   return `${currentTitle} (Lanjutan)`;
 }
+
+const GROUP_COLORS: Record<string, string> = { income: "#9be7c4", wajib: "#c9b6ff", tabungan: "#8fd3ff", kebutuhan: "#ffb86b" };
 
 export function PlannerContent({ user, initialPlanners, initialItems, accounts, categories }: any) {
   const [activeTab, setActiveTab] = useState(initialPlanners[0]?.id || "new");
@@ -232,36 +236,42 @@ export function PlannerContent({ user, initialPlanners, initialItems, accounts, 
     const isExpense = type === 'expense';
 
     return (
-      <div className="mb-6">
-        <div className="flex items-center justify-between mb-3">
-          <h2 className="text-xs font-bold text-muted-foreground uppercase tracking-widest">{catName}</h2>
-          <Button variant="ghost" size="sm" onClick={() => { setActiveCategory(catKey); setItemData({...itemData, type}); setIsAddItemOpen(true); }} className="h-6 text-xs text-primary">
-            + Tambah
-          </Button>
+      <div>
+        <div className="mb-2.5 flex items-center justify-between">
+          <h2 className="flex items-center gap-2 text-xs font-black uppercase tracking-widest text-muted-foreground">
+            <span className="h-3.5 w-3.5 rounded-[5px] border-2 border-ink" style={{ background: GROUP_COLORS[catKey] }} />
+            {catName}
+          </h2>
+          <button
+            onClick={() => { setActiveCategory(catKey); setItemData({...itemData, type}); setIsAddItemOpen(true); }}
+            className="flex h-8 items-center gap-1 rounded-full border-2.5 border-line bg-card px-3 text-xs font-black shadow-cartoon-sm active:translate-y-px"
+          >
+            <Plus className="h-3.5 w-3.5" strokeWidth={3} /> Tambah
+          </button>
         </div>
-        <div className="bg-card border border-border/50 rounded-2xl overflow-hidden shadow-sm divide-y divide-border/50">
+        <div className="overflow-hidden rounded-cartoon border-3 border-line bg-card shadow-cartoon divide-y-2 divide-dashed divide-divider">
           {items.map((item: any) => {
             const isLunas = item.status_tag?.includes("lunas") || item.status_tag?.includes("diterima");
             return (
-              <div key={item.id} className={cn("flex flex-col justify-center p-4 group transition-colors hover:bg-secondary/20", isLunas && "bg-green-500/5")}>
+              <div key={item.id} className={cn("group flex flex-col justify-center px-4 py-3 transition-colors hover:bg-background", isLunas && "bg-cartoon-lime/10")}>
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2">
-                    <span className={cn("font-semibold text-sm", isLunas && "line-through text-muted-foreground")}>{item.name}</span>
+                    <span className={cn("text-sm font-black", isLunas && "line-through opacity-60")}>{item.name}</span>
                     {item.status_tag && (
-                      <span className={cn("text-[10px] font-bold px-2 py-0.5 rounded", isLunas ? "bg-green-500/20 text-green-600" : "bg-red-500/20 text-red-500")}>
+                      <span className={cn("rounded-full border-2 border-ink px-2 py-0.5 text-[10px] font-black text-ink", isLunas ? "bg-cartoon-lime" : "bg-cartoon-pink")}>
                         {item.status_tag}
                       </span>
                     )}
                   </div>
                   <div className="flex items-center gap-3">
-                    <span className={cn("font-bold text-sm", isLunas ? "text-muted-foreground" : (item.type === 'expense' ? "text-red-500" : "text-green-500"))}>
+                    <span className={cn("text-sm font-black", isLunas ? "text-muted-foreground line-through" : (item.type === 'expense' ? "text-expense" : "text-income"))}>
                       {item.type === 'expense' ? "-" : "+"}{formatCurrency(item.amount)}
                     </span>
                     {!isLunas ? (
                       <Button 
                         size="sm" 
                         variant="secondary"
-                        className="h-7 text-[10px] px-2 rounded-full font-bold hover:bg-primary hover:text-primary-foreground" 
+                        className="h-8 rounded-xl bg-cartoon-yellow px-2.5 text-xs text-ink" 
                         onClick={() => { setSelectedItem(item); setPayData({ accountId: "", categoryId: "", toAccountId: "" }); setPayAsTransfer(false); setIsPayOpen(true); }}
                       >
                         <CheckSquare className="h-3 w-3 mr-1" /> {item.type === 'expense' ? "Bayar" : "Terima"}
@@ -270,7 +280,7 @@ export function PlannerContent({ user, initialPlanners, initialItems, accounts, 
                       <Button 
                         size="sm" 
                         variant="ghost"
-                        className="h-7 text-[10px] px-2 rounded-full font-bold text-muted-foreground hover:text-foreground" 
+                        className="h-8 rounded-xl px-2.5 text-xs font-black text-muted-foreground hover:text-foreground" 
                         onClick={() => handleUnrealize(item)}
                         disabled={isSubmitting}
                       >
@@ -279,11 +289,11 @@ export function PlannerContent({ user, initialPlanners, initialItems, accounts, 
                     )}
                     <DropdownMenu>
                       <DropdownMenuTrigger asChild>
-                        <button className="text-muted-foreground hover:text-foreground opacity-0 group-hover:opacity-100 transition-opacity outline-none">
-                          <MoreVertical className="h-4 w-4" />
+                        <button className="flex h-8 w-8 items-center justify-center rounded-xl border-2 border-line bg-background outline-none lg:opacity-0 lg:group-hover:opacity-100" aria-label="Aksi">
+                          <MoreVertical className="h-4 w-4" strokeWidth={3} />
                         </button>
                       </DropdownMenuTrigger>
-                      <DropdownMenuContent align="end" className="rounded-xl border-border/50 shadow-xl w-36 p-1.5">
+                      <DropdownMenuContent align="end" className="rounded-xl border-line shadow-xl w-36 p-1.5">
                         <DropdownMenuItem onClick={() => openEditItemModal(item)} className="cursor-pointer rounded-lg text-xs">
                           <Edit className="h-3 w-3 mr-2" /> Edit Item
                         </DropdownMenuItem>
@@ -300,9 +310,9 @@ export function PlannerContent({ user, initialPlanners, initialItems, accounts, 
           {items.length === 0 && (
              <div className="p-4 text-center text-sm text-muted-foreground">Belum ada data</div>
           )}
-          <div className="flex items-center justify-between p-4 bg-secondary">
-            <span className="font-bold text-sm">Subtotal {catName}</span>
-            <span className={cn("font-bold text-sm", isExpense ? "text-red-500" : "text-green-500")}>
+          <div className="flex items-center justify-between bg-background px-4 py-3">
+            <span className="text-sm font-black">Subtotal {catName}</span>
+            <span className={cn("text-sm font-black", isExpense ? "text-expense" : "text-income")}>
               {isExpense ? "-" : "+"}{formatCurrency(subtotal)}
             </span>
           </div>
@@ -316,43 +326,32 @@ export function PlannerContent({ user, initialPlanners, initialItems, accounts, 
   const sisa = totalIncome - totalExpense;
 
   return (
-    <div className="space-y-6 pb-24 p-4 md:p-6 lg:p-8 max-w-3xl mx-auto bg-background min-h-screen">
-      
-      {/* Header */}
-      <div className="mb-6 flex justify-between items-start">
-        <div>
-          <h1 className="text-2xl font-extrabold tracking-tight text-foreground flex items-center gap-2">
-            📊 Rencana Bulanan
-          </h1>
-          <p className="text-muted-foreground text-sm mt-1">Sistem Proyeksi & Realisasi 1-Click</p>
-        </div>
-      </div>
+    <div className="space-y-5 pb-4">
+      <PageHeader title="Rencana Bulanan" description="Proyeksi & realisasi bulanan dalam 1 klik" />
 
       {/* Tabs */}
-      <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-hide items-center">
+      <div className="flex items-center gap-2 overflow-x-auto pb-2 scrollbar-hide">
         {initialPlanners.map((p: any) => (
           <button
             key={p.id}
             onClick={() => setActiveTab(p.id)}
             className={cn(
-              "px-5 py-2 rounded-xl text-sm font-semibold whitespace-nowrap transition-all border",
-              activeTab === p.id 
-                ? "bg-foreground text-background border-foreground shadow-md" 
-                : "bg-card text-muted-foreground border-border/50 hover:bg-secondary"
+              "h-10 shrink-0 whitespace-nowrap rounded-full border-2.5 border-line px-4 text-sm font-black transition-all",
+              activeTab === p.id ? "bg-cartoon-lilac text-ink shadow-cartoon-sm" : "bg-card hover:bg-accent"
             )}
           >
             {p.title}
           </button>
         ))}
-        <button onClick={() => setIsAddTabOpen(true)} className="px-3 py-2 rounded-xl text-sm font-semibold border border-dashed border-border/50 text-muted-foreground hover:bg-secondary flex items-center gap-1">
-          <Plus className="h-4 w-4" /> Bulan Baru
+        <button onClick={() => setIsAddTabOpen(true)} className="flex h-10 shrink-0 items-center gap-1 rounded-full border-2.5 border-dashed border-line px-4 text-sm font-black hover:bg-accent">
+          <Plus className="h-4 w-4" strokeWidth={3} /> Bulan Baru
         </button>
       </div>
 
       {!activePlanner ? (
-        <div className="flex flex-col items-center justify-center py-20 text-center animate-in fade-in">
-          <div className="text-6xl mb-4">📊</div>
-          <h2 className="text-xl font-bold">Belum ada Rencana</h2>
+        <div className="flex flex-col items-center justify-center rounded-cartoon border-3 border-line bg-card py-14 text-center shadow-cartoon animate-in fade-in">
+          <Mascot size={88} mood="worried" className="mb-3 -rotate-6" />
+          <h2 className="font-display text-xl font-semibold">Belum ada Rencana</h2>
           <p className="text-muted-foreground text-sm mt-2 max-w-sm mx-auto">
             Buat tab bulan baru untuk mulai merencanakan pengeluaran Anda.
           </p>
@@ -361,16 +360,16 @@ export function PlannerContent({ user, initialPlanners, initialItems, accounts, 
         <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
           
           {/* Header & Options */}
-          <div className="flex justify-between items-center bg-card border border-border/50 rounded-2xl p-4 shadow-sm">
-            <h2 className="text-lg md:text-xl font-bold text-foreground">Rencana {activePlanner.title}</h2>
+          <div className="flex items-center justify-between rounded-cartoon border-3 border-line bg-card px-5 py-3.5 shadow-cartoon">
+            <h2 className="font-display text-xl font-semibold">Rencana {activePlanner.title}</h2>
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <Button variant="ghost" size="icon" className="h-8 w-8 rounded-full hover:bg-secondary text-muted-foreground">
+                <Button variant="outline" size="icon" className="h-10 w-10 rounded-xl" aria-label="Opsi bulan">
                   <MoreVertical className="h-4 w-4" />
                 </Button>
               </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" className="w-56 rounded-2xl p-2 border-border/50 shadow-xl">
-                <DropdownMenuItem onClick={openCarryOverModal} className="rounded-xl cursor-pointer text-primary focus:text-primary focus:bg-primary/10">
+              <DropdownMenuContent align="end" className="w-56 rounded-2xl p-2 border-line shadow-xl">
+                <DropdownMenuItem onClick={openCarryOverModal} className="cursor-pointer">
                   <ChevronRight className="h-4 w-4 mr-2" /> Lanjutkan ke Bulan Berikutnya
                 </DropdownMenuItem>
                 <DropdownMenuItem onClick={openEditModal} className="rounded-xl cursor-pointer">
@@ -384,42 +383,40 @@ export function PlannerContent({ user, initialPlanners, initialItems, accounts, 
           </div>
 
           {/* Summaries */}
-          <div className="grid grid-cols-3 gap-3">
-            <div className="bg-card border border-border/50 rounded-2xl p-4 shadow-sm">
-              <p className="text-xs text-muted-foreground mb-1">Total Pemasukan</p>
-              <p className="text-sm md:text-base font-bold text-green-500">{formatCurrency(totalIncome)}</p>
-            </div>
-            <div className="bg-card border border-border/50 rounded-2xl p-4 shadow-sm">
-              <p className="text-xs text-muted-foreground mb-1">Total Pengeluaran</p>
-              <p className="text-sm md:text-base font-bold text-red-500">{formatCurrency(totalExpense)}</p>
-            </div>
-            <div className="bg-card border border-border/50 rounded-2xl p-4 shadow-sm">
-              <p className="text-xs text-muted-foreground mb-1">Sisa Proyeksi</p>
-              <p className={cn("text-sm md:text-base font-bold", sisa >= 0 ? "text-green-500" : "text-red-500")}>
-                {sisa >= 0 ? "+" : ""}{formatCurrency(sisa)}
-              </p>
-            </div>
+          <div className="grid grid-cols-3 gap-3 lg:gap-5">
+            {[
+              { label: "Pemasukan", value: formatCurrency(totalIncome), color: "#9be7c4" },
+              { label: "Pengeluaran", value: formatCurrency(totalExpense), color: "#ff9ebb" },
+              { label: "Sisa proyeksi", value: `${sisa >= 0 ? "+" : ""}${formatCurrency(sisa)}`, color: sisa >= 0 ? "#ffd447" : "#ff5c7a" },
+            ].map((card) => (
+              <div key={card.label} className="min-w-0 rounded-[22px] border-3 border-line p-3.5 text-ink shadow-cartoon lg:p-5" style={{ background: card.color }}>
+                <p className="truncate text-[10px] font-black uppercase tracking-wider lg:text-xs">{card.label}</p>
+                <p className="mt-1 break-words font-display text-[15px] font-bold leading-tight sm:text-lg lg:text-[28px]">{card.value}</p>
+              </div>
+            ))}
           </div>
 
+          <div className="grid gap-5 lg:grid-cols-2">
           {renderGroup("Pemasukan", "income", "income")}
           {renderGroup("Wajib — Prioritas", "wajib", "expense")}
           {renderGroup("Tabungan & Investasi", "tabungan", "expense")}
           {renderGroup("Kebutuhan Pribadi", "kebutuhan", "expense")}
+          </div>
 
       {/* MODAL EDIT ITEM */}
       <Dialog open={isEditItemOpen} onOpenChange={setIsEditItemOpen}>
-        <DialogContent className="sm:max-w-[425px] rounded-[2rem] p-6 border-border/50 shadow-2xl">
+        <DialogContent className="sm:max-w-[425px] rounded-cartoon p-6 border-line shadow-2xl">
           <DialogHeader>
             <DialogTitle>Edit Item Rencana</DialogTitle>
           </DialogHeader>
           <form onSubmit={handleEditItemSubmit} className="space-y-4">
             <div className="space-y-2">
               <Label>Nama Item</Label>
-              <Input required value={itemData.name} onChange={e => setItemData({...itemData, name: e.target.value})} className="rounded-xl h-11 border-border/50" />
+              <Input required value={itemData.name} onChange={e => setItemData({...itemData, name: e.target.value})} className="rounded-xl h-11 border-line" />
             </div>
             <div className="space-y-2">
               <Label>Jumlah (Rp)</Label>
-              <Input type="number" required value={itemData.amount} onChange={e => setItemData({...itemData, amount: e.target.value})} className="rounded-xl h-11 border-border/50" />
+              <Input type="number" required value={itemData.amount} onChange={e => setItemData({...itemData, amount: e.target.value})} className="rounded-xl h-11 border-line" />
             </div>
             <Button type="submit" className="w-full rounded-full h-11" disabled={isSubmitting}>Simpan Perubahan</Button>
           </form>
@@ -428,7 +425,7 @@ export function PlannerContent({ user, initialPlanners, initialItems, accounts, 
 
       {/* ALERT DIALOG DELETE PLANNER */}
       <AlertDialog open={isDeletePlannerOpen} onOpenChange={setIsDeletePlannerOpen}>
-        <AlertDialogContent className="rounded-3xl border-border/50 shadow-2xl">
+        <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>Hapus Bulan Ini?</AlertDialogTitle>
             <AlertDialogDescription>
@@ -448,22 +445,22 @@ export function PlannerContent({ user, initialPlanners, initialItems, accounts, 
 
       {/* MODAL ADD TAB */}
       <Dialog open={isAddTabOpen} onOpenChange={setIsAddTabOpen}>
-        <DialogContent className="sm:max-w-[425px] rounded-[2rem] p-6 border-border/50 shadow-2xl">
+        <DialogContent className="sm:max-w-[425px] rounded-cartoon p-6 border-line shadow-2xl">
           <DialogHeader>
             <DialogTitle>Buat Rencana Baru</DialogTitle>
           </DialogHeader>
           <form onSubmit={handleAddTab} className="space-y-4">
             <div className="space-y-2">
               <Label>Nama Bulan / Rencana</Label>
-              <Input placeholder="Contoh: Oktober 2026" className="rounded-xl h-11 border-border/50" required value={tabTitle} onChange={e => setTabTitle(e.target.value)} />
+              <Input placeholder="Contoh: Oktober 2026" className="rounded-xl h-11 border-line" required value={tabTitle} onChange={e => setTabTitle(e.target.value)} />
             </div>
             <div className="space-y-2">
               <Label>Duplikat Item Dari</Label>
               <Select value={duplicateFromId} onValueChange={setDuplicateFromId}>
-                <SelectTrigger className="rounded-xl h-11 border-border/50 bg-secondary/20">
+                <SelectTrigger className="rounded-xl h-11 border-line bg-secondary/20">
                   <SelectValue placeholder="Pilih rencana..." />
                 </SelectTrigger>
-                <SelectContent className="rounded-2xl border-border/50">
+                <SelectContent className="rounded-2xl border-line">
                   <SelectItem value="none" className="rounded-xl">Mulai Kosong</SelectItem>
                   {initialPlanners.map((p: any) => (
                     <SelectItem key={p.id} value={p.id} className="rounded-xl">{p.title}</SelectItem>
@@ -479,7 +476,7 @@ export function PlannerContent({ user, initialPlanners, initialItems, accounts, 
 
       {/* MODAL LANJUTKAN KE BULAN BERIKUTNYA */}
       <Dialog open={isCarryOverOpen} onOpenChange={setIsCarryOverOpen}>
-        <DialogContent className="sm:max-w-[425px] rounded-[2rem] p-6 border-border/50 shadow-2xl">
+        <DialogContent className="sm:max-w-[425px] rounded-cartoon p-6 border-line shadow-2xl">
           <DialogHeader>
             <DialogTitle>Lanjutkan ke Bulan Berikutnya</DialogTitle>
           </DialogHeader>
@@ -495,7 +492,7 @@ export function PlannerContent({ user, initialPlanners, initialItems, accounts, 
                 required
                 value={carryOverTitle}
                 onChange={(e) => setCarryOverTitle(e.target.value)}
-                className="rounded-xl h-11 border-border/50"
+                className="rounded-xl h-11 border-line"
               />
             </div>
             <Button type="submit" className="w-full rounded-full h-11" disabled={isSubmitting}>
@@ -507,14 +504,14 @@ export function PlannerContent({ user, initialPlanners, initialItems, accounts, 
 
       {/* MODAL EDIT TAB */}
       <Dialog open={isEditTabOpen} onOpenChange={setIsEditTabOpen}>
-        <DialogContent className="sm:max-w-[425px] rounded-[2rem] p-6 border-border/50 shadow-2xl">
+        <DialogContent className="sm:max-w-[425px] rounded-cartoon p-6 border-line shadow-2xl">
           <DialogHeader>
             <DialogTitle>Ubah Nama Rencana</DialogTitle>
           </DialogHeader>
           <form onSubmit={handleEditTab} className="space-y-4">
             <div className="space-y-2">
               <Label>Nama Bulan / Rencana</Label>
-              <Input placeholder="Contoh: Oktober 2026" className="rounded-xl h-11 border-border/50" required value={editTabTitle} onChange={e => setEditTabTitle(e.target.value)} />
+              <Input placeholder="Contoh: Oktober 2026" className="rounded-xl h-11 border-line" required value={editTabTitle} onChange={e => setEditTabTitle(e.target.value)} />
             </div>
             <Button type="submit" className="w-full rounded-full h-11" disabled={isSubmitting}>Simpan Perubahan</Button>
           </form>
@@ -523,7 +520,7 @@ export function PlannerContent({ user, initialPlanners, initialItems, accounts, 
 
       {/* MODAL ADD ITEM */}
       <Dialog open={isAddItemOpen} onOpenChange={setIsAddItemOpen}>
-        <DialogContent className="sm:max-w-[425px] rounded-[2rem]">
+        <DialogContent className="sm:max-w-[425px] rounded-cartoon">
           <DialogHeader>
             <DialogTitle>Tambah Item ke Rencana</DialogTitle>
           </DialogHeader>
@@ -547,10 +544,10 @@ export function PlannerContent({ user, initialPlanners, initialItems, accounts, 
 
       {/* MODAL 1-CLICK PAY */}
       <Dialog open={isPayOpen} onOpenChange={setIsPayOpen}>
-        <DialogContent className="sm:max-w-[425px] rounded-[2rem]">
+        <DialogContent className="sm:max-w-[425px] rounded-cartoon">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
-              <Activity className="h-5 w-5 text-primary" /> Eksekusi Realisasi!
+              <Activity className="h-5 w-5 text-foreground" /> Eksekusi Realisasi!
             </DialogTitle>
           </DialogHeader>
           {selectedItem && (
@@ -558,7 +555,7 @@ export function PlannerContent({ user, initialPlanners, initialItems, accounts, 
               <div className="bg-secondary p-4 rounded-xl space-y-1">
                 <p className="text-xs text-muted-foreground">Item yang direalisasikan:</p>
                 <p className="font-bold">{selectedItem.name}</p>
-                <p className={cn("text-lg font-black", selectedItem.type === 'expense' ? "text-red-500" : "text-green-500")}>
+                <p className={cn("text-lg font-black", selectedItem.type === 'expense' ? "text-expense" : "text-income")}>
                   {selectedItem.type === 'expense' ? "-" : "+"}{formatCurrency(selectedItem.amount)}
                 </p>
               </div>
@@ -635,7 +632,7 @@ export function PlannerContent({ user, initialPlanners, initialItems, accounts, 
 
       {/* MODAL HAPUS ITEM */}
       <Dialog open={!!itemToDelete} onOpenChange={(open) => !open && setItemToDelete(null)}>
-        <DialogContent className="sm:max-w-[425px] rounded-[2rem]">
+        <DialogContent className="sm:max-w-[425px] rounded-cartoon">
           <DialogHeader>
             <DialogTitle>Konfirmasi Hapus</DialogTitle>
           </DialogHeader>

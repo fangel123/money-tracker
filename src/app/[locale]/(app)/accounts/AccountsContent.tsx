@@ -8,6 +8,9 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { EmptyState } from "@/components/common/EmptyState";
+import { PageHeader } from "@/components/common/PageHeader";
+import { HeroCard } from "@/components/common/HeroCard";
+import { Sticker } from "@/components/common/Sticker";
 import { Plus, Edit, Trash2, CreditCard, Wallet, Building2, Smartphone, TrendingUp, Briefcase, MoreVertical } from "lucide-react";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
@@ -94,46 +97,32 @@ export function AccountsContent({ locale, userId, initialAccounts }: AccountsCon
   }, 0);
 
   return (
-    <div className="space-y-6 pb-24 p-4 md:p-6 lg:p-8 max-w-3xl mx-auto">
-      {/* Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-extrabold tracking-tight text-foreground flex items-center gap-2">
-            Aset & Rekening <Briefcase className="h-6 w-6 text-primary" />
-          </h1>
-          <p className="text-muted-foreground text-sm">{t("header.description")}</p>
-        </div>
-        <Button 
-          onClick={() => { setEditingAccount(null); setShowForm(true); }}
-          className="rounded-full h-12 w-12 p-0 shadow-lg" 
-          size="icon"
-        >
-          <Plus className="h-6 w-6" />
-        </Button>
-      </div>
+    <div className="space-y-5 pb-4">
+      <PageHeader
+        title="Akun"
+        description={t("header.description")}
+        action={
+          <Button onClick={() => { setEditingAccount(null); setShowForm(true); }} aria-label={t("addTitle")}>
+            <Plus className="h-5 w-5 sm:mr-1.5" strokeWidth={3} />
+            <span className="hidden sm:inline">Akun Baru</span>
+          </Button>
+        }
+      />
 
       {/* Summary Card */}
       {accounts.length > 0 && (
-        <div className="relative overflow-hidden rounded-[2rem] bg-[#111111] p-6 text-white shadow-lg border border-border/20">
-          <div className="flex items-center gap-2 text-xs font-semibold tracking-wider text-muted-foreground uppercase mb-4">
-            <Wallet className="h-4 w-4 text-primary" />
-            <span>TOTAL KEKAYAAN BERSIH</span>
+        <HeroCard color="#8fd3ff" label="Total kekayaan bersih" value={formatCurrency(totalBalance, "IDR", locale)}>
+          <p className="mt-2 text-sm font-extrabold">Saldo semua akun dikurangi utang kartu kredit</p>
+          <div className="mt-3 flex flex-wrap gap-2">
+            <span className="rounded-full border-2 border-ink bg-white px-2.5 py-0.5 text-xs font-black">{accounts.length} akun aktif</span>
           </div>
-          <div className="flex items-center gap-3 mb-1">
-            <span className={cn("text-4xl font-black tracking-tight", totalBalance < 0 ? "text-destructive" : "text-primary")}>
-              {formatCurrency(totalBalance, "IDR", locale)}
-            </span>
-          </div>
-          <p className="text-sm font-medium text-gray-400">
-            Kombinasi saldo positif dikurangi utang kartu kredit
-          </p>
-        </div>
+        </HeroCard>
       )}
 
       {/* List */}
-      <div className="space-y-4">
+      <div className="grid gap-4 sm:grid-cols-2 lg:gap-5 xl:grid-cols-4">
         {accounts.length === 0 ? (
-          <div className="bg-card rounded-[2rem] border border-border/50 p-8">
+          <div className="bg-card rounded-cartoon border-3 border-line p-8 shadow-cartoon sm:col-span-full">
             <EmptyState
               icon={<Wallet className="h-12 w-12" />}
               titleKey="accounts.empty.title"
@@ -143,9 +132,10 @@ export function AccountsContent({ locale, userId, initialAccounts }: AccountsCon
             />
           </div>
         ) : (
-          accounts.map((account) => (
+          accounts.map((account, index) => (
             <AccountCard
               key={account.id}
+              index={index}
               account={account}
               locale={locale}
               onEdit={handleEdit}
@@ -157,7 +147,7 @@ export function AccountsContent({ locale, userId, initialAccounts }: AccountsCon
 
       {/* Form Modal */}
       <Dialog open={showForm} onOpenChange={setShowForm}>
-        <DialogContent className="sm:max-w-[425px] rounded-[2rem] p-6 border-border/50 shadow-2xl">
+        <DialogContent className="sm:max-w-[425px] rounded-cartoon p-6 border-line shadow-2xl">
           <DialogHeader>
             <DialogTitle className="text-xl font-bold">
               {editingAccount ? t("editTitle") : t("addTitle")}
@@ -188,13 +178,17 @@ export function AccountsContent({ locale, userId, initialAccounts }: AccountsCon
   );
 }
 
+const ACCOUNT_COLORS = ["#8fd3ff", "#ffd447", "#9be7c4", "#ff9ebb", "#c9b6ff", "#ffb86b"];
+
 function AccountCard({
   account,
+  index,
   locale,
   onEdit,
   onDelete,
 }: {
   account: Account;
+  index: number;
   locale: "id" | "en";
   onEdit: (account: Account) => void;
   onDelete: (id: string) => void;
@@ -205,53 +199,46 @@ function AccountCard({
   const Icon = ACCOUNT_ICONS[account.type as keyof typeof ACCOUNT_ICONS] || Briefcase;
   const isDebt = account.type === "credit_card";
 
-  return (
-    <div className="bg-card border border-border/50 rounded-[2rem] p-5 shadow-sm relative overflow-hidden group">
-      <div className="flex items-start justify-between mb-4">
-        <div className="flex items-center gap-4">
-          <div 
-            className="h-12 w-12 rounded-full flex items-center justify-center text-xl bg-secondary"
-            style={{ color: account.color || undefined, backgroundColor: account.color ? `${account.color}20` : undefined }}
-          >
-            <Icon className="h-6 w-6" />
-          </div>
-          <div>
-            <h3 className="font-bold text-foreground text-lg">{account.name}</h3>
-            <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mt-1">
-              {t(`types.${account.type}`)}
-            </p>
-          </div>
-        </div>
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <button className="h-8 w-8 rounded-full flex items-center justify-center hover:bg-secondary transition-colors text-muted-foreground">
-              <MoreVertical className="h-5 w-5" />
-            </button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="end" className="rounded-2xl border-border/50">
-            <DropdownMenuItem onClick={() => onEdit(account)} className="rounded-xl cursor-pointer">
-              <Edit className="mr-2 h-4 w-4" />
-              {ct("edit")}
-            </DropdownMenuItem>
-            <DropdownMenuSeparator />
-            <DropdownMenuItem
-              onClick={() => onDelete(account.id)}
-              className="text-destructive focus:text-destructive rounded-xl cursor-pointer"
-            >
-              <Trash2 className="mr-2 h-4 w-4" />
-              {ct("delete")}
-            </DropdownMenuItem>
-          </DropdownMenuContent>
-        </DropdownMenu>
-      </div>
+  const color = account.color || ACCOUNT_COLORS[index % ACCOUNT_COLORS.length];
 
-      <div className="space-y-2">
-        <div className="flex justify-between text-sm font-bold">
-          <span className="text-muted-foreground">Saldo Saat Ini</span>
-          <span className={cn("text-lg", isDebt ? "text-destructive" : "text-foreground")}>
-            {formatCurrency(account.balance, account.currency, locale)}
+  return (
+    <div className="flex flex-col gap-4 rounded-cartoon border-3 border-line bg-card p-5 shadow-cartoon">
+      <div className="flex items-center justify-between gap-2">
+        <Sticker color={color} size="lg" tilt={index % 2 === 0 ? -3 : 3}>
+          <Icon />
+        </Sticker>
+        <div className="flex items-center gap-2">
+          <span className="rounded-full border-2 border-line bg-background px-2.5 py-0.5 text-xs font-black">
+            {t(`types.${account.type}`)}
           </span>
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <button className="flex h-9 w-9 items-center justify-center rounded-xl border-2 border-line bg-background" aria-label={ct("actions")}>
+                <MoreVertical className="h-4 w-4" strokeWidth={3} />
+              </button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              <DropdownMenuItem onClick={() => onEdit(account)} className="cursor-pointer">
+                <Edit className="mr-2 h-4 w-4" />
+                {ct("edit")}
+              </DropdownMenuItem>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem
+                onClick={() => onDelete(account.id)}
+                className="cursor-pointer text-destructive focus:text-destructive"
+              >
+                <Trash2 className="mr-2 h-4 w-4" />
+                {ct("delete")}
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
         </div>
+      </div>
+      <div>
+        <h3 className="truncate text-sm font-black text-muted-foreground">{account.name}</h3>
+        <p className={cn("mt-1 truncate font-display text-[28px] font-bold leading-none", isDebt && "text-expense")}>
+          {formatCurrency(account.balance, account.currency, locale)}
+        </p>
       </div>
     </div>
   );
@@ -294,7 +281,7 @@ function AccountForm({
         <Input
           {...register("name")}
           placeholder={t("form.namePlaceholder")}
-          className="mt-1.5 h-12 text-base font-bold rounded-xl border-border/50 bg-secondary"
+          className="mt-1.5 h-12 text-base font-bold rounded-xl border-line bg-secondary"
         />
         {errors.name && <p className="mt-1 text-xs text-destructive">{errors.name.message}</p>}
       </div>
@@ -305,10 +292,10 @@ function AccountForm({
           value={watch("type")}
           onValueChange={(value) => setValue("type", value as Account["type"])}
         >
-          <SelectTrigger className="w-full mt-1.5 rounded-xl h-12 border-border/50 bg-secondary">
+          <SelectTrigger className="w-full mt-1.5 rounded-xl h-12 border-line bg-secondary">
             <SelectValue placeholder={t("form.typeLabel")} />
           </SelectTrigger>
-          <SelectContent className="rounded-2xl border-border/50">
+          <SelectContent className="rounded-2xl border-line">
             {ACCOUNT_TYPES.map((typeObj) => (
               <SelectItem key={typeObj.value} value={typeObj.value} className="rounded-xl">
                 {t(`types.${typeObj.value}`)}
@@ -324,7 +311,7 @@ function AccountForm({
           {...register("balance", { valueAsNumber: true })}
           type="number"
           placeholder="0"
-          className="mt-1.5 h-12 text-lg font-bold rounded-xl border-border/50 bg-secondary"
+          className="mt-1.5 h-12 text-lg font-bold rounded-xl border-line bg-secondary"
         />
         {errors.balance && <p className="mt-1 text-xs text-destructive">{errors.balance.message}</p>}
       </div>

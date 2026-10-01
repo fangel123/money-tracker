@@ -36,6 +36,7 @@ export default async function DashboardPage({
     { data: budgets },
     { data: categories },
     { data: debts },
+    { data: profile },
   ] = await Promise.all([
     supabase
       .from("transactions")
@@ -49,6 +50,7 @@ export default async function DashboardPage({
     supabase.from("budgets").select("*, category:categories(*)").eq("user_id", user.id),
     supabase.from("categories").select("*").eq("user_id", user.id).eq("is_active", true),
     supabase.from("debts").select("*").eq("user_id", user.id).eq("status", "active"),
+    supabase.from("profiles").select("full_name").eq("id", user.id).single(),
   ]);
 
   // Hitung "spent" tiap budget dari transaksi expense sepanjang tahun ini,
@@ -69,7 +71,9 @@ export default async function DashboardPage({
         .filter((t) => t.category_id === b.category_id && t.date >= start && t.date < end)
         .reduce((sum, t) => sum + Number(t.amount), 0);
       const percent = b.amount > 0 ? (spent / Number(b.amount)) * 100 : 0;
-      if (percent >= (b.alert_threshold ?? 80)) {
+      // alert_threshold disimpan sebagai pecahan (0.8 = 80%), sedangkan percent dalam skala 0–100
+      const threshold = Number(b.alert_threshold ?? 0.8);
+      if (percent >= (threshold <= 1 ? threshold * 100 : threshold)) {
         budgetAlerts.push({ ...b, spent, percent: Math.round(percent) });
       }
     }
@@ -85,6 +89,7 @@ export default async function DashboardPage({
     <DashboardContent
       locale={locale as "id" | "en"}
       user={user}
+      displayName={profile?.full_name || user.user_metadata?.full_name || null}
       transactions={transactions || []}
       accounts={accounts || []}
       budgets={budgets || []}

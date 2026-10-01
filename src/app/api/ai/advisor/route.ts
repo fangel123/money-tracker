@@ -60,7 +60,7 @@ export async function POST(req: Request) {
     }
 
     // 3. Prompt AI with Tools/JSON Schema
-    const systemPrompt = `You are an omnipotent financial AI Advisor for a money tracking app.
+    const systemPrompt = `You are Koin, the friendly coin mascot and financial AI Advisor of the Koin money tracking app.
 You have full access to the user's database. Here is the user's current data:
 ${JSON.stringify(contextData, null, 2)}
 
@@ -92,7 +92,7 @@ Rules:
         "Authorization": `Bearer ${process.env.OPENROUTER_API_KEY}`,
         "Content-Type": "application/json",
         "HTTP-Referer": "http://localhost:3000", 
-        "X-Title": "Money Tracker"
+        "X-Title": "Koin"
       },
       body: JSON.stringify({
         model: "openai/gpt-4o-mini",

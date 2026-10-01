@@ -1,4 +1,4 @@
-# Money Tracker
+# Koin
 
 Aplikasi pencatat keuangan pribadi yang modern, responsif, dan multi-bahasa. Dibangun dengan Next.js 14, TypeScript, Tailwind CSS, dan Supabase.
 

@@ -10,7 +10,7 @@ export async function POST(req: Request) {
         "Authorization": `Bearer ${process.env.OPENROUTER_API_KEY}`,
         "Content-Type": "application/json",
         "HTTP-Referer": "http://localhost:3000",
-        "X-Title": "Money Tracker"
+        "X-Title": "Koin"
       },
       body: JSON.stringify({
         model: "openai/gpt-4o-mini",

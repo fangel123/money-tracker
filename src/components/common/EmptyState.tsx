@@ -2,6 +2,7 @@
 
 import { cn } from "@/lib/utils";
 import { useTranslations } from "next-intl";
+import { Mascot } from "@/components/common/Mascot";
 
 interface EmptyStateProps {
   icon?: React.ReactNode;
@@ -12,20 +13,20 @@ interface EmptyStateProps {
   className?: string;
 }
 
-export function EmptyState({ icon, titleKey, descriptionKey, actionKey, onAction, className }: EmptyStateProps) {
+export function EmptyState({ titleKey, descriptionKey, actionKey, onAction, className }: EmptyStateProps) {
   const t = useTranslations();
 
   return (
-    <div className={cn("flex flex-col items-center justify-center py-12 px-4 text-center", className)}>
-      {icon && <div className="mb-4 text-muted-foreground/50">{icon}</div>}
-      <h3 className="text-lg font-medium text-foreground">{t(titleKey)}</h3>
+    <div className={cn("flex flex-col items-center justify-center px-4 py-10 text-center", className)}>
+      <Mascot size={88} mood="worried" className="mb-3 -rotate-6" />
+      <h3 className="font-display text-xl font-semibold text-foreground">{t(titleKey)}</h3>
       {descriptionKey && (
-        <p className="mt-1 text-sm text-muted-foreground">{t(descriptionKey)}</p>
+        <p className="mt-1 max-w-xs text-sm font-semibold text-muted-foreground">{t(descriptionKey)}</p>
       )}
       {actionKey && onAction && (
         <button
           onClick={onAction}
-          className="mt-4 inline-flex items-center justify-center rounded-lg bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90 transition-colors"
+          className="mt-5 inline-flex h-11 items-center justify-center rounded-2xl border-3 border-line bg-primary px-5 font-display text-base font-semibold text-primary-foreground shadow-cartoon-sm transition-all hover:-translate-y-px active:translate-x-[3px] active:translate-y-[3px] active:shadow-none"
         >
           {t(actionKey)}
         </button>

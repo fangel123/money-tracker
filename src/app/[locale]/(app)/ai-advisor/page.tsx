@@ -11,7 +11,7 @@ export default async function AIAdvisorPage({ params: { locale } }: { params: { 
   }
 
   return (
-    <div className="p-4 md:p-6 lg:p-8 max-w-3xl mx-auto space-y-6">
+    <div className="mx-auto max-w-5xl space-y-5 pb-4">
       <AIAdvisorContent user={user} />
     </div>
   );

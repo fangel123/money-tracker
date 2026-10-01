@@ -2,6 +2,7 @@
 
 import { useState, useRef, useEffect } from "react";
 import { Button } from "@/components/ui/button";
+import { Mascot } from "@/components/common/Mascot";
 import { Input } from "@/components/ui/input";
 import { Bot, Send, ArrowLeft, Loader2, CheckCircle2, Camera, X, AlertCircle } from "lucide-react";
 import { Link, useRouter } from "@/i18n/navigation";
@@ -112,40 +113,36 @@ export function AIAdvisorContent({ user }: { user: any }) {
   };
 
   return (
-    <div className="flex flex-col h-[calc(100vh-8rem)] bg-card rounded-[2rem] border border-border/50 shadow-sm overflow-hidden relative">
-      <div className="flex items-center justify-between p-4 border-b bg-muted/30">
+    <div className="relative flex h-[calc(100dvh-13rem)] flex-col overflow-hidden rounded-cartoon border-3 border-line bg-card shadow-cartoon lg:h-[calc(100vh-9.5rem)]">
+      <div className="flex items-center justify-between border-b-2 border-dashed border-divider px-4 py-3">
         <div className="flex items-center gap-3">
-          <Button variant="ghost" size="icon" asChild className="rounded-full">
-            <Link href="/dashboard"><ArrowLeft className="h-5 w-5" /></Link>
-          </Button>
-          <div className="flex items-center justify-center h-10 w-10 bg-primary/20 rounded-full">
-            <Bot className="h-5 w-5 text-primary" />
-          </div>
+          <Mascot size={48} />
           <div>
-            <h2 className="font-bold">AI Advisor</h2>
-            <p className="text-xs text-muted-foreground">Online & Memiliki Akses Penuh</p>
+            <h2 className="font-display text-lg font-semibold leading-tight">Koin</h2>
+            <p className="text-xs font-bold text-muted-foreground">AI Advisor · baca data keuanganmu</p>
           </div>
         </div>
-        <Button variant="ghost" size="sm" onClick={clearHistory} className="text-xs text-muted-foreground">
+        <Button variant="outline" size="sm" onClick={clearHistory}>
           Hapus Chat
         </Button>
       </div>
 
       <div ref={chatRef} className="flex-1 overflow-y-auto p-4 space-y-4">
         {messages.map((msg, i) => (
-          <div key={i} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
-            <div className={`max-w-[80%] rounded-2xl px-4 py-3 ${
+          <div key={i} className={`flex items-end gap-2 ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
+            {msg.role !== 'user' && <Mascot size={36} className="mb-1 hidden sm:block" />}
+            <div className={`max-w-[80%] border-3 px-4 py-3 ${
               msg.role === 'user' 
-                ? 'bg-primary text-primary-foreground rounded-br-sm' 
-                : 'bg-secondary text-foreground rounded-bl-sm'
+                ? 'rounded-[20px] rounded-br-md border-ink bg-primary text-ink shadow-cartoon-sm' 
+                : 'rounded-[20px] rounded-bl-md border-line bg-background text-foreground'
             }`}>
               {msg.image && (
                 <img src={msg.image} alt="User upload" className="rounded-xl mb-2 max-h-48 object-cover" />
               )}
-              {msg.content && <p className="text-sm whitespace-pre-wrap">{msg.content}</p>}
+              {msg.content && <p className="whitespace-pre-wrap text-sm font-bold leading-relaxed">{msg.content}</p>}
               
               {msg.action && msg.action !== "answer" && msg.action !== "error" && (
-                <div className="mt-2 flex items-center gap-1 text-xs font-semibold bg-primary/10 text-primary py-1 px-2 rounded-lg w-max">
+                <div className="mt-2 flex w-max items-center gap-1 rounded-full border-2 border-ink bg-cartoon-mint px-2 py-0.5 text-xs font-black text-ink">
                   <CheckCircle2 className="h-3 w-3" /> Berhasil Update Data
                 </div>
               )}
@@ -159,14 +156,14 @@ export function AIAdvisorContent({ user }: { user: any }) {
         ))}
         {isLoading && (
           <div className="flex justify-start">
-            <div className="bg-secondary text-foreground rounded-2xl rounded-bl-sm px-4 py-3">
-              <Loader2 className="h-4 w-4 animate-spin text-primary" />
+            <div className="rounded-[20px] rounded-bl-md border-3 border-line bg-background px-4 py-3">
+              <Loader2 className="h-4 w-4 animate-spin" />
             </div>
           </div>
         )}
       </div>
 
-      <div className="p-4 border-t bg-muted/30 flex flex-col gap-2">
+      <div className="flex flex-col gap-2 border-t-2 border-dashed border-divider p-3 sm:p-4">
         {imagePreview && (
           <div className="relative w-max">
             <img src={imagePreview} alt="Preview" className="h-16 w-16 object-cover rounded-lg border border-border" />
@@ -187,9 +184,11 @@ export function AIAdvisorContent({ user }: { user: any }) {
             variant="outline"
             onClick={() => fileInputRef.current?.click()} 
             disabled={isLoading}
-            className="rounded-full h-10 w-10 p-0 shrink-0 border-border/50 bg-background"
+            size="icon"
+            className="shrink-0"
+            aria-label="Lampirkan foto"
           >
-            <Camera className="h-4 w-4 text-muted-foreground" />
+            <Camera className="h-5 w-5" strokeWidth={2.5} />
           </Button>
 
           <Input 
@@ -197,16 +196,18 @@ export function AIAdvisorContent({ user }: { user: any }) {
             onChange={e => setInput(e.target.value)}
             onKeyDown={e => e.key === 'Enter' && handleSend()}
             placeholder="Tanya info atau perintahkan AI..."
-            className="rounded-full border-border/50 bg-background flex-1"
+            className="flex-1 bg-background"
             disabled={isLoading}
           />
           
           <Button 
             onClick={handleSend} 
             disabled={(!input.trim() && !imagePreview) || isLoading}
-            className="rounded-full h-10 w-10 p-0 shrink-0"
+            size="icon"
+            className="shrink-0 bg-cartoon-pink"
+            aria-label="Kirim"
           >
-            <Send className="h-4 w-4" />
+            <Send className="h-5 w-5" strokeWidth={2.5} />
           </Button>
         </div>
       </div>

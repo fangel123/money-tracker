@@ -1,23 +1,31 @@
-# Design Specification — Money Tracker (Core MVP)
+# Design Specification — Koin (tema kartun)
 
 ## 1. Brand & Visual Identity
 
 | Property | Value |
 |----------|-------|
-| **App Name** | Money Tracker |
+| **App Name** | Koin |
 | **Tagline** | "Catat. Kelola. Tumbuh." |
-| **Primary Color** | `#059669` (Emerald 600) — trust, growth |
-| **Secondary** | `#0891b2` (Cyan 600) — clarity, flow |
-| **Accent** | `#f59e0b` (Amber 500) — warnings, highlights |
-| **Danger** | `#dc2626` (Red 600) — overspend, delete |
-| **Background (Light)** | `#f8fafc` (Slate 50) |
-| **Surface (Light)** | `#ffffff` |
-| **Background (Dark)** | `#0f172a` (Slate 950) |
-| **Surface (Dark)** | `#1e293b` (Slate 800) |
-| **Typography** | **Inter** (UI), **JetBrains Mono** (numbers) |
-| **Spacing Scale** | 4px base (Tailwind default) |
-| **Border Radius** | `rounded-xl` (12px) cards, `rounded-lg` (8px) inputs, `rounded-full` pills |
-| **Shadow** | `shadow-sm` cards, `shadow-lg` modals/dropdowns |
+| **Mascot** | Koin — koin kuning bermuka senyum (`components/common/Mascot.tsx`), juga nama AI Advisor |
+| **Gaya** | Kartun: garis tinta tebal, bayangan keras tanpa blur, warna rata (tanpa gradien) |
+| **Primary** | `#C8F031` (lime) — tombol utama, item nav aktif, kartu hero Dashboard |
+| **Tinta / garis** | `#1E1B18` (terang), `#050407` (gelap) — token `line`, `ink` |
+| **Latar** | `#FFF4DE` krem (terang) · `#15121D` malam (gelap) |
+| **Permukaan** | `#FFFFFF` (terang) · `#2B2638` (gelap) |
+| **Palet kartun** | pink `#FF9EBB` (keluar), mint `#9BE7C4` (masuk), langit `#8FD3FF` (transfer), kuning `#FFD447`, lilac `#C9B6FF`, oranye `#FFB86B`, merah `#FF5C7A` (bahaya) |
+| **Angka uang** | `text-income` / `text-expense` (berubah otomatis di mode gelap) |
+| **Typography** | **Fredoka** (judul & angka besar, `font-display`), **Nunito** 600–900 (teks, `font-sans`) |
+| **Border** | `border-3 border-line` untuk kartu, tombol, input; `border-2.5` untuk chip & stiker |
+| **Shadow** | `shadow-cartoon-sm` (3px), `shadow-cartoon` (4px), `shadow-cartoon-lg` (6px) — offset, tanpa blur |
+| **Border Radius** | `rounded-cartoon` (26px) kartu, `rounded-2xl` tombol/input, `rounded-full` chip |
+| **Tekan** | Tombol bergeser 3px dan bayangan hilang (`active:translate-*`) |
+| **Teks di atas warna cerah** | Selalu `text-ink` (gelap), di mode terang maupun gelap |
+
+### Komponen tema
+- `Sticker` / `CategorySticker` — ikon dalam kotak bergaris tinta, warna kategori dilembutkan jadi pastel, boleh miring ±3–6°
+- `HeroCard` + `CartoonBar` — kartu ringkasan berwarna & progress bar bergaris tebal
+- `PageHeader` — judul halaman (di desktop judul pindah ke top bar)
+- `Mascot` — ilustrasi dekoratif (`aria-hidden`), dipakai di empty state, AI Advisor, halaman masuk
 
 ## 2. Layout & Responsiveness
 
@@ -34,9 +42,9 @@ Breakpoints (Tailwind default):
 
 | Region | Mobile (< md) | Desktop (≥ md) |
 |--------|---------------|----------------|
-| **Navigation** | Bottom tab bar (5 items) | Left sidebar (collapsible) |
-| **Header** | Sticky top: title + actions | Sticky top: search + user menu |
-| **Content** | Single column, full width | Max-w-4xl centered, sidebar offset |
+| **Navigation** | Bottom bar mengambang (Dashboard, Akun, + Catat, Transaksi, Lainnya) | Sidebar kartu mengambang + tombol "Catat Transaksi" |
+| **Header** | Menu + logo Koin + tema + akun | Tanggal + judul halaman + tema + bahasa + akun |
+| **Content** | Single column, full width | Grid lebar; Dashboard muat 1 layar 1440×900 tanpa scroll |
 | **FAB** | Bottom-right: quick add | Top-right in header + FAB |
 
 ### Grid System
@@ -164,31 +172,16 @@ errors          → validation, toast, server errors
 | **Offline Page** | Custom `/offline` with cached dashboard snapshot |
 | **Install Prompt** | Custom banner after 3 visits + 2 min engagement |
 
-## 10. Design Tokens (Tailwind Config Extension)
+## 10. Design Tokens
 
-```js
-// tailwind.config.ts additions
-theme: {
-  extend: {
-    colors: {
-      primary: { 50: '#ecfdf5', ..., 600: '#059669', ..., 900: '#064e3b' },
-      secondary: { 50: '#f0fdfa', ..., 600: '#0d9488', ..., 900: '#134e4a' },
-      accent: { 50: '#fffbeb', ..., 500: '#f59e0b', ..., 900: '#78350f' },
-    },
-    fontFamily: {
-      sans: ['Inter', 'system-ui', 'sans-serif'],
-      mono: ['JetBrains Mono', 'monospace'],
-    },
-    boxShadow: {
-      'card': '0 1px 3px 0 rgb(0 0 0 / 0.1), 0 1px 2px -1px rgb(0 0 0 / 0.1)',
-      'card-hover': '0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1)',
-    },
-  },
-}
-```
+Token warna ada di `src/app/globals.css` sebagai kanal RGB (`--primary: 200 240 49;`) untuk `:root` dan `.dark`,
+lalu dipetakan di `tailwind.config.ts` sebagai `rgb(var(--x) / <alpha-value>)` supaya modifier opasitas
+(`bg-destructive/10`) berfungsi. Token tambahan: `line`, `divider`, `income`, `expense`, `ink`, `cream`,
+`cartoon.{lime,pink,mint,sky,yellow,lilac,orange,red,sand}`, `shadow-cartoon*`, `rounded-cartoon`, `border-3`,
+`border-2.5`, `font-display`.
 
 ---
 
 **Status**: ✅ Approved for implementation  
-**Version**: 1.0  
-**Last Updated**: 2026-09-10
+**Version**: 2.0 (tema kartun Koin)  
+**Last Updated**: 2026-10-01

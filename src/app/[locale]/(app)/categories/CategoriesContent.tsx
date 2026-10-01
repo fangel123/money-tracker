@@ -18,6 +18,9 @@ import { categorySchema, type CategoryFormData } from "@/lib/validators/category
 import { Category } from "@/types/domain";
 import { createBrowserSupabaseClient } from "@/lib/supabase/browser";
 import { DynamicIcon } from "@/components/common/DynamicIcon";
+import { CategorySticker } from "@/components/common/CategorySticker";
+import { stickerTilt } from "@/components/common/Sticker";
+import { PageHeader } from "@/components/common/PageHeader";
 
 interface CategoriesContentProps {
   locale: "id" | "en";
@@ -91,56 +94,41 @@ export function CategoriesContent({ locale, userId, initialCategories }: Categor
   const filteredCategories = categories.filter((c) => c.type === activeTab);
 
   return (
-    <div className="space-y-6 pb-24 p-4 md:p-6 lg:p-8 max-w-3xl mx-auto">
-      {/* Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-extrabold tracking-tight text-foreground flex items-center gap-2">
-            Kategori <Tags className="h-6 w-6 text-primary" />
-          </h1>
-          <p className="text-muted-foreground text-sm">{t("header.description")}</p>
-        </div>
-        <Button 
-          onClick={() => { setEditingCategory(null); setShowForm(true); }}
-          className="rounded-full h-12 w-12 p-0 shadow-lg" 
-          size="icon"
-        >
-          <Plus className="h-6 w-6" />
-        </Button>
-      </div>
+    <div className="space-y-5 pb-4">
+      <PageHeader
+        title="Kategori"
+        description={t("header.description")}
+        action={
+          <Button onClick={() => { setEditingCategory(null); setShowForm(true); }} aria-label={t("addTitle")}>
+            <Plus className="h-5 w-5 sm:mr-1.5" strokeWidth={3} />
+            <span className="hidden sm:inline">Kategori Baru</span>
+          </Button>
+        }
+      />
 
       {/* Tabs */}
-      <div className="flex gap-2">
-        <Button
-          variant={activeTab === "expense" ? "default" : "outline"}
-          onClick={() => setActiveTab("expense")}
-          className={cn(
-            "rounded-full px-6 font-semibold flex-1",
-            activeTab === "expense" 
-              ? "bg-foreground text-background hover:bg-foreground/90" 
-              : "bg-card border-border/50 text-muted-foreground hover:text-foreground"
-          )}
-        >
-          {t("tabs.expense")}
-        </Button>
-        <Button
-          variant={activeTab === "income" ? "default" : "outline"}
-          onClick={() => setActiveTab("income")}
-          className={cn(
-            "rounded-full px-6 font-semibold flex-1",
-            activeTab === "income" 
-              ? "bg-foreground text-background hover:bg-foreground/90" 
-              : "bg-card border-border/50 text-muted-foreground hover:text-foreground"
-          )}
-        >
-          {t("tabs.income")}
-        </Button>
+      <div className="grid grid-cols-2 gap-1.5 rounded-[20px] border-3 border-line bg-card p-1.5 shadow-cartoon-sm sm:max-w-md">
+        {(["expense", "income"] as const).map((tab) => (
+          <button
+            key={tab}
+            onClick={() => setActiveTab(tab)}
+            aria-pressed={activeTab === tab}
+            className={cn(
+              "h-11 rounded-[14px] border-2.5 text-sm font-black transition-colors",
+              activeTab === tab
+                ? cn("border-ink text-ink", tab === "expense" ? "bg-cartoon-pink" : "bg-cartoon-mint")
+                : "border-transparent hover:bg-accent"
+            )}
+          >
+            {t(`tabs.${tab}`)} · {categories.filter((c) => c.type === tab).length}
+          </button>
+        ))}
       </div>
 
       {/* List */}
       <div className="space-y-2">
         {filteredCategories.length === 0 ? (
-          <div className="bg-card rounded-[2rem] border border-border/50 p-8">
+          <div className="bg-card rounded-cartoon border-3 border-line p-8 shadow-cartoon">
             <EmptyState
               icon={<Square className="h-12 w-12" />}
               titleKey="categories.empty.title"
@@ -150,10 +138,11 @@ export function CategoriesContent({ locale, userId, initialCategories }: Categor
             />
           </div>
         ) : (
-          <div className="bg-card rounded-[2rem] border border-border/50 p-2 shadow-sm overflow-hidden">
+          <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 md:grid-cols-4 xl:grid-cols-6">
             {filteredCategories.map((category, idx) => (
               <CategoryCard
                 key={category.id}
+                index={idx}
                 category={category}
                 onEdit={handleEdit}
                 onDelete={(id) => deleteMutation.mutate(id)}
@@ -166,7 +155,7 @@ export function CategoriesContent({ locale, userId, initialCategories }: Categor
 
       {/* Form Modal */}
       <Dialog open={showForm} onOpenChange={setShowForm}>
-        <DialogContent className="sm:max-w-[425px] rounded-[2rem] p-6 border-border/50 shadow-2xl">
+        <DialogContent className="sm:max-w-[425px] rounded-cartoon p-6 border-line shadow-2xl">
           <DialogHeader>
             <DialogTitle className="text-xl font-bold">
               {editingCategory ? t("editTitle") : t("addTitle")}
@@ -199,11 +188,13 @@ export function CategoriesContent({ locale, userId, initialCategories }: Categor
 }
 
 function CategoryCard({
+  index,
   category,
   onEdit,
   onDelete,
   isLast
 }: {
+  index: number;
   category: Category;
   onEdit: (category: Category) => void;
   onDelete: (id: string) => void;
@@ -213,26 +204,19 @@ function CategoryCard({
   const ct = useTranslations("common");
 
   return (
-    <div className={cn("p-4 hover:bg-secondary transition-colors group flex items-center justify-between gap-3", !isLast && "border-b border-border/30")}>
-      <div className="flex items-center gap-4 flex-1 min-w-0">
-        <div 
-          className="h-12 w-12 rounded-2xl flex items-center justify-center bg-secondary"
-          style={{ color: category.color || undefined, backgroundColor: category.color ? `${category.color}20` : undefined }}
-        >
-          {category.icon ? <DynamicIcon name={category.icon} className="h-6 w-6" /> : <Square className="h-6 w-6" />}
-        </div>
-        <div className="min-w-0">
-          <h3 className="font-bold text-foreground text-base truncate">{category.name}</h3>
-        </div>
-      </div>
-      
+    <div className="relative flex flex-col items-center gap-2.5 rounded-cartoon border-3 border-line bg-card px-2 pb-4 pt-5 shadow-cartoon">
+      <button onClick={() => onEdit(category)} className="flex flex-col items-center gap-2.5" aria-label={`${ct("edit")} ${category.name}`}>
+        <CategorySticker category={category} size="lg" tilt={stickerTilt(index) * 1.3} />
+        <h3 className="max-w-full truncate px-1 text-sm font-black">{category.name}</h3>
+      </button>
+      <div className="absolute right-2 top-2">
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
-          <button className="h-8 w-8 rounded-full flex items-center justify-center hover:bg-secondary transition-colors text-muted-foreground opacity-0 group-hover:opacity-100 focus:opacity-100">
-            <MoreVertical className="h-5 w-5" />
+          <button className="flex h-8 w-8 items-center justify-center rounded-xl border-2 border-line bg-background" aria-label={ct("actions")}>
+            <MoreVertical className="h-4 w-4" strokeWidth={3} />
           </button>
         </DropdownMenuTrigger>
-        <DropdownMenuContent align="end" className="rounded-2xl border-border/50 shadow-xl">
+        <DropdownMenuContent align="end" className="rounded-2xl border-line shadow-xl">
           <DropdownMenuItem onClick={() => onEdit(category)} className="rounded-xl cursor-pointer">
             <Edit className="mr-2 h-4 w-4" />
             {ct("edit")}
@@ -251,6 +235,7 @@ function CategoryCard({
           )}
         </DropdownMenuContent>
       </DropdownMenu>
+      </div>
     </div>
   );
 }
@@ -295,7 +280,7 @@ function CategoryForm({
         <Input
           {...register("name")}
           placeholder={t("form.namePlaceholder")}
-          className="mt-1.5 h-12 text-base font-bold rounded-xl border-border/50 bg-secondary"
+          className="mt-1.5 h-12 text-base font-bold rounded-xl border-line bg-secondary"
         />
         {errors.name && <p className="mt-1 text-xs text-destructive">{errors.name.message}</p>}
       </div>
@@ -306,10 +291,10 @@ function CategoryForm({
           value={watch("type")}
           onValueChange={(value) => setValue("type", value as "income" | "expense")}
         >
-          <SelectTrigger className="w-full mt-1.5 rounded-xl h-12 border-border/50 bg-secondary">
+          <SelectTrigger className="w-full mt-1.5 rounded-xl h-12 border-line bg-secondary">
             <SelectValue placeholder={t("form.typeLabel")} />
           </SelectTrigger>
-          <SelectContent className="rounded-2xl border-border/50">
+          <SelectContent className="rounded-2xl border-line">
             <SelectItem value="expense" className="rounded-xl">{t("tabs.expense")}</SelectItem>
             <SelectItem value="income" className="rounded-xl">{t("tabs.income")}</SelectItem>
           </SelectContent>

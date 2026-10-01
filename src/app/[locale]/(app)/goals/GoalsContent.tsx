@@ -14,6 +14,12 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Flag, Plus, CheckCircle2, ChevronRight, Target } from "lucide-react";
 import { formatCurrency } from "@/lib/utils";
+import { PageHeader } from "@/components/common/PageHeader";
+import { CartoonBar } from "@/components/common/HeroCard";
+import { Sticker } from "@/components/common/Sticker";
+import { Mascot } from "@/components/common/Mascot";
+import { DynamicIcon } from "@/components/common/DynamicIcon";
+import { EmptyState } from "@/components/common/EmptyState";
 import {
   goalSchema,
   type GoalFormData,
@@ -27,6 +33,8 @@ interface GoalsContentProps {
   accounts: any[];
   categories: any[];
 }
+
+const GOAL_COLORS = ["#9be7c4", "#8fd3ff", "#c9b6ff", "#ffd447", "#ff9ebb", "#ffb86b"];
 
 export function GoalsContent({ user, initialGoals, dbReady, accounts, categories }: GoalsContentProps) {
   const router = useRouter();
@@ -103,108 +111,83 @@ export function GoalsContent({ user, initialGoals, dbReady, accounts, categories
   });
 
   return (
-    <div className="space-y-6 pb-24 p-4 md:p-6 lg:p-8 max-w-3xl mx-auto">
-      {/* Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-extrabold tracking-tight text-foreground flex items-center gap-2">
-            Target Tabungan <Flag className="h-6 w-6 text-primary" />
-          </h1>
-          <p className="text-muted-foreground text-sm">Wujudkan impian finansial Anda</p>
-        </div>
-        <Button onClick={() => setShowForm(true)} className="rounded-full h-12 w-12 p-0 shadow-lg" size="icon">
-          <Plus className="h-6 w-6" />
-        </Button>
-      </div>
+    <div className="space-y-5 pb-4">
+      <PageHeader
+        title="Goals"
+        description="Wujudkan impian finansial Anda"
+        action={
+          <Button onClick={() => setShowForm(true)} aria-label="Tambah goal">
+            <Plus className="h-5 w-5 sm:mr-1.5" strokeWidth={3} />
+            <span className="hidden sm:inline">Impian Baru</span>
+          </Button>
+        }
+      />
 
       {/* Total Ringkasan */}
       {displayGoals.length > 0 && (
-        <div className="relative overflow-hidden rounded-[2rem] bg-[#111111] p-6 text-white shadow-lg">
-          <div className="flex items-center gap-2 text-xs font-semibold tracking-wider text-muted-foreground uppercase mb-4">
-            <Target className="h-4 w-4 text-primary" />
-            <span>TOTAL TERKUMPUL</span>
+        <section className="relative flex items-center gap-4 overflow-hidden rounded-cartoon border-3 border-line bg-cartoon-mint p-5 text-ink shadow-cartoon-lg lg:p-6">
+          <Mascot size={88} className="hidden shrink-0 sm:block" />
+          <div className="min-w-0 flex-1">
+            <p className="text-xs font-black uppercase tracking-[0.1em]">Sudah terkumpul</p>
+            <p className="mt-1.5 font-display text-[40px] font-bold leading-none lg:text-[46px]">{formatCurrency(totalCurrent)}</p>
+            <p className="mt-1.5 text-sm font-extrabold">
+              dari total target {formatCurrency(totalTarget)} · {totalTarget > 0 ? Math.min(100, Math.round((totalCurrent / totalTarget) * 100)) : 0}%
+            </p>
+            <CartoonBar
+              className="mt-3 border-ink bg-cream"
+              color="#ffffff"
+              percent={totalTarget > 0 ? Math.round((totalCurrent / totalTarget) * 100) : 0}
+            />
           </div>
-          <div className="flex items-center gap-3 mb-1">
-            <span className="text-4xl font-black tracking-tight text-primary">
-              {formatCurrency(totalCurrent)}
-            </span>
-          </div>
-          <p className="text-sm font-medium text-gray-400">
-            dari total target {formatCurrency(totalTarget)}
-          </p>
-          <div className="mt-6">
-            <div className="h-2 w-full bg-white/10 rounded-full overflow-hidden">
-              <div
-                className="h-full bg-primary transition-all duration-1000"
-                style={{ width: `${totalTarget > 0 ? Math.min(100, Math.round((totalCurrent / totalTarget) * 100)) : 0}%` }}
-              />
-            </div>
-          </div>
-        </div>
+        </section>
       )}
 
       {/* Daftar Goals */}
-      <div className="space-y-4">
+      <div className="grid gap-4 md:grid-cols-2 lg:gap-5 xl:grid-cols-3">
         {displayGoals.length === 0 ? (
-          <div className="bg-card rounded-[2rem] border border-border/50 p-8 text-center text-muted-foreground mt-4">
-            <p>Belum ada target tabungan.</p>
-            <p className="text-sm mt-1">Klik tombol + di atas untuk mulai menabung.</p>
+          <div className="bg-card rounded-cartoon border-3 border-line shadow-cartoon md:col-span-full">
+            <EmptyState titleKey="goals.empty.title" descriptionKey="goals.empty.description" />
           </div>
         ) : (
-          displayGoals.map((goal) => {
+          displayGoals.map((goal, index) => {
             const progress = Math.min(100, Math.round((goal.current_amount / goal.target_amount) * 100));
             const isCompleted = progress >= 100;
+            const color = GOAL_COLORS[index % GOAL_COLORS.length];
 
             return (
-              <div key={goal.id} className="bg-card border border-border/50 rounded-[2rem] p-5 shadow-sm relative overflow-hidden group">
-                <div className="flex items-start justify-between mb-4">
-                  <div className="flex items-center gap-4">
-                    <div className="h-12 w-12 rounded-full flex items-center justify-center text-2xl bg-secondary">
-                      {goal.icon || "🎯"}
-                    </div>
-                    <div>
-                      <h3 className="font-bold text-foreground text-lg">{goal.name}</h3>
-                      {goal.deadline && (
-                        <p className="text-xs text-muted-foreground font-medium">
-                          Target: {new Date(goal.deadline).toLocaleDateString("id-ID", { month: "short", year: "numeric" })}
-                        </p>
-                      )}
-                    </div>
-                  </div>
-                  {isCompleted && (
-                    <div className="bg-primary/20 text-primary p-2 rounded-full">
-                      <CheckCircle2 className="h-5 w-5" />
-                    </div>
+              <div key={goal.id} className="flex flex-col gap-3 rounded-cartoon border-3 border-line bg-card p-5 shadow-cartoon">
+                <div className="flex items-center justify-between">
+                  <Sticker color={color} size="lg" tilt={index % 2 === 0 ? -4 : 4} className="text-2xl">
+                    {!goal.icon ? <Flag /> : /^[a-z0-9-]+$/.test(goal.icon) ? <DynamicIcon name={goal.icon} /> : goal.icon}
+                  </Sticker>
+                  {isCompleted ? (
+                    <span className="flex items-center gap-1 rounded-full border-2 border-ink bg-cartoon-lime px-2.5 py-0.5 text-xs font-black text-ink">
+                      <CheckCircle2 className="h-3.5 w-3.5" strokeWidth={3} /> Tercapai!
+                    </span>
+                  ) : (
+                    <span className="font-display text-[32px] font-bold leading-none">{progress}%</span>
                   )}
                 </div>
-
-                <div className="space-y-2">
-                  <div className="flex justify-between text-sm font-bold">
-                    <span className={isCompleted ? "text-primary" : "text-foreground"}>
-                      {formatCurrency(goal.current_amount)}
-                    </span>
-                    <span className="text-muted-foreground">
-                      {formatCurrency(goal.target_amount)}
-                    </span>
-                  </div>
-                  <div className="h-3 w-full bg-secondary rounded-full overflow-hidden">
-                    <div className="h-full bg-primary transition-all duration-1000" style={{ width: `${progress}%` }} />
-                  </div>
-                  <div className="flex justify-between items-center pt-2">
-                    <span className="text-xs font-bold text-muted-foreground bg-background px-2 py-1 rounded-lg">
-                      {progress}% Tercapai
-                    </span>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      disabled={isCompleted}
-                      onClick={() => setContributingTo(goal)}
-                      className="h-8 text-xs font-semibold rounded-full group-hover:bg-primary/10 group-hover:text-primary"
-                    >
-                      Isi Tabungan <ChevronRight className="h-3 w-3 ml-1" />
-                    </Button>
-                  </div>
+                <div>
+                  <h3 className="truncate font-display text-xl font-semibold">{goal.name}</h3>
+                  {goal.deadline && (
+                    <p className="text-[13px] font-bold text-muted-foreground">
+                      Target {new Date(goal.deadline).toLocaleDateString("id-ID", { month: "short", year: "numeric" })}
+                    </p>
+                  )}
                 </div>
+                <CartoonBar percent={progress} color={color} className="h-[22px]" />
+                <p className="text-sm font-black">
+                  {formatCurrency(goal.current_amount)} <span className="font-bold text-muted-foreground">/ {formatCurrency(goal.target_amount)}</span>
+                </p>
+                <button
+                  disabled={isCompleted}
+                  onClick={() => setContributingTo(goal)}
+                  className="mt-auto flex h-10 items-center justify-center gap-1 self-start rounded-xl border-2.5 border-ink px-4 text-sm font-black text-ink shadow-cartoon-sm transition-transform active:translate-x-[3px] active:translate-y-[3px] active:shadow-none disabled:opacity-50"
+                  style={{ background: color }}
+                >
+                  <Plus className="h-4 w-4" strokeWidth={3} /> Nabung
+                </button>
               </div>
             );
           })
@@ -267,28 +250,28 @@ function GoalFormDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[425px] rounded-[2rem] p-6 border-border/50 shadow-2xl">
+      <DialogContent className="sm:max-w-[425px] rounded-cartoon p-6 border-line shadow-2xl">
         <DialogHeader>
           <DialogTitle className="text-xl font-bold">Target Baru</DialogTitle>
         </DialogHeader>
         <form id="goal-form" onSubmit={handleSubmit(submit)} className="space-y-5 py-4">
           <div>
             <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Nama Target</Label>
-            <Input {...register("name")} placeholder="Dana Darurat" className="mt-1.5 h-12 rounded-xl bg-secondary border-border/50" />
+            <Input {...register("name")} placeholder="Dana Darurat" className="mt-1.5 h-12 rounded-xl bg-secondary border-line" />
             {errors.name && <p className="mt-1 text-xs text-destructive">{errors.name.message}</p>}
           </div>
           <div>
             <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Target Jumlah</Label>
-            <Input {...register("target_amount")} type="number" placeholder="0" className="mt-1.5 h-12 rounded-xl bg-secondary border-border/50" />
+            <Input {...register("target_amount")} type="number" placeholder="0" className="mt-1.5 h-12 rounded-xl bg-secondary border-line" />
             {errors.target_amount && <p className="mt-1 text-xs text-destructive">{errors.target_amount.message}</p>}
           </div>
           <div>
             <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Sudah Terkumpul (opsional)</Label>
-            <Input {...register("current_amount")} type="number" placeholder="0" className="mt-1.5 h-12 rounded-xl bg-secondary border-border/50" />
+            <Input {...register("current_amount")} type="number" placeholder="0" className="mt-1.5 h-12 rounded-xl bg-secondary border-line" />
           </div>
           <div>
             <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Target Tanggal (opsional)</Label>
-            <Input {...register("deadline")} type="date" className="mt-1.5 h-12 rounded-xl bg-secondary border-border/50" />
+            <Input {...register("deadline")} type="date" className="mt-1.5 h-12 rounded-xl bg-secondary border-line" />
           </div>
         </form>
 
@@ -348,24 +331,24 @@ function ContributeDialog({
 
   return (
     <Dialog open={!!goal} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[400px] rounded-[2rem] p-6 border-border/50 shadow-2xl">
+      <DialogContent className="sm:max-w-[400px] rounded-cartoon p-6 border-line shadow-2xl">
         <DialogHeader>
           <DialogTitle className="text-xl font-bold">Isi Tabungan: {goal?.name}</DialogTitle>
         </DialogHeader>
         <form id="contribute-form" onSubmit={handleSubmit(submit)} className="py-4 space-y-4">
           <div>
             <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Jumlah</Label>
-            <Input {...register("amount")} type="number" placeholder="0" autoFocus className="mt-1.5 h-12 rounded-xl bg-secondary border-border/50" />
+            <Input {...register("amount")} type="number" placeholder="0" autoFocus className="mt-1.5 h-12 rounded-xl bg-secondary border-line" />
             {errors.amount && <p className="mt-1 text-xs text-destructive">{errors.amount.message}</p>}
           </div>
 
           <div>
             <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Dari Akun</Label>
             <Select value={watch("account_id")} onValueChange={(v) => setValue("account_id", v)}>
-              <SelectTrigger className="w-full mt-1.5 rounded-xl h-12 border-border/50 bg-secondary">
+              <SelectTrigger className="w-full mt-1.5 rounded-xl h-12 border-line bg-secondary">
                 <SelectValue placeholder="Pilih akun" />
               </SelectTrigger>
-              <SelectContent className="rounded-2xl border-border/50">
+              <SelectContent className="rounded-2xl border-line">
                 {accounts.map((acc) => (
                   <SelectItem key={acc.id} value={acc.id} className="rounded-xl">
                     {acc.name} ({formatCurrency(acc.balance)})
@@ -379,10 +362,10 @@ function ContributeDialog({
           <div>
             <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Kategori</Label>
             <Select value={watch("category_id")} onValueChange={(v) => setValue("category_id", v)}>
-              <SelectTrigger className="w-full mt-1.5 rounded-xl h-12 border-border/50 bg-secondary">
+              <SelectTrigger className="w-full mt-1.5 rounded-xl h-12 border-line bg-secondary">
                 <SelectValue placeholder="Pilih kategori" />
               </SelectTrigger>
-              <SelectContent className="rounded-2xl border-border/50">
+              <SelectContent className="rounded-2xl border-line">
                 {expenseCategories.map((cat) => (
                   <SelectItem key={cat.id} value={cat.id} className="rounded-xl">
                     {cat.name}

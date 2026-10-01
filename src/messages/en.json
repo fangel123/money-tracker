@@ -66,7 +66,7 @@
   "auth": {
     "login": {
       "title": "Sign In to Your Account",
-      "subtitle": "Sign in to continue to Money Tracker",
+      "subtitle": "Welcome back! Koin has been waiting for you.",
       "emailLabel": "Email",
       "emailPlaceholder": "you@email.com",
       "passwordLabel": "Password",
@@ -450,5 +450,17 @@
     "error": "Error",
     "warning": "Warning",
     "info": "Info"
+  },
+  "goals": {
+    "empty": {
+      "title": "No savings goals yet",
+      "description": "Tap the + button above to start saving."
+    }
+  },
+  "debts": {
+    "empty": {
+      "title": "No debts or receivables yet",
+      "description": "Track loans so you never forget who owes whom."
+    }
   }
 }

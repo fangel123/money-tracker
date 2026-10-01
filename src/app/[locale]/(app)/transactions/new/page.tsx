@@ -23,7 +23,8 @@ export default async function TransactionNewPage({
 
   // Fetch categories and accounts for the form
   const [{ data: categories }, { data: accounts }] = await Promise.all([
-    supabase.from("categories").select("*").eq("user_id", user.id).eq("is_active", true).eq("type", type || "expense"),
+    // Semua kategori aktif (income & expense) — form memfilter sesuai tipe yang sedang dipilih
+    supabase.from("categories").select("*").eq("user_id", user.id).eq("is_active", true).order("sort_order"),
     supabase.from("accounts").select("*").eq("user_id", user.id).eq("is_active", true),
   ]);
 
