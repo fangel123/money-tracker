@@ -1,5 +1,6 @@
 "use client";
 
+import { useRefreshData } from "@/hooks/use-refresh-data";
 import { useState, useRef, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Mascot } from "@/components/common/Mascot";
@@ -32,6 +33,7 @@ const CONTEXT_SOURCES = ["Akun", "50 transaksi terakhir", "Kategori", "Budget", 
 
 export function AIAdvisorContent({ user }: { user: any }) {
   const router = useRouter();
+  const refreshData = useRefreshData();
   const fileInputRef = useRef<HTMLInputElement>(null);
   
   const [messages, setMessages] = useState<ChatMessage[]>([]);
@@ -112,7 +114,7 @@ export function AIAdvisorContent({ user }: { user: any }) {
       
       // Jika AI melakukan perubahan data, refresh aplikasi
       if (aiResponse.action && aiResponse.action !== "answer" && aiResponse.action !== "error") {
-        router.refresh();
+        refreshData();
       }
 
     } catch (error) {

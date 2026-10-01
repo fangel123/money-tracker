@@ -1,5 +1,6 @@
 "use client";
 
+import { useRefreshData } from "@/hooks/use-refresh-data";
 import { useState } from "react";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { useForm } from "react-hook-form";
@@ -39,6 +40,7 @@ const GOAL_COLORS = ["#9be7c4", "#8fd3ff", "#c9b6ff", "#ffd447", "#ff9ebb", "#ff
 
 export function GoalsContent({ user, initialGoals, dbReady, accounts, categories }: GoalsContentProps) {
   const router = useRouter();
+  const refreshData = useRefreshData();
   const displayGoals = initialGoals;
   const [showForm, setShowForm] = useState(false);
   const [contributingTo, setContributingTo] = useState<any | null>(null);
@@ -97,7 +99,7 @@ export function GoalsContent({ user, initialGoals, dbReady, accounts, categories
     },
     onSuccess: () => {
       setShowForm(false);
-      router.refresh();
+      refreshData();
       toast.success("Target tabungan ditambahkan");
     },
     onError: (error: any) => toast.error(error.message || "Gagal menambahkan target"),
@@ -142,7 +144,7 @@ export function GoalsContent({ user, initialGoals, dbReady, accounts, categories
     },
     onSuccess: () => {
       setContributingTo(null);
-      router.refresh();
+      refreshData();
       toast.success("Tabungan berhasil ditambahkan");
     },
     onError: (error: any) => toast.error(error.message || "Gagal menabung"),
