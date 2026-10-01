@@ -47,12 +47,13 @@ export const metadata: Metadata = {
     title: "Koin",
     description: "Aplikasi pencatat keuangan pribadi yang sederhana, cepat, dan aman",
   },
+  // ?v=koin memaksa browser mengambil ikon baru, bukan favicon Next.js lama dari cache
   icons: {
     icon: [
-      { url: "/icon.svg", type: "image/svg+xml" },
-      { url: "/favicon.ico", sizes: "any" },
+      { url: "/icon.svg?v=koin", type: "image/svg+xml" },
+      { url: "/favicon.ico?v=koin", sizes: "any" },
     ],
-    apple: "/icon-192.png",
+    apple: "/icon-192.png?v=koin",
   },
   manifest: "/site.webmanifest",
 };
