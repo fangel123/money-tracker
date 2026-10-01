@@ -1,237 +1,304 @@
 "use client";
 
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import { Button } from "@/components/ui/button";
-import { BarChart3, Activity, PieChart as PieChartIcon, TrendingUp, TrendingDown, ChevronLeft } from "lucide-react";
-import { Link } from "@/i18n/navigation";
-import { formatCurrency } from "@/lib/utils";
+import { ArrowDownLeft, ArrowUpRight, PiggyBank, CalendarDays } from "lucide-react";
+import { cn, formatCurrency, getPeriodRange } from "@/lib/utils";
 import { PageHeader } from "@/components/common/PageHeader";
 import { Mascot } from "@/components/common/Mascot";
-import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell } from "recharts";
+import { StatCard } from "@/components/common/StatCard";
+import { CategorySticker } from "@/components/common/CategorySticker";
 
-export function StatisticsContent({ user, transactions }: { user: any; transactions: any[] }) {
-  
+type Period = "weekly" | "monthly" | "yearly";
+
+export interface StatTransaction {
+  id: string;
+  type: "income" | "expense" | "transfer";
+  amount: number;
+  date: string;
+  category_id: string | null;
+  category?: { name: string; color: string | null; icon: string | null } | null;
+}
+
+const PERIODS: { value: Period; label: string; noun: string; prev: string }[] = [
+  { value: "weekly", label: "Minggu", noun: "minggu ini", prev: "minggu lalu" },
+  { value: "monthly", label: "Bulan", noun: "bulan ini", prev: "bulan lalu" },
+  { value: "yearly", label: "Tahun", noun: "tahun ini", prev: "tahun lalu" },
+];
+
+const MONTHS = ["Jan", "Feb", "Mar", "Apr", "Mei", "Jun", "Jul", "Agu", "Sep", "Okt", "Nov", "Des"];
+const FALLBACK_COLORS = ["#ffd447", "#8fd3ff", "#c9b6ff", "#ff9ebb", "#ffb86b", "#9be7c4", "#e4d6bc"];
+
+/** Same reference date shifted one period back, for "vs last period" comparisons. */
+function previousReference(period: Period, now: Date) {
+  if (period === "weekly") return new Date(now.getFullYear(), now.getMonth(), now.getDate() - 7);
+  if (period === "yearly") return new Date(now.getFullYear() - 1, now.getMonth(), 1);
+  return new Date(now.getFullYear(), now.getMonth() - 1, 1);
+}
+
+function sumBy(txs: StatTransaction[], type: "income" | "expense") {
+  return txs.filter((t) => t.type === type).reduce((sum, t) => sum + Number(t.amount), 0);
+}
+
+function compact(n: number) {
+  if (n >= 1_000_000) return `Rp ${(n / 1_000_000).toLocaleString("id-ID", { maximumFractionDigits: 1 })} jt`;
+  if (n >= 10_000) return `Rp ${Math.round(n / 1_000).toLocaleString("id-ID")} rb`;
+  return formatCurrency(n);
+}
+
+export function StatisticsContent({ transactions }: { transactions: StatTransaction[] }) {
+  const [period, setPeriod] = useState<Period>("monthly");
+  const meta = PERIODS.find((p) => p.value === period)!;
+
   const stats = useMemo(() => {
-    let totalIncome = 0;
-    let totalExpense = 0;
-    
-    // Monthly data for Area Chart
-    const monthlyDataMap: Record<string, { name: string; income: number; expense: number }> = {};
-    const monthNames = ["Jan", "Feb", "Mar", "Apr", "Mei", "Jun", "Jul", "Ags", "Sep", "Okt", "Nov", "Des"];
-    
-    // Category data for Pie Chart
-    const categoryDataMap: Record<string, { name: string; value: number; color: string }> = {};
-    const colors = ["#CCFF00", "#FF4560", "#00E396", "#FEB019", "#775DD0", "#FF9800", "#F44336", "#9C27B0"];
+    const now = new Date();
+    const inRange = (range: { start: string; end: string }) =>
+      transactions.filter((t) => t.type !== "transfer" && t.date.slice(0, 10) >= range.start && t.date.slice(0, 10) < range.end);
 
-    transactions.forEach(tx => {
-      // Transfer antar akun bukan pemasukan/pengeluaran — uangnya hanya pindah dompet
-      if (tx.type === "transfer") return;
-      const date = new Date(tx.date);
-      const monthKey = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
-      const monthLabel = monthNames[date.getMonth()];
+    const range = getPeriodRange(period, now);
+    const current = inRange(range);
+    const previous = inRange(getPeriodRange(period, previousReference(period, now)));
 
-      if (!monthlyDataMap[monthKey]) {
-        monthlyDataMap[monthKey] = { name: monthLabel, income: 0, expense: 0 };
-      }
+    const income = sumBy(current, "income");
+    const expense = sumBy(current, "expense");
+    const prevIncome = sumBy(previous, "income");
+    const prevExpense = sumBy(previous, "expense");
 
-      if (tx.type === "income") {
-        totalIncome += tx.amount;
-        monthlyDataMap[monthKey].income += tx.amount;
-      } else {
-        totalExpense += tx.amount;
-        monthlyDataMap[monthKey].expense += tx.amount;
-        
-        // Category Pie Chart
-        const catName = (tx.category as any)?.name || "Lainnya";
-        if (!categoryDataMap[catName]) {
-          categoryDataMap[catName] = { 
-            name: catName, 
-            value: 0, 
-            color: (tx.category as any)?.color || colors[Object.keys(categoryDataMap).length % colors.length] 
-          };
-        }
-        categoryDataMap[catName].value += tx.amount;
-      }
+    // Hari yang sudah lewat di periode ini (termasuk hari ini), untuk rata-rata harian
+    const start = new Date(`${range.start}T00:00:00`);
+    const daysElapsed = Math.max(1, Math.floor((now.getTime() - start.getTime()) / 86_400_000) + 1);
+
+    // Pengeluaran per kategori
+    const byCategory = new Map<string, { name: string; color: string; icon: string | null; value: number; count: number }>();
+    for (const t of current) {
+      if (t.type !== "expense") continue;
+      const key = t.category_id ?? "none";
+      const entry = byCategory.get(key) ?? {
+        name: t.category?.name ?? "Lainnya",
+        color: t.category?.color || FALLBACK_COLORS[byCategory.size % FALLBACK_COLORS.length],
+        icon: t.category?.icon ?? null,
+        value: 0,
+        count: 0,
+      };
+      entry.value += Number(t.amount);
+      entry.count += 1;
+      byCategory.set(key, entry);
+    }
+    const categories = Array.from(byCategory.values()).sort((a, b) => b.value - a.value);
+
+    // 6 bulan terakhir (selalu per bulan, apa pun periodenya)
+    const months = Array.from({ length: 6 }, (_, i) => {
+      const d = new Date(now.getFullYear(), now.getMonth() - 5 + i, 1);
+      const r = getPeriodRange("monthly", d);
+      const txs = inRange(r);
+      return { label: MONTHS[d.getMonth()], income: sumBy(txs, "income"), expense: sumBy(txs, "expense") };
     });
 
-    const areaData = Object.keys(monthlyDataMap).sort().map(k => monthlyDataMap[k]);
-    const pieData = Object.values(categoryDataMap).sort((a, b) => b.value - a.value);
+    return { income, expense, prevIncome, prevExpense, daysElapsed, categories, months };
+  }, [transactions, period]);
 
-    // Financial Health Score
-    let healthScore = 0;
-    let healthStatus = "Perlu Perbaikan";
-    let healthColor = "text-destructive";
+  const change = (curr: number, prev: number) => {
+    if (prev <= 0) return null;
+    const pct = Math.round(((curr - prev) / prev) * 100);
+    return `${pct > 0 ? "+" : pct < 0 ? "−" : ""}${Math.abs(pct)}% dari ${meta.prev}`;
+  };
+  const savingsRate = stats.income > 0 ? Math.round(((stats.income - stats.expense) / stats.income) * 100) : null;
+  const top = stats.categories[0];
+  const topShare = top && stats.expense > 0 ? Math.round((top.value / stats.expense) * 100) : 0;
 
-    if (totalIncome > 0) {
-      const savingsRate = ((totalIncome - totalExpense) / totalIncome) * 100;
-      if (savingsRate >= 20) {
-        healthScore = Math.min(100, 80 + (savingsRate - 20));
-        healthStatus = "Sangat Sehat 🌟";
-        healthColor = "text-income";
-      } else if (savingsRate > 0) {
-        healthScore = 50 + (savingsRate * 1.5);
-        healthStatus = "Cukup Baik 👍";
-        healthColor = "text-orange-600 dark:text-cartoon-orange";
-      } else {
-        healthScore = Math.max(0, 50 - (Math.abs(savingsRate) * 2));
-        healthStatus = "Bahaya ⚠️";
-        healthColor = "text-destructive";
-      }
-    } else if (totalExpense > 0) {
-      healthScore = 10; // Only expenses
-      healthStatus = "Bahaya ⚠️";
-      healthColor = "text-destructive";
-    }
+  const periodPills = (
+    <div className="flex gap-2">
+      {PERIODS.map((p) => (
+        <Button
+          key={p.value}
+          size="sm"
+          variant={period === p.value ? "default" : "outline"}
+          aria-pressed={period === p.value}
+          onClick={() => setPeriod(p.value)}
+          className="rounded-full px-5"
+        >
+          {p.label}
+        </Button>
+      ))}
+    </div>
+  );
 
-    return { totalIncome, totalExpense, areaData, pieData, healthScore: Math.round(healthScore), healthStatus, healthColor };
-  }, [transactions]);
-
-  const scoreColor = stats.healthScore >= 80 ? "#c8f031" : stats.healthScore >= 50 ? "#ffd447" : "#ff5c7a";
-  const ringCirc = 2 * Math.PI * 62;
+  const kpiValue = (text: string) => <span className="text-[22px] sm:text-[28px] xl:text-[30px]">{text}</span>;
 
   return (
     <div className="space-y-5 pb-4">
-      <PageHeader title="Statistik" description="Analisis kesehatan finansial Anda" />
+      <PageHeader
+        title="Statistik"
+        description="Analisis pemasukan dan pengeluaran Anda"
+        action={<div className="hidden lg:block">{periodPills}</div>}
+      />
+      <div className="lg:hidden">{periodPills}</div>
 
-      <div className="grid gap-5 lg:grid-cols-3">
-        {/* Financial Health Card */}
-        <section className="flex flex-col gap-4 rounded-cartoon border-3 border-line p-5 text-ink shadow-cartoon-lg" style={{ background: scoreColor }}>
-          <div className="flex items-center gap-2 text-xs font-black uppercase tracking-[0.1em]">
-            <Activity className="h-4 w-4" strokeWidth={3} />
-            Kesehatan Keuangan
-          </div>
-          <div className="flex items-center gap-4">
-            <svg width="150" height="150" viewBox="0 0 150 150" role="img" aria-label={`Skor ${stats.healthScore} dari 100`} className="shrink-0">
-              <circle cx="75" cy="75" r="62" fill="#ffffff" stroke="#1e1b18" strokeWidth="3" />
-              <circle cx="75" cy="75" r="62" fill="none" stroke="#fff4de" strokeWidth="16" />
-              <circle
-                cx="75"
-                cy="75"
-                r="62"
-                fill="none"
-                stroke="#1e1b18"
-                strokeWidth="16"
-                strokeLinecap="round"
-                strokeDasharray={`${(ringCirc * stats.healthScore) / 100} ${ringCirc}`}
-                transform="rotate(-90 75 75)"
-              />
-              <circle cx="75" cy="75" r="70" fill="none" stroke="#1e1b18" strokeWidth="3" />
-              <circle cx="75" cy="75" r="54" fill="none" stroke="#1e1b18" strokeWidth="3" />
-              <text x="75" y="80" textAnchor="middle" fontFamily="var(--font-fredoka)" fontWeight="700" fontSize="40" fill="#1e1b18">
-                {stats.healthScore}
-              </text>
-              <text x="75" y="100" textAnchor="middle" fontFamily="var(--font-nunito)" fontWeight="900" fontSize="10" fill="#1e1b18" letterSpacing="2">
-                SKOR
-              </text>
-            </svg>
-            <div className="min-w-0">
-              <p className="font-display text-2xl font-bold leading-tight">{stats.healthStatus}</p>
-              <Mascot size={56} mood={stats.healthScore >= 50 ? "happy" : "worried"} className="mt-2" />
+      {/* KPI */}
+      <div className="grid grid-cols-2 gap-4 lg:grid-cols-4 lg:gap-5">
+        <StatCard
+          color="#9be7c4"
+          label={`Pemasukan`}
+          value={kpiValue(compact(stats.income))}
+          note={change(stats.income, stats.prevIncome) ?? meta.noun}
+          icon={<ArrowDownLeft />}
+        />
+        <StatCard
+          color="#ff9ebb"
+          label={`Pengeluaran`}
+          value={kpiValue(compact(stats.expense))}
+          note={change(stats.expense, stats.prevExpense) ?? meta.noun}
+          icon={<ArrowUpRight />}
+        />
+        <StatCard
+          color="#ffd447"
+          label="Rasio tabungan"
+          value={kpiValue(savingsRate === null ? "—" : `${savingsRate}%`)}
+          note={savingsRate === null ? "Belum ada pemasukan" : savingsRate >= 20 ? "Target 20% ✓" : "Target 20%"}
+          icon={<PiggyBank />}
+        />
+        <StatCard
+          label="Rata-rata harian"
+          value={kpiValue(formatCurrency(Math.round(stats.expense / stats.daysElapsed)))}
+          note={`pengeluaran · ${stats.daysElapsed} hari`}
+          icon={<CalendarDays />}
+        />
+      </div>
+
+      <div className="grid gap-5 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.4fr)_minmax(0,1fr)]">
+        {/* Per kategori */}
+        <section className="flex flex-col gap-4 rounded-cartoon border-3 border-line bg-card p-5 shadow-cartoon">
+          <h2 className="font-display text-xl font-semibold">Per kategori · {meta.noun}</h2>
+          {stats.categories.length === 0 ? (
+            <p className="py-6 text-center text-sm font-bold text-muted-foreground">Belum ada pengeluaran {meta.noun}.</p>
+          ) : (
+            <div className="flex items-center gap-5 lg:flex-col">
+              <Donut segments={stats.categories} total={stats.expense} />
+              <ul className="w-full min-w-0 flex-1 space-y-2.5">
+                {stats.categories.slice(0, 6).map((c) => (
+                  <li key={c.name} className="flex items-center gap-2">
+                    <span className="h-4 w-4 shrink-0 rounded-[5px] border-2 border-ink" style={{ background: pastel(c.color) }} />
+                    <span className="min-w-0 flex-1 truncate text-sm font-black">{c.name}</span>
+                    <span className="text-sm font-black">{Math.round((c.value / stats.expense) * 100)}%</span>
+                  </li>
+                ))}
+              </ul>
             </div>
-          </div>
-          <div className="grid grid-cols-2 gap-2.5">
-            <div className="rounded-2xl border-2.5 border-ink bg-white px-3 py-2">
-              <p className="flex items-center gap-1 text-[11px] font-black uppercase tracking-wider">
-                <TrendingUp className="h-3.5 w-3.5" strokeWidth={3} /> Masuk
-              </p>
-              <p className="truncate text-sm font-black">{formatCurrency(stats.totalIncome)}</p>
-            </div>
-            <div className="rounded-2xl border-2.5 border-ink bg-white px-3 py-2">
-              <p className="flex items-center gap-1 text-[11px] font-black uppercase tracking-wider">
-                <TrendingDown className="h-3.5 w-3.5" strokeWidth={3} /> Keluar
-              </p>
-              <p className="truncate text-sm font-black">{formatCurrency(stats.totalExpense)}</p>
-            </div>
-          </div>
+          )}
         </section>
 
-        {/* Cash Flow Chart */}
-        <section className="rounded-cartoon border-3 border-line bg-card p-5 shadow-cartoon lg:col-span-2">
-          <div className="mb-4 flex flex-wrap items-center justify-between gap-2">
-            <h2 className="font-display text-xl font-semibold">Arus Kas (Tahun Ini)</h2>
-            <div className="flex gap-3 text-xs font-black">
-              <span className="flex items-center gap-1.5"><span className="h-3.5 w-3.5 rounded-[5px] border-2 border-ink bg-cartoon-mint" /> Pemasukan</span>
-              <span className="flex items-center gap-1.5"><span className="h-3.5 w-3.5 rounded-[5px] border-2 border-ink bg-cartoon-pink" /> Pengeluaran</span>
+        {/* Masuk vs keluar */}
+        <section className="flex flex-col gap-3 rounded-cartoon border-3 border-line bg-card p-5 shadow-cartoon">
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <h2 className="font-display text-xl font-semibold">Masuk vs keluar · 6 bulan</h2>
+            <div className="flex gap-3.5 text-[13px] font-black">
+              <span className="flex items-center gap-1.5">
+                <span className="h-3.5 w-3.5 rounded-[4px] border-2 border-ink bg-cartoon-mint" /> Masuk
+              </span>
+              <span className="flex items-center gap-1.5">
+                <span className="h-3.5 w-3.5 rounded-[4px] border-2 border-ink bg-cartoon-pink" /> Keluar
+              </span>
             </div>
           </div>
+          <MonthBars months={stats.months} />
+        </section>
 
-          <div className="h-64 w-full lg:h-[290px]">
-            {stats.areaData.length > 0 ? (
-              <ResponsiveContainer width="100%" height="100%">
-                <AreaChart data={stats.areaData} margin={{ top: 10, right: 6, left: -12, bottom: 0 }}>
-                  <CartesianGrid strokeDasharray="4 6" vertical={false} stroke="rgb(var(--divider))" />
-                  <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fontSize: 12, fontWeight: 800, fill: "rgb(var(--muted-foreground))" }} />
-                  <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 11, fontWeight: 800, fill: "rgb(var(--muted-foreground))" }} tickFormatter={(val) => `${val / 1000}rb`} />
-                  <Tooltip
-                    contentStyle={{ backgroundColor: "rgb(var(--card))", borderRadius: "16px", border: "3px solid rgb(var(--line))", boxShadow: "4px 4px 0 rgb(var(--line))", fontWeight: 800 }}
-                    formatter={(value: number) => formatCurrency(value)}
-                  />
-                  <Area type="monotone" dataKey="income" name="Pemasukan" stroke="rgb(var(--foreground))" strokeWidth={3} fill="#9be7c4" fillOpacity={0.85} />
-                  <Area type="monotone" dataKey="expense" name="Pengeluaran" stroke="rgb(var(--foreground))" strokeWidth={3} fill="#ff9ebb" fillOpacity={0.85} />
-                </AreaChart>
-              </ResponsiveContainer>
+        {/* Paling boros + insight */}
+        <div className="flex flex-col gap-5">
+          <section className="flex flex-col gap-3 rounded-cartoon border-3 border-line bg-card p-5 shadow-cartoon">
+            <h2 className="font-display text-xl font-semibold">Paling boros</h2>
+            {stats.categories.length === 0 ? (
+              <p className="text-sm font-bold text-muted-foreground">Belum ada data.</p>
             ) : (
-              <div className="flex h-full items-center justify-center text-sm font-bold text-muted-foreground">
-                Belum ada data transaksi tahun ini.
-              </div>
+              <ol className="space-y-3">
+                {stats.categories.slice(0, 4).map((c, i) => (
+                  <li key={c.name} className="flex items-center gap-2.5">
+                    <span className="w-4 font-display text-lg font-bold">{i + 1}</span>
+                    <CategorySticker category={{ icon: c.icon, color: c.color }} size="sm" />
+                    <div className="min-w-0 flex-1">
+                      <p className="truncate text-sm font-black">{c.name}</p>
+                      <p className="text-xs font-bold text-muted-foreground">{c.count} transaksi</p>
+                    </div>
+                    <span className="text-sm font-black text-expense">−{formatCurrency(c.value)}</span>
+                  </li>
+                ))}
+              </ol>
             )}
-          </div>
-        </section>
+          </section>
+          {top && (
+            <section className="flex items-center gap-3 rounded-cartoon border-3 border-line bg-cartoon-orange p-4 text-ink shadow-cartoon">
+              <Mascot size={52} mood={topShare >= 50 ? "worried" : "happy"} className="shrink-0" />
+              <p className="text-[13px] font-extrabold">
+                {top.name} makan {topShare}% pengeluaran {meta.noun}.{" "}
+                {topShare >= 50 ? `Coba kasih budget ${top.name}, yuk!` : "Pengeluaranmu cukup merata 👍"}
+              </p>
+            </section>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
 
-        {/* Expense by Category */}
-        <section className="rounded-cartoon border-3 border-line bg-card p-5 shadow-cartoon lg:col-span-3">
-          <h2 className="mb-4 font-display text-xl font-semibold">Distribusi Pengeluaran</h2>
+function Donut({ segments, total }: { segments: { name: string; color: string; value: number }[]; total: number }) {
+  const r = 62;
+  const circ = 2 * Math.PI * r;
+  let offset = 0;
+  return (
+    <svg viewBox="0 0 180 180" className="h-40 w-40 shrink-0 lg:h-48 lg:w-48" role="img" aria-label="Pengeluaran per kategori">
+      {segments.map((s) => {
+        const len = total > 0 ? (circ * s.value) / total : 0;
+        const el = (
+          <circle
+            key={s.name}
+            cx="90"
+            cy="90"
+            r={r}
+            fill="none"
+            stroke={pastel(s.color)}
+            strokeWidth="28"
+            strokeDasharray={`${len} ${circ - len}`}
+            strokeDashoffset={-offset}
+            transform="rotate(-90 90 90)"
+          />
+        );
+        offset += len;
+        return el;
+      })}
+      <circle cx="90" cy="90" r="77" fill="none" stroke="rgb(var(--line))" strokeWidth="3" />
+      <circle cx="90" cy="90" r="47" fill="rgb(var(--card))" stroke="rgb(var(--line))" strokeWidth="3" />
+      <text x="90" y="95" textAnchor="middle" fontFamily="var(--font-fredoka)" fontWeight="700" fontSize="17" fill="rgb(var(--foreground))">
+        {compact(total)}
+      </text>
+    </svg>
+  );
+}
 
-          <div className="flex flex-col items-center gap-6 md:flex-row">
-            <div className="relative h-52 w-52 shrink-0">
-              {stats.pieData.length > 0 ? (
-                <ResponsiveContainer width="100%" height="100%">
-                  <PieChart>
-                    <Pie
-                      data={stats.pieData}
-                      cx="50%"
-                      cy="50%"
-                      innerRadius={56}
-                      outerRadius={92}
-                      paddingAngle={0}
-                      dataKey="value"
-                      stroke="rgb(var(--line))"
-                      strokeWidth={3}
-                    >
-                      {stats.pieData.map((entry, index) => (
-                        <Cell key={`cell-${index}`} fill={pastel(entry.color)} />
-                      ))}
-                    </Pie>
-                    <Tooltip
-                      contentStyle={{ backgroundColor: "rgb(var(--card))", borderRadius: "16px", border: "3px solid rgb(var(--line))", fontWeight: 800 }}
-                      formatter={(value: number) => formatCurrency(value)}
-                    />
-                  </PieChart>
-                </ResponsiveContainer>
-              ) : (
-                <div className="absolute inset-0 flex items-center justify-center text-center text-sm font-bold text-muted-foreground">
-                  Belum ada pengeluaran
-                </div>
-              )}
-            </div>
-
-            <div className="grid w-full flex-1 gap-x-8 gap-y-3 sm:grid-cols-2">
-              {stats.pieData.map((item, idx) => (
-                <div key={idx} className="flex items-center justify-between gap-3 border-b-2 border-dashed border-divider pb-2">
-                  <div className="flex min-w-0 items-center gap-2.5">
-                    <span className="h-4 w-4 shrink-0 rounded-[5px] border-2 border-ink" style={{ backgroundColor: pastel(item.color) }} />
-                    <span className="truncate text-sm font-black">{item.name}</span>
-                  </div>
-                  <div className="flex shrink-0 items-center gap-3 text-sm">
-                    <span className="font-bold text-muted-foreground">{formatCurrency(item.value)}</span>
-                    <span className="w-10 text-right font-black">{Math.round((item.value / stats.totalExpense) * 100)}%</span>
-                  </div>
-                </div>
+function MonthBars({ months }: { months: { label: string; income: number; expense: number }[] }) {
+  const max = Math.max(1, ...months.flatMap((m) => [m.income, m.expense]));
+  return (
+    <div className="flex h-56 items-end gap-3 pt-2 lg:h-auto lg:min-h-[240px] lg:flex-1">
+      {months.map((m, i) => {
+        const isCurrent = i === months.length - 1;
+        return (
+          <div key={m.label} className="flex h-full flex-1 flex-col items-center gap-1.5">
+            <div className="flex w-full flex-1 items-end gap-1">
+              {(["income", "expense"] as const).map((key) => (
+                <div
+                  key={key}
+                  title={`${key === "income" ? "Masuk" : "Keluar"} ${m.label}: ${formatCurrency(m[key])}`}
+                  className={cn(
+                    "flex-1 rounded-t-[10px] rounded-b-[4px] border-2.5 border-ink",
+                    key === "income" ? "bg-cartoon-mint" : isCurrent ? "bg-cartoon-red" : "bg-cartoon-pink"
+                  )}
+                  style={{ height: `${Math.max(m[key] > 0 ? 4 : 0, (m[key] / max) * 100)}%` }}
+                />
               ))}
             </div>
+            <span className={cn("text-[13px] font-black", isCurrent ? "text-foreground" : "text-muted-foreground")}>{m.label}</span>
           </div>
-        </section>
-      </div>
+        );
+      })}
     </div>
   );
 }
