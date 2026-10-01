@@ -8,17 +8,13 @@ import { PageHeader } from "@/components/common/PageHeader";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Switch } from "@/components/ui/switch";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { profileSchema, preferencesSchema, changePasswordSchema, type ProfileFormData, type PreferencesFormData, type ChangePasswordFormData } from "@/lib/validators/auth";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Separator } from "@/components/ui/separator";
 import { AlertDialog, AlertDialogTrigger, AlertDialogContent, AlertDialogHeader, AlertDialogTitle, AlertDialogDescription, AlertDialogCancel, AlertDialogAction, AlertDialogFooter } from "@/components/ui/alert-dialog";
-import { User, Mail, Lock, Globe, Sun, Moon, Monitor, Palette, Download, Upload, Trash2, AlertTriangle, CheckCircle } from "lucide-react";
+import { User, Lock, Globe, Sun, Moon, Monitor, Download, Trash2, Tags, LogOut, Check } from "lucide-react";
+import { Sticker } from "@/components/common/Sticker";
+import { Link } from "@/i18n/navigation";
 import { createBrowserSupabaseClient } from "@/lib/supabase/browser";
 import { useRouter, usePathname } from "next/navigation";
 import { useLocaleStore, useThemeStore } from "@/store";
@@ -28,7 +24,14 @@ import { deleteAccount } from "./actions";
 interface SettingsContentProps {
   locale: "id" | "en";
   user: { id: string; email: string };
-  profile: { full_name: string | null; avatar_url: string | null; default_currency: string; locale: string; theme: "light" | "dark" | "system" } | null;
+  profile: {
+    full_name: string | null;
+    avatar_url: string | null;
+    default_currency: string;
+    locale: string;
+    theme: "light" | "dark" | "system";
+    created_at?: string;
+  } | null;
 }
 
 const LOCALES = [
@@ -44,11 +47,9 @@ export function SettingsContent({ locale, user, profile }: SettingsContentProps)
   const queryClient = useQueryClient();
   const { setLocale } = useLocaleStore();
   const { setTheme, theme } = useThemeStore();
-  const [avatarPreview, setAvatarPreview] = useState<string | null>(profile?.avatar_url || null);
 
   const supabase = createBrowserSupabaseClient();
 
-  const currentLocale = LOCALES.find((l) => l.code === locale) || LOCALES[0];
 
   // Profile Form
   const profileForm = useForm<ProfileFormData>({
@@ -100,7 +101,7 @@ export function SettingsContent({ locale, user, profile }: SettingsContentProps)
     },
     onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ["profile"] });
-      setLocale(data.locale as any);
+      setLocale(data.locale as "id" | "en");
       setTheme(data.theme);
       // Update URL with new locale
       const newPath = pathname.replace(/^\/[a-z]{2}/, `/${data.locale}`);
@@ -129,6 +130,13 @@ export function SettingsContent({ locale, user, profile }: SettingsContentProps)
 
   const passwordMutation = useMutation({
     mutationFn: async (data: ChangePasswordFormData) => {
+      // Pastikan sandi lama benar sebelum menggantinya
+      const { error: verifyError } = await supabase.auth.signInWithPassword({
+        email: user.email,
+        password: data.current_password,
+      });
+      if (verifyError) throw new Error("Kata sandi saat ini salah");
+
       const { error } = await supabase.auth.updateUser({
         password: data.new_password,
       });
@@ -147,26 +155,47 @@ export function SettingsContent({ locale, user, profile }: SettingsContentProps)
     passwordMutation.mutate(data);
   };
 
-  // Export Data
+  // Export Data — semua transaksi ke CSV, dibuat di browser
+  const [isExporting, setIsExporting] = useState(false);
   const exportData = async () => {
+    setIsExporting(true);
     try {
-      const response = await fetch("/api/export", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-      });
-      if (response.ok) {
-        const blob = await response.blob();
-        const url = window.URL.createObjectURL(blob);
-        const a = document.createElement("a");
-        a.href = url;
-        a.download = `money-tracker-export-${new Date().toISOString().split("T")[0]}.csv`;
-        a.click();
-        window.URL.revokeObjectURL(url);
-        toast.success(t("data.exportSuccess"));
-      }
+      const { data, error } = await supabase
+        .from("transactions")
+        .select("date, type, amount, note, category:categories(name), account:accounts!transactions_account_id_fkey(name)")
+        .eq("user_id", user.id)
+        .order("date", { ascending: false });
+      if (error) throw error;
+
+      const escape = (v: unknown) => `"${String(v ?? "").replace(/"/g, '""')}"`;
+      const rows = ((data || []) as unknown as {
+        date: string;
+        type: string;
+        amount: number;
+        note: string | null;
+        category: { name: string } | null;
+        account: { name: string } | null;
+      }[]).map((tx) => [tx.date.slice(0, 10), tx.type, tx.amount, tx.category?.name, tx.account?.name, tx.note].map(escape).join(","));
+      const csv = ["Tanggal,Tipe,Jumlah,Kategori,Akun,Catatan", ...rows].join("\n");
+
+      const url = window.URL.createObjectURL(new Blob([csv], { type: "text/csv;charset=utf-8;" }));
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `koin-export-${new Date().toISOString().split("T")[0]}.csv`;
+      a.click();
+      window.URL.revokeObjectURL(url);
+      toast.success(t("data.exportSuccess"));
     } catch {
       toast.error(t("data.exportError"));
+    } finally {
+      setIsExporting(false);
     }
+  };
+
+  const handleSignOut = async () => {
+    await supabase.auth.signOut();
+    router.push(`/${locale}/login`);
+    router.refresh();
   };
 
   // Delete Account Dialog
@@ -193,284 +222,227 @@ export function SettingsContent({ locale, user, profile }: SettingsContentProps)
     }
   };
 
+  const displayName = profile?.full_name || user.email.split("@")[0];
+  const joined = profile?.created_at
+    ? new Date(profile.created_at).toLocaleDateString(locale === "en" ? "en-US" : "id-ID", { month: "long", year: "numeric" })
+    : null;
+  const fieldLabel = "text-xs font-black uppercase tracking-[0.1em] text-muted-foreground";
+  const card = "scroll-mt-6 rounded-cartoon border-3 border-line bg-card p-5 shadow-cartoon";
+
+  const sections = [
+    { id: "profil", label: t("profile.title"), icon: User },
+    { id: "preferensi", label: t("preferences.title"), icon: Globe },
+    { id: "keamanan", label: t("security.title"), icon: Lock },
+    { id: "data", label: t("data.title"), icon: Download },
+    { id: "bahaya", label: t("dangerZone.title"), icon: Trash2 },
+  ];
+  const themeOptions = [
+    { value: "light", label: t("preferences.themeLight"), icon: Sun },
+    { value: "dark", label: t("preferences.themeDark"), icon: Moon },
+    { value: "system", label: "Sistem", icon: Monitor },
+  ] as const;
+
+  const dataCard = (id?: string) => (
+    <section id={id} className={card}>
+      <h2 className="font-display text-xl font-semibold">{t("data.title")}</h2>
+      <p className="mt-1 text-[13px] font-bold text-muted-foreground">Unduh semua transaksi ke file CSV.</p>
+      <div className="mt-3 flex flex-wrap gap-2.5">
+        <Button onClick={exportData} disabled={isExporting} className="bg-cartoon-yellow text-ink hover:bg-cartoon-yellow">
+          <Download className="mr-2 h-4 w-4" strokeWidth={3} />
+          {isExporting ? "Mengekspor…" : "Ekspor CSV"}
+        </Button>
+        <Button variant="outline" onClick={handleSignOut}>
+          <LogOut className="mr-2 h-4 w-4" strokeWidth={3} /> Keluar
+        </Button>
+      </div>
+    </section>
+  );
+
   return (
-    <div className="mx-auto max-w-4xl space-y-5 pb-4">
+    <div className="space-y-5 pb-4">
       <PageHeader title={t("title")} description={t("subtitle")} />
 
-      <Tabs defaultValue="profile" className="space-y-5">
-        <TabsList className="grid w-full grid-cols-2 sm:grid-cols-4">
-          <TabsTrigger value="profile">{t("profile.title")}</TabsTrigger>
-          <TabsTrigger value="preferences">{t("preferences.title")}</TabsTrigger>
-          <TabsTrigger value="security">{t("security.title")}</TabsTrigger>
-          <TabsTrigger value="data">{t("data.title")}</TabsTrigger>
-        </TabsList>
+      <div className="lg:grid lg:grid-cols-[240px_minmax(0,1fr)] lg:items-start lg:gap-5">
+        {/* Side nav (desktop) */}
+        <div className="sticky top-6 hidden flex-col gap-5 lg:flex">
+          <nav className="flex flex-col gap-1 rounded-cartoon border-3 border-line bg-card p-3.5 shadow-cartoon" aria-label="Bagian pengaturan">
+            {sections.map(({ id, label, icon: Icon }) => (
+              <a
+                key={id}
+                href={`#${id === "data" ? "data-panel" : id}`}
+                className={cn(
+                  "flex h-12 items-center gap-3 rounded-[14px] border-2.5 border-transparent px-3 text-[15px] font-black transition-colors hover:border-line hover:bg-background",
+                  id === "bahaya" && "text-expense"
+                )}
+              >
+                <Icon className="h-5 w-5" strokeWidth={2.5} />
+                {label}
+              </a>
+            ))}
+            <Link
+              href="/categories"
+              className="flex h-12 items-center gap-3 rounded-[14px] border-2.5 border-transparent px-3 text-[15px] font-black transition-colors hover:border-line hover:bg-background"
+            >
+              <Tags className="h-5 w-5" strokeWidth={2.5} />
+              Kategori
+            </Link>
+          </nav>
+          {dataCard("data-panel")}
+        </div>
 
-        {/* Profile Tab */}
-        <TabsContent value="profile" className="space-y-6">
-          <Card>
-            <CardHeader>
-              <CardTitle>{t("profile.title")}</CardTitle>
-              <CardDescription>{t("profile.description")}</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <form onSubmit={profileForm.handleSubmit(handleProfileSubmit)} className="space-y-4">
-                {/* Avatar */}
-                <div className="flex items-center gap-4">
-                  <Avatar className="h-20 w-20">
-                    <AvatarImage src={avatarPreview || "/avatar.png"} alt={profile?.full_name || "User"} />
-                    <AvatarFallback className="text-2xl">
-                      {profile?.full_name?.[0]?.toUpperCase() || "U"}
-                    </AvatarFallback>
-                  </Avatar>
-                  <div>
-                    <Label>{t("profile.avatarLabel")}</Label>
-                    <Input
-                      type="file"
-                      accept="image/*"
-                      onChange={(e) => {
-                        const file = e.target.files?.[0];
-                        if (file) {
-                          const reader = new FileReader();
-                          reader.onload = (e) => setAvatarPreview(e.target?.result as string);
-                          reader.readAsDataURL(file);
-                        }
-                      }}
-                      className="mt-1.5"
-                    />
-                    <p className="text-xs text-muted-foreground mt-1">PNG/JPG, max 2MB</p>
+        <div className="space-y-5">
+          <div className="grid gap-5 xl:grid-cols-2">
+            {/* Profil */}
+            <section id="profil" className={card}>
+              <h2 className="font-display text-xl font-semibold">{t("profile.title")}</h2>
+              <form onSubmit={profileForm.handleSubmit(handleProfileSubmit)} className="mt-4 flex flex-col gap-4">
+                <div className="flex items-center gap-3.5">
+                  <span className="flex h-[72px] w-[72px] shrink-0 items-center justify-center rounded-full border-3 border-ink bg-cartoon-lilac font-display text-3xl font-bold text-ink shadow-cartoon-sm">
+                    {displayName[0]?.toUpperCase()}
+                  </span>
+                  <div className="min-w-0">
+                    <p className="truncate font-display text-xl font-semibold">{displayName}</p>
+                    {joined && <p className="text-[13px] font-bold text-muted-foreground">Bergabung {joined}</p>}
                   </div>
                 </div>
-
-                <Separator />
-
-                {/* Name */}
                 <div>
-                  <Label htmlFor="full_name">{t("profile.nameLabel")}</Label>
-                  <Input
-                    {...profileForm.register("full_name")}
-                    id="full_name"
-                    placeholder={t("profile.namePlaceholder")}
-                    error={profileForm.formState.errors.full_name?.message}
-                  />
+                  <Label htmlFor="full_name" className={fieldLabel}>{t("profile.nameLabel")}</Label>
+                  <Input {...profileForm.register("full_name")} id="full_name" placeholder={t("profile.namePlaceholder")} className="mt-1.5" />
                   {profileForm.formState.errors.full_name && (
                     <p className="mt-1 text-sm text-destructive">{profileForm.formState.errors.full_name.message}</p>
                   )}
                 </div>
-
-                {/* Email (read-only) */}
                 <div>
-                  <Label htmlFor="email">{t("profile.emailLabel")}</Label>
-                  <Input
-                    id="email"
-                    value={user.email}
-                    disabled
-                    className="mt-1.5 bg-muted"
-                  />
-                  <p className="mt-1 text-xs text-muted-foreground">
-                    {t("profile.emailNote")}
-                  </p>
+                  <Label htmlFor="email" className={fieldLabel}>{t("profile.emailLabel")}</Label>
+                  <Input id="email" value={user.email} disabled className="mt-1.5" />
+                  <p className="mt-1 text-xs font-bold text-muted-foreground">{t("profile.emailNote")}</p>
                 </div>
-
-                <Button type="submit" disabled={profileMutation.isPending}>
-                  {profileMutation.isPending ? t("profile.saving") : t("profile.save")}
+                <Button type="submit" className="self-end" disabled={profileMutation.isPending}>
+                  <Check className="mr-1.5 h-4 w-4" strokeWidth={3} />
+                  {profileMutation.isPending ? t("profile.saving") : "Simpan Profil"}
                 </Button>
               </form>
-            </CardContent>
-          </Card>
-        </TabsContent>
+            </section>
 
-        {/* Preferences Tab */}
-        <TabsContent value="preferences" className="space-y-6">
-          <Card>
-            <CardHeader>
-              <CardTitle>{t("preferences.title")}</CardTitle>
-              <CardDescription>{t("preferences.description")}</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <form onSubmit={preferencesForm.handleSubmit(handlePreferencesSubmit)} className="space-y-4">
-                {/* Language */}
+            {/* Preferensi */}
+            <section id="preferensi" className={card}>
+              <h2 className="font-display text-xl font-semibold">{t("preferences.title")}</h2>
+              <form onSubmit={preferencesForm.handleSubmit(handlePreferencesSubmit)} className="mt-4 flex flex-col gap-4">
                 <div>
-                  <Label>{t("preferences.languageLabel")}</Label>
-                  <Select
-                    value={preferencesForm.watch("locale")}
-                    onValueChange={(value) => preferencesForm.setValue("locale", value as any)}
-                  >
-                    <SelectTrigger className="w-full mt-1.5">
-                      <SelectValue placeholder={t("preferences.languageLabel")} />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {LOCALES.map((l) => (
-                        <SelectItem key={l.code} value={l.code}>
-                          <span className="flex items-center gap-2">
-                            <span>{l.flag}</span>
-                            <span>{l.name}</span>
-                          </span>
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+                  <p className={fieldLabel}>{t("preferences.languageLabel")}</p>
+                  <div className="mt-2 flex gap-2">
+                    {LOCALES.map((l) => {
+                      const active = preferencesForm.watch("locale") === l.code;
+                      return (
+                        <button
+                          key={l.code}
+                          type="button"
+                          aria-pressed={active}
+                          onClick={() => preferencesForm.setValue("locale", l.code)}
+                          className={cn(
+                            "h-10 rounded-full border-2.5 px-4 text-sm font-black transition-colors",
+                            active ? "border-ink bg-cartoon-sky text-ink shadow-cartoon-sm" : "border-line bg-background hover:bg-accent"
+                          )}
+                        >
+                          {l.flag} {l.name}
+                        </button>
+                      );
+                    })}
+                  </div>
                 </div>
-
-                {/* Theme */}
                 <div>
-                  <Label>{t("preferences.themeLabel")}</Label>
-                  <Select
-                    value={preferencesForm.watch("theme")}
-                    onValueChange={(value) => preferencesForm.setValue("theme", value as any)}
-                  >
-                    <SelectTrigger className="w-full mt-1.5">
-                      <SelectValue placeholder={t("preferences.themeLabel")} />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="light">
-                        <span className="flex items-center">
-                          <Sun className="mr-2 h-4 w-4" />
-                          {t("preferences.themeLight")}
-                        </span>
-                      </SelectItem>
-                      <SelectItem value="dark">
-                        <span className="flex items-center">
-                          <Moon className="mr-2 h-4 w-4" />
-                          {t("preferences.themeDark")}
-                        </span>
-                      </SelectItem>
-                      <SelectItem value="system">
-                        <span className="flex items-center">
-                          <Monitor className="mr-2 h-4 w-4" />
-                          {t("preferences.themeSystem")}
-                        </span>
-                      </SelectItem>
-                    </SelectContent>
-                  </Select>
+                  <p className={fieldLabel}>{t("preferences.themeLabel")}</p>
+                  <div className="mt-2 grid grid-cols-3 gap-2.5">
+                    {themeOptions.map(({ value, label, icon: Icon }) => {
+                      const active = preferencesForm.watch("theme") === value;
+                      return (
+                        <button
+                          key={value}
+                          type="button"
+                          aria-pressed={active}
+                          onClick={() => preferencesForm.setValue("theme", value)}
+                          className={cn(
+                            "flex h-[84px] flex-col items-center justify-center gap-1.5 rounded-[18px] border-3 text-sm font-black transition-colors",
+                            active ? "border-ink bg-cartoon-lilac text-ink shadow-cartoon-sm" : "border-line bg-background hover:bg-accent"
+                          )}
+                        >
+                          <Icon className="h-6 w-6" strokeWidth={2.5} />
+                          {label}
+                        </button>
+                      );
+                    })}
+                  </div>
                 </div>
-
-                <Button type="submit" disabled={preferencesMutation.isPending}>
+                <Button type="submit" className="self-end" disabled={preferencesMutation.isPending}>
+                  <Check className="mr-1.5 h-4 w-4" strokeWidth={3} />
                   {preferencesMutation.isPending ? t("preferences.saving") : t("preferences.save")}
                 </Button>
               </form>
-            </CardContent>
-          </Card>
-        </TabsContent>
+            </section>
+          </div>
 
-        {/* Security Tab */}
-        <TabsContent value="security" className="space-y-6">
-          <Card>
-            <CardHeader>
-              <CardTitle>{t("security.title")}</CardTitle>
-              <CardDescription>{t("security.description")}</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <form onSubmit={passwordForm.handleSubmit(handlePasswordSubmit)} className="space-y-4">
-                {/* Current Password */}
-                <div>
-                  <Label htmlFor="current_password">{t("security.currentPasswordLabel")}</Label>
-                  <Input
-                    {...passwordForm.register("current_password")}
-                    id="current_password"
-                    type="password"
-                    placeholder={t("security.currentPasswordLabel")}
-                    error={passwordForm.formState.errors.current_password?.message}
-                    className="mt-1.5"
-                  />
-                  {passwordForm.formState.errors.current_password && (
-                    <p className="mt-1 text-sm text-destructive">{passwordForm.formState.errors.current_password.message}</p>
-                  )}
+          <div className="grid gap-5 xl:grid-cols-[minmax(0,1.6fr)_minmax(0,1fr)]">
+            {/* Keamanan */}
+            <section id="keamanan" className={card}>
+              <h2 className="font-display text-xl font-semibold">{t("security.title")}</h2>
+              <form onSubmit={passwordForm.handleSubmit(handlePasswordSubmit)} className="mt-4 flex flex-col gap-4">
+                <div className="grid gap-3.5 md:grid-cols-3">
+                  {([
+                    ["current_password", "Sandi sekarang", "current-password"],
+                    ["new_password", "Sandi baru", "new-password"],
+                    ["confirm_password", "Ulangi sandi", "new-password"],
+                  ] as const).map(([name, label, autoComplete]) => (
+                    <div key={name}>
+                      <Label htmlFor={name} className={fieldLabel}>{label}</Label>
+                      <Input {...passwordForm.register(name)} id={name} type="password" autoComplete={autoComplete} className="mt-1.5" />
+                      {passwordForm.formState.errors[name] && (
+                        <p className="mt-1 text-sm text-destructive">{passwordForm.formState.errors[name]?.message}</p>
+                      )}
+                    </div>
+                  ))}
                 </div>
-
-                {/* New Password */}
-                <div>
-                  <Label htmlFor="new_password">{t("security.newPasswordLabel")}</Label>
-                  <Input
-                    {...passwordForm.register("new_password")}
-                    id="new_password"
-                    type="password"
-                    placeholder={t("security.newPasswordLabel")}
-                    error={passwordForm.formState.errors.new_password?.message}
-                    className="mt-1.5"
-                  />
-                  {passwordForm.formState.errors.new_password && (
-                    <p className="mt-1 text-sm text-destructive">{passwordForm.formState.errors.new_password.message}</p>
-                  )}
-                  <p className="mt-1 text-xs text-muted-foreground">
-                    {t("security.newPasswordNote")}
-                  </p>
+                <div className="flex flex-wrap items-center justify-between gap-3">
+                  <p className="text-[13px] font-bold text-muted-foreground">{t("security.newPasswordNote")}</p>
+                  <Button type="submit" disabled={passwordMutation.isPending} className="bg-cartoon-mint text-ink hover:bg-cartoon-mint">
+                    <Lock className="mr-1.5 h-4 w-4" strokeWidth={3} />
+                    {passwordMutation.isPending ? t("security.updating") : "Ganti Sandi"}
+                  </Button>
                 </div>
-
-                {/* Confirm New Password */}
-                <div>
-                  <Label htmlFor="confirm_password">{t("security.confirmNewPasswordLabel")}</Label>
-                  <Input
-                    {...passwordForm.register("confirm_password")}
-                    id="confirm_password"
-                    type="password"
-                    placeholder={t("security.confirmNewPasswordLabel")}
-                    error={passwordForm.formState.errors.confirm_password?.message}
-                    className="mt-1.5"
-                  />
-                  {passwordForm.formState.errors.confirm_password && (
-                    <p className="mt-1 text-sm text-destructive">{passwordForm.formState.errors.confirm_password.message}</p>
-                  )}
-                </div>
-
-                <Button type="submit" disabled={passwordMutation.isPending}>
-                  {passwordMutation.isPending ? t("security.updating") : t("security.update")}
-                </Button>
               </form>
-            </CardContent>
-          </Card>
-        </TabsContent>
+            </section>
 
-        {/* Data Tab */}
-        <TabsContent value="data" className="space-y-6">
-          <Card>
-            <CardHeader>
-              <CardTitle>{t("data.exportTitle")}</CardTitle>
-              <CardDescription>{t("data.exportDescription")}</CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <Button variant="outline" onClick={exportData} className="w-full">
-                <Download className="mr-2 h-4 w-4" />
-                {t("data.exportButton")}
-              </Button>
-              <p className="text-sm text-muted-foreground">
-                {t("data.exportNote")}
-              </p>
-            </CardContent>
-          </Card>
-
-          <Card className="border-destructive shadow-[4px_4px_0_0_rgb(var(--destructive))]">
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2 text-destructive">
-                <AlertTriangle className="h-5 w-5" />
-                {t("dangerZone.title")}
-              </CardTitle>
-              <CardDescription>{t("dangerZone.deleteAccountDescription")}</CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
+            {/* Zona bahaya */}
+            <section id="bahaya" className="scroll-mt-6 flex flex-col gap-3 rounded-cartoon border-3 border-cartoon-red bg-card p-5 shadow-[4px_4px_0_0_#ff5c7a]">
+              <div className="flex items-center gap-3">
+                <Sticker color="#ff5c7a" size="md">
+                  <Trash2 />
+                </Sticker>
+                <div>
+                  <h2 className="font-display text-lg font-semibold">{t("dangerZone.title")}</h2>
+                  <p className="text-xs font-bold text-muted-foreground">Hapus akun & semua data permanen</p>
+                </div>
+              </div>
               <div>
-                <Label htmlFor="delete_confirm">{t("dangerZone.confirmDelete")}</Label>
+                <Label htmlFor="delete_confirm" className={fieldLabel}>{t("dangerZone.confirmDelete")}</Label>
                 <Input
                   id="delete_confirm"
                   type="text"
                   placeholder={t("dangerZone.confirmDeleteWord")}
                   value={deleteConfirm}
                   onChange={(e) => setDeleteConfirm(e.target.value)}
-                  className="mt-1.5 font-mono"
+                  className="mt-1.5 h-11"
                 />
               </div>
               <AlertDialog>
                 <AlertDialogTrigger asChild>
-                  <Button variant="destructive" disabled={deleteConfirm !== t("dangerZone.confirmDeleteWord")}>
-                    <Trash2 className="mr-2 h-4 w-4" />
+                  <Button variant="destructive" className="w-full" disabled={deleteConfirm !== t("dangerZone.confirmDeleteWord")}>
                     {t("dangerZone.deleteAccountButton")}
                   </Button>
                 </AlertDialogTrigger>
                 <AlertDialogContent>
                   <AlertDialogHeader>
                     <AlertDialogTitle>{t("dangerZone.deleteAccountTitle")}</AlertDialogTitle>
-                    <AlertDialogDescription>
-                      {t("dangerZone.deleteAccountDescription")}
-                    </AlertDialogDescription>
+                    <AlertDialogDescription>{t("dangerZone.deleteAccountDescription")}</AlertDialogDescription>
                   </AlertDialogHeader>
                   <AlertDialogFooter>
                     <AlertDialogCancel>{ct("cancel")}</AlertDialogCancel>
@@ -480,10 +452,12 @@ export function SettingsContent({ locale, user, profile }: SettingsContentProps)
                   </AlertDialogFooter>
                 </AlertDialogContent>
               </AlertDialog>
-            </CardContent>
-          </Card>
-        </TabsContent>
-      </Tabs>
+            </section>
+          </div>
+
+          <div className="lg:hidden">{dataCard("data")}</div>
+        </div>
+      </div>
     </div>
   );
 }
