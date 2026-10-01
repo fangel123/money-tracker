@@ -10,16 +10,10 @@ export default async function ScannerPage({ params: { locale } }: { params: { lo
     redirect(`/${locale}/login`);
   }
 
-  const { data: categories } = await supabase.from("categories").select("*").order("name");
-  const { data: accounts } = await supabase.from("accounts").select("*").order("name");
+  const [{ data: categories }, { data: accounts }] = await Promise.all([
+    supabase.from("categories").select("*").eq("user_id", user.id).eq("is_active", true).order("name"),
+    supabase.from("accounts").select("*").eq("user_id", user.id).eq("is_active", true).order("sort_order"),
+  ]);
 
-  return (
-    <div className="mx-auto max-w-5xl space-y-5 pb-4">
-      <ScannerContent 
-        user={user} 
-        categories={categories || []} 
-        accounts={accounts || []} 
-      />
-    </div>
-  );
+  return <ScannerContent userId={user.id} categories={categories || []} accounts={accounts || []} />;
 }

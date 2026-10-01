@@ -4,8 +4,8 @@ import { useState, useRef, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Mascot } from "@/components/common/Mascot";
 import { Input } from "@/components/ui/input";
-import { Bot, Send, ArrowLeft, Loader2, CheckCircle2, Camera, X, AlertCircle } from "lucide-react";
-import { Link, useRouter } from "@/i18n/navigation";
+import { Send, Loader2, CheckCircle2, Camera, X, AlertCircle, Plus } from "lucide-react";
+import { useRouter } from "@/i18n/navigation";
 
 interface ChatMessage {
   role: "user" | "assistant";
@@ -19,6 +19,16 @@ const INITIAL_MSG: ChatMessage = {
   role: "assistant",
   content: "Halo! Saya AI Advisor baru kamu. Kini saya tahu seluruh isi dompet, riwayat transaksi, dan budget kamu. Saya bisa jawab pertanyaan atau disuruh untuk nambah/hapus data! (Contoh: 'Berapa total saldoku?', 'Tolong hapus pengeluaran kopi kemarin', 'Buat dompet baru namanya OVO saldo 100rb')."
 };
+
+const SUGGESTIONS = [
+  { text: "Berapa sisa budget bulan ini?", color: "#ffd447" },
+  { text: "Kapan goal terdekatku tercapai?", color: "#9be7c4" },
+  { text: "Ringkas pengeluaran bulan ini", color: "#8fd3ff" },
+  { text: "Tips hemat transport", color: "#ffb86b" },
+];
+
+// Data yang dikirim ke AI oleh /api/ai/advisor
+const CONTEXT_SOURCES = ["Akun", "50 transaksi terakhir", "Kategori", "Budget", "Goals", "Utang", "Rencana"];
 
 export function AIAdvisorContent({ user }: { user: any }) {
   const router = useRouter();
@@ -71,10 +81,11 @@ export function AIAdvisorContent({ user }: { user: any }) {
     localStorage.removeItem(STORAGE_KEY);
   };
 
-  const handleSend = async () => {
-    if (!input.trim() && !imagePreview) return;
+  const handleSend = async (preset?: string) => {
+    if (isLoading) return;
+    if (!preset && !input.trim() && !imagePreview) return;
 
-    const userText = input.trim();
+    const userText = preset ?? input.trim();
     const currentImage = imagePreview;
     
     setMessages(prev => [...prev, { role: "user", content: userText, image: currentImage || undefined }]);
@@ -113,6 +124,7 @@ export function AIAdvisorContent({ user }: { user: any }) {
   };
 
   return (
+    <div className="lg:grid lg:grid-cols-[minmax(0,1fr)_340px] lg:gap-5">
     <div className="relative flex h-[calc(100dvh-13rem)] flex-col overflow-hidden rounded-cartoon border-3 border-line bg-card shadow-cartoon lg:h-[calc(100vh-9.5rem)]">
       <div className="flex items-center justify-between border-b-2 border-dashed border-divider px-4 py-3">
         <div className="flex items-center gap-3">
@@ -123,7 +135,7 @@ export function AIAdvisorContent({ user }: { user: any }) {
           </div>
         </div>
         <Button variant="outline" size="sm" onClick={clearHistory}>
-          Hapus Chat
+          <Plus className="mr-1 h-4 w-4" strokeWidth={3} /> Chat baru
         </Button>
       </div>
 
@@ -164,6 +176,21 @@ export function AIAdvisorContent({ user }: { user: any }) {
       </div>
 
       <div className="flex flex-col gap-2 border-t-2 border-dashed border-divider p-3 sm:p-4">
+        {messages.length <= 1 && !isLoading && (
+          <div className="-mx-1 flex gap-2 overflow-x-auto px-1 pb-1 scrollbar-hide lg:hidden">
+            {SUGGESTIONS.map((s) => (
+              <button
+                key={s.text}
+                type="button"
+                onClick={() => handleSend(s.text)}
+                className="shrink-0 rounded-full border-2.5 border-ink px-3 py-1.5 text-xs font-black text-ink"
+                style={{ background: s.color }}
+              >
+                {s.text}
+              </button>
+            ))}
+          </div>
+        )}
         {imagePreview && (
           <div className="relative w-max">
             <img src={imagePreview} alt="Preview" className="h-16 w-16 object-cover rounded-lg border border-border" />
@@ -201,7 +228,7 @@ export function AIAdvisorContent({ user }: { user: any }) {
           />
           
           <Button 
-            onClick={handleSend} 
+            onClick={() => handleSend()} 
             disabled={(!input.trim() && !imagePreview) || isLoading}
             size="icon"
             className="shrink-0 bg-cartoon-pink"
@@ -211,6 +238,37 @@ export function AIAdvisorContent({ user }: { user: any }) {
           </Button>
         </div>
       </div>
+    </div>
+
+    {/* Desktop side panel */}
+    <aside className="hidden flex-col gap-5 lg:flex">
+      <section className="flex flex-col gap-3 rounded-cartoon border-3 border-line bg-card p-5 shadow-cartoon">
+        <h2 className="font-display text-xl font-semibold">Coba tanya</h2>
+        {SUGGESTIONS.map((s) => (
+          <button
+            key={s.text}
+            type="button"
+            disabled={isLoading}
+            onClick={() => handleSend(s.text)}
+            className="rounded-2xl border-2.5 border-ink px-3.5 py-3 text-left text-sm font-black text-ink shadow-cartoon-sm transition-transform active:translate-x-[3px] active:translate-y-[3px] active:shadow-none disabled:opacity-60"
+            style={{ background: s.color }}
+          >
+            {s.text}
+          </button>
+        ))}
+      </section>
+      <section className="flex flex-col gap-3 rounded-cartoon border-3 border-line bg-card p-5 shadow-cartoon">
+        <h2 className="font-display text-xl font-semibold">Yang Koin baca</h2>
+        <p className="text-[13px] font-bold text-muted-foreground">Koin cuma membaca datamu sendiri untuk menjawab.</p>
+        <div className="flex flex-wrap gap-1.5">
+          {CONTEXT_SOURCES.map((src) => (
+            <span key={src} className="rounded-full border-2 border-line bg-background px-3 py-1 text-xs font-black">
+              {src}
+            </span>
+          ))}
+        </div>
+      </section>
+    </aside>
     </div>
   );
 }
