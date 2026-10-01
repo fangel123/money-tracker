@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { useQueryClient } from "@tanstack/react-query";
 import { formatCurrency, cn } from "@/lib/utils";
 import { PageHeader } from "@/components/common/PageHeader";
 import { Mascot } from "@/components/common/Mascot";
@@ -41,6 +42,8 @@ const GROUP_COLORS: Record<string, string> = { income: "#9be7c4", wajib: "#c9b6f
 
 export function PlannerContent({ user, initialPlanners, initialItems, accounts, categories }: any) {
   const [activeTab, setActiveTab] = useState(initialPlanners[0]?.id || "new");
+  // Bayar/batal membuat atau menghapus transaksi — cache halaman lain (Transaksi, Dashboard, Akun) perlu disegarkan
+  const queryClient = useQueryClient();
   
   // Modals state
   const [isAddTabOpen, setIsAddTabOpen] = useState(false);
@@ -148,6 +151,7 @@ export function PlannerContent({ user, initialPlanners, initialItems, accounts, 
     setIsSubmitting(true);
     try {
       const result = await unrealizePlannerItem(item.id);
+      queryClient.invalidateQueries();
       if (!result.deletedTransaction) {
         // Item lama yang dibayar sebelum fitur tautan ada: transaksinya tidak diketahui, jadi tidak bisa dihapus otomatis
         alert("Status lunas dibatalkan, tapi transaksi lamanya tidak ikut terhapus (item ini dibayar sebelum fitur tautan ada). Kalau perlu, hapus manual di halaman Transaksi supaya saldo kembali.");
@@ -211,6 +215,7 @@ export function PlannerContent({ user, initialPlanners, initialItems, accounts, 
         payAsTransfer ? payData.toAccountId : undefined
       );
       setIsPayOpen(false);
+      queryClient.invalidateQueries();
     } catch (e: any) {
       alert(e.message);
     } finally {

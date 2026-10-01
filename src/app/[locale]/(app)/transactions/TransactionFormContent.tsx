@@ -1,5 +1,6 @@
 "use client";
 
+import { useRefreshData } from "@/hooks/use-refresh-data";
 import { useState } from "react";
 import { useTranslations } from "next-intl";
 import { useForm } from "react-hook-form";
@@ -44,6 +45,7 @@ export function TransactionFormContent({
   initialData,
 }: TransactionFormContentProps) {
   const router = useRouter();
+  const refreshData = useRefreshData();
   const pathname = usePathname();
   const t = useTranslations("transactions");
   const ct = useTranslations("common");
@@ -106,7 +108,7 @@ export function TransactionFormContent({
       }
 
       router.push("/transactions");
-      router.refresh();
+      refreshData();
     } catch (error) {
       setSubmitError(error instanceof Error ? error.message : t("form.error"));
     } finally {

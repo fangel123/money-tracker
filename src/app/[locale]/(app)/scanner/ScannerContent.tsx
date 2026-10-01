@@ -1,5 +1,6 @@
 "use client";
 
+import { useRefreshData } from "@/hooks/use-refresh-data";
 import { useState, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -35,6 +36,7 @@ const today = () => new Date().toISOString().split("T")[0];
 
 export function ScannerContent({ userId, categories, accounts, recentScans }: ScannerContentProps) {
   const router = useRouter();
+  const refreshData = useRefreshData();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const cameraInputRef = useRef<HTMLInputElement>(null);
   const expenseCategories = categories.filter((c) => c.type === "expense");
@@ -118,7 +120,7 @@ export function ScannerContent({ userId, categories, accounts, recentScans }: Sc
       if (insertError) throw insertError;
 
       router.push("/transactions");
-      router.refresh();
+      refreshData();
     } catch (err) {
       setError(err instanceof Error ? err.message : "Gagal menyimpan transaksi");
       setIsSaving(false);

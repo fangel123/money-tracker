@@ -1,5 +1,6 @@
 "use client";
 
+import { useRefreshData } from "@/hooks/use-refresh-data";
 import { useState } from "react";
 import { useMutation } from "@tanstack/react-query";
 import { useForm } from "react-hook-form";
@@ -35,6 +36,7 @@ interface DebtsContentProps {
 
 export function DebtsContent({ user, initialDebts, dbReady, accounts, categories }: DebtsContentProps) {
   const router = useRouter();
+  const refreshData = useRefreshData();
   const displayDebts = initialDebts;
   const [showForm, setShowForm] = useState(false);
   const [payingDebt, setPayingDebt] = useState<any | null>(null);
@@ -71,7 +73,7 @@ export function DebtsContent({ user, initialDebts, dbReady, accounts, categories
     },
     onSuccess: () => {
       setShowForm(false);
-      router.refresh();
+      refreshData();
       toast.success("Data berhasil ditambahkan");
     },
     onError: (error: any) => toast.error(error.message || "Gagal menambahkan data"),
@@ -120,7 +122,7 @@ export function DebtsContent({ user, initialDebts, dbReady, accounts, categories
     },
     onSuccess: () => {
       setPayingDebt(null);
-      router.refresh();
+      refreshData();
       toast.success("Pembayaran tercatat");
     },
     onError: (error: any) => toast.error(error.message || "Gagal mencatat pembayaran"),
