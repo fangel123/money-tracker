@@ -1,8 +1,19 @@
 import { NextResponse } from 'next/server';
+import { createServerSupabaseClient } from '@/lib/supabase/server';
 
 export async function POST(req: Request) {
   try {
-    const { imageBase64 } = await req.json();
+    // Hanya user yang login boleh memakai kuota API AI
+    const supabase = createServerSupabaseClient();
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
+    const { imageBase64, categories } = await req.json();
+    const categoryList = Array.isArray(categories)
+      ? categories.filter((c: unknown): c is string => typeof c === 'string').slice(0, 50)
+      : [];
     
     const response = await fetch("https://openrouter.ai/api/v1/chat/completions", {
       method: "POST",
@@ -24,7 +35,9 @@ export async function POST(req: Request) {
 Return ONLY a valid JSON object matching this structure, without markdown blocks or backticks:
 {
   "amount": number,
-  "note": string (tuliskan ringkasan toko/tempat atau barang dari struk, misal "Belanja di Indomaret")
+  "note": string (tuliskan ringkasan toko/tempat atau barang dari struk, misal "Belanja di Indomaret"),
+  "date": string (tanggal transaksi di struk, format YYYY-MM-DD; kosongkan jika tidak terbaca),
+  "category": string (pilih SATU yang paling cocok dari daftar ini: ${categoryList.length ? categoryList.join(", ") : "Lainnya"})
 }`
               },
               { 
