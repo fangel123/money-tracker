@@ -14,7 +14,7 @@ export default async function ScannerPage({ params: { locale } }: { params: { lo
   const { data: accounts } = await supabase.from("accounts").select("*").order("name");
 
   return (
-    <div className="p-4 md:p-6 lg:p-8 max-w-3xl mx-auto space-y-6">
+    <div className="mx-auto max-w-5xl space-y-5 pb-4">
       <ScannerContent 
         user={user} 
         categories={categories || []} 

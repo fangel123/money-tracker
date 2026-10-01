@@ -1,4 +1,12 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 512 512">
-  <rect width="512" height="512" fill="#059669" rx="64"/>
-  <text x="256" y="280" font-family="Arial" font-size="128" fill="white" text-anchor="middle">💰</text>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <rect width="512" height="512" rx="112" fill="#c8f031"/>
+  <circle cx="256" cy="262" r="168" fill="#ffd447" stroke="#1e1b18" stroke-width="20"/>
+  <circle cx="256" cy="262" r="126" fill="none" stroke="#e8a900" stroke-width="16" stroke-dasharray="22 26"/>
+  <circle cx="200" cy="228" r="24" fill="#1e1b18"/>
+  <circle cx="312" cy="228" r="24" fill="#1e1b18"/>
+  <circle cx="208" cy="220" r="8" fill="#ffffff"/>
+  <circle cx="320" cy="220" r="8" fill="#ffffff"/>
+  <ellipse cx="164" cy="284" rx="24" ry="15" fill="#ff9ebb"/>
+  <ellipse cx="348" cy="284" rx="24" ry="15" fill="#ff9ebb"/>
+  <path d="M210 298 Q256 344 302 298" fill="none" stroke="#1e1b18" stroke-width="20" stroke-linecap="round"/>
 </svg>

@@ -59,14 +59,14 @@ export default function LoginPage() {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="text-center space-y-2">
-        <h1 className="text-2xl font-bold text-foreground">Masuk ke Akun Anda</h1>
-        <p className="text-muted-foreground">Masuk untuk melanjutkan ke Money Tracker</p>
+      <div className="space-y-1.5">
+        <h1 className="font-display text-[32px] font-bold leading-tight text-foreground">Masuk ke Akun Anda</h1>
+        <p className="font-bold text-muted-foreground">Selamat datang lagi! Koin sudah nungguin kamu.</p>
       </div>
 
       {/* Error message */}
       {errors.root && (
-        <div className="rounded-lg bg-destructive/10 p-3 text-sm text-destructive" role="alert">
+        <div className="rounded-2xl border-2.5 border-destructive bg-destructive/10 p-3 text-sm font-bold text-destructive" role="alert">
           {errors.root.message}
         </div>
       )}
@@ -77,7 +77,7 @@ export default function LoginPage() {
         <div>
           <Label htmlFor="email">Email</Label>
           <div className="relative mt-1.5">
-            <Mail className="absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2 text-muted-foreground" />
+            <Mail className="absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2 text-foreground" strokeWidth={2.5} />
             <Input
               {...register("email")}
               id="email"
@@ -96,14 +96,14 @@ export default function LoginPage() {
           <div className="flex items-center justify-between">
             <Label htmlFor="password">Kata Sandi</Label>
             <Link
-              href="/auth/forgot-password"
-              className="text-sm text-primary hover:underline"
+              href="/forgot-password"
+              className="text-sm font-black text-foreground underline decoration-primary decoration-[3px] underline-offset-4"
             >
               Lupa kata sandi?
             </Link>
           </div>
           <div className="relative mt-1.5">
-            <Lock className="absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2 text-muted-foreground" />
+            <Lock className="absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2 text-foreground" strokeWidth={2.5} />
             <Input
               {...register("password")}
               id="password"
@@ -131,9 +131,9 @@ export default function LoginPage() {
             <input
               type="checkbox"
               {...register("remember")}
-              className="h-4 w-4 rounded border-input text-primary focus:ring-primary"
+              className="h-5 w-5 rounded accent-[#c8f031]"
             />
-            <span className="text-sm text-muted-foreground">Ingat saya</span>
+            <span className="text-sm font-extrabold">Ingat saya</span>
           </label>
         </div>
 
@@ -144,9 +144,9 @@ export default function LoginPage() {
       </form>
 
       {/* Register link */}
-      <p className="text-center text-sm text-muted-foreground">
+      <p className="text-center text-sm font-bold text-muted-foreground">
         Belum punya akun?{" "}
-        <Link href="/auth/register" className="text-primary font-medium hover:underline">
+        <Link href="/register" className="font-black text-foreground underline decoration-primary decoration-[3px] underline-offset-4">
           Daftar di sini
         </Link>
       </p>

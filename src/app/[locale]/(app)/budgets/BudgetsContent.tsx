@@ -18,6 +18,9 @@ import { budgetSchema, type BudgetFormData } from "@/lib/validators/budget";
 import { Budget, Category } from "@/types/domain";
 import { createBrowserSupabaseClient } from "@/lib/supabase/browser";
 import { DynamicIcon } from "@/components/common/DynamicIcon";
+import { CategorySticker } from "@/components/common/CategorySticker";
+import { PageHeader } from "@/components/common/PageHeader";
+import { HeroCard, CartoonBar } from "@/components/common/HeroCard";
 
 interface BudgetsContentProps {
   locale: "id" | "en";
@@ -62,6 +65,8 @@ export function BudgetsContent({ locale, userId, initialBudgets, initialCategori
       });
     },
     initialData: initialBudgets,
+    // initialBudgets dari server belum punya "spent" — anggap basi supaya langsung dihitung ulang
+    initialDataUpdatedAt: 0,
   });
 
   const { data: categories = [] } = useQuery({
@@ -116,49 +121,31 @@ export function BudgetsContent({ locale, userId, initialBudgets, initialCategori
   const totalBudgetProgress = totalBudgetAmount > 0 ? (totalBudgetSpent / totalBudgetAmount) * 100 : 0;
 
   return (
-    <div className="space-y-6 pb-24 p-4 md:p-6 lg:p-8 max-w-3xl mx-auto">
-      {/* Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-extrabold tracking-tight text-foreground flex items-center gap-2">
-            Budget <Target className="h-6 w-6 text-primary" />
-          </h1>
-          <p className="text-muted-foreground text-sm">{t("header.description")}</p>
-        </div>
-        <Button 
-          onClick={() => { setEditingBudget(null); setShowForm(true); }}
-          className="rounded-full h-12 w-12 p-0 shadow-lg" 
-          size="icon"
-        >
-          <Plus className="h-6 w-6" />
-        </Button>
-      </div>
+    <div className="space-y-5 pb-4">
+      <PageHeader
+        title="Budget"
+        description={t("header.description")}
+        action={
+          <Button onClick={() => { setEditingBudget(null); setShowForm(true); }} aria-label={t("addTitle")}>
+            <Plus className="h-5 w-5 sm:mr-1.5" strokeWidth={3} />
+            <span className="hidden sm:inline">Buat Budget</span>
+          </Button>
+        }
+      />
 
       {/* Summary Card */}
       {filteredBudgets.length > 0 && (
-        <div className="relative overflow-hidden rounded-[2rem] bg-[#111111] p-6 text-white shadow-lg border border-border/20">
-          <div className="flex items-center gap-2 text-xs font-semibold tracking-wider text-muted-foreground uppercase mb-4">
-            <Target className="h-4 w-4 text-primary" />
-            <span>TOTAL BUDGET ({t(`list.${currentPeriod}`).toUpperCase()})</span>
+        <HeroCard
+          color="#ffd447"
+          label={`Total budget ${t(`list.${currentPeriod}`).toLowerCase()}`}
+          value={formatCurrency(totalBudgetSpent, "IDR", locale)}
+        >
+          <p className="mt-1.5 text-sm font-extrabold">dari total {formatCurrency(totalBudgetAmount, "IDR", locale)}</p>
+          <div className="mt-4 flex items-center gap-3">
+            <CartoonBar percent={totalBudgetProgress} color={totalBudgetProgress > 100 ? "#ff5c7a" : "#ffffff"} className="border-ink bg-cream" />
+            <span className="text-sm font-black">{Math.round(totalBudgetProgress)}%</span>
           </div>
-          <div className="flex items-center gap-3 mb-1">
-            <span className="text-4xl font-black tracking-tight text-primary">
-              {formatCurrency(totalBudgetSpent, "IDR", locale)}
-            </span>
-          </div>
-          <p className="text-sm font-medium text-gray-400">
-            dari total {formatCurrency(totalBudgetAmount, "IDR", locale)}
-          </p>
-          
-          <div className="mt-6">
-            <div className="h-2 w-full bg-white/10 rounded-full overflow-hidden">
-              <div 
-                className={cn("h-full transition-all duration-1000", totalBudgetProgress > 100 ? 'bg-destructive' : 'bg-primary')}
-                style={{ width: `${Math.min(100, totalBudgetProgress)}%` }} 
-              />
-            </div>
-          </div>
-        </div>
+        </HeroCard>
       )}
 
       {/* Tabs */}
@@ -168,12 +155,8 @@ export function BudgetsContent({ locale, userId, initialBudgets, initialCategori
             key={period}
             variant={currentPeriod === period ? "default" : "outline"}
             onClick={() => setCurrentPeriod(period)}
-            className={cn(
-              "rounded-full px-6 font-semibold",
-              currentPeriod === period 
-                ? "bg-foreground text-background hover:bg-foreground/90" 
-                : "bg-card border-border/50 text-muted-foreground hover:text-foreground"
-            )}
+            size="sm"
+            className="rounded-full px-5"
           >
             {t(`list.${period}`)}
           </Button>
@@ -181,9 +164,9 @@ export function BudgetsContent({ locale, userId, initialBudgets, initialCategori
       </div>
 
       {/* List */}
-      <div className="space-y-4">
+      <div className="space-y-4 lg:grid lg:grid-cols-2 lg:gap-5 lg:space-y-0 2xl:grid-cols-3">
         {filteredBudgets.length === 0 ? (
-          <div className="bg-card rounded-[2rem] border border-border/50 p-8">
+          <div className="bg-card rounded-cartoon border-3 border-line p-8 shadow-cartoon lg:col-span-full">
             <EmptyState
               icon={<Target className="h-12 w-12" />}
               titleKey="budgets.empty.title"
@@ -207,7 +190,7 @@ export function BudgetsContent({ locale, userId, initialBudgets, initialCategori
 
       {/* Form Modal */}
       <Dialog open={showForm} onOpenChange={setShowForm}>
-        <DialogContent className="sm:max-w-[425px] rounded-[2rem] p-6 border-border/50 shadow-2xl">
+        <DialogContent className="sm:max-w-[425px] rounded-cartoon p-6 border-line shadow-2xl">
           <DialogHeader>
               <DialogTitle className="text-xl font-bold">
                 {editingBudget ? t("editTitle") : t("addTitle")}
@@ -262,42 +245,46 @@ function BudgetCard({
   const isNearLimit = progress >= ((budget.alert_threshold || 0.8) * 100) && !isOverBudget;
   const remaining = budget.amount - spent;
 
+  const status = isOverBudget
+    ? { label: "Lewat batas", color: "#ff5c7a" }
+    : isNearLimit
+      ? { label: "Hampir habis", color: "#ffb86b" }
+      : { label: "Aman", color: "#9be7c4" };
+
   return (
-    <div className="bg-card border border-border/50 rounded-[2rem] p-5 shadow-sm relative overflow-hidden group">
-      <div className="flex items-start justify-between mb-4">
-        <div className="flex items-center gap-4">
-          <div 
-            className="h-12 w-12 rounded-full flex items-center justify-center text-xl bg-secondary"
-            style={{ color: budget.category?.color || undefined }}
-          >
-            {budget.category?.icon ? <DynamicIcon name={budget.category.icon} /> : "🎯"}
-          </div>
-          <div>
-            <h3 className="font-bold text-foreground text-lg flex items-center gap-2">
-              {budget.category?.name || "Kategori"}
-              {isOverBudget && <AlertTriangle className="h-4 w-4 text-destructive" />}
-              {isNearLimit && <AlertTriangle className="h-4 w-4 text-orange-500" />}
-            </h3>
-            <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mt-1">
-              {t(`list.${budget.period}`)}
-            </p>
-          </div>
+    <div className="flex flex-col gap-3 rounded-cartoon border-3 border-line bg-card p-5 shadow-cartoon">
+      <div className="flex items-center gap-3">
+        <CategorySticker category={budget.category} size="lg" tilt={-3} />
+        <div className="min-w-0 flex-1">
+          <h3 className="flex items-center gap-1.5 truncate font-display text-lg font-semibold">
+            {budget.category?.name || "Kategori"}
+          </h3>
+          <p className="text-xs font-bold text-muted-foreground">
+            {t(`list.${budget.period}`)} · peringatan {Math.round((budget.alert_threshold || 0.8) * 100)}%
+          </p>
         </div>
+        <span
+          className="flex items-center gap-1 rounded-full border-2 border-ink px-2.5 py-0.5 text-xs font-black text-ink"
+          style={{ background: status.color }}
+        >
+          {(isOverBudget || isNearLimit) && <AlertTriangle className="h-3 w-3" strokeWidth={3} />}
+          {status.label}
+        </span>
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
-            <button className="h-8 w-8 rounded-full flex items-center justify-center hover:bg-secondary transition-colors text-muted-foreground">
-              <MoreVertical className="h-5 w-5" />
+            <button className="flex h-9 w-9 items-center justify-center rounded-xl border-2 border-line bg-background" aria-label={ct("actions")}>
+              <MoreVertical className="h-4 w-4" strokeWidth={3} />
             </button>
           </DropdownMenuTrigger>
-          <DropdownMenuContent align="end" className="rounded-2xl border-border/50">
-            <DropdownMenuItem onClick={() => onEdit(budget)} className="rounded-xl cursor-pointer">
+          <DropdownMenuContent align="end">
+            <DropdownMenuItem onClick={() => onEdit(budget)} className="cursor-pointer">
               <Edit className="mr-2 h-4 w-4" />
               {ct("edit")}
             </DropdownMenuItem>
             <DropdownMenuSeparator />
             <DropdownMenuItem
               onClick={() => onDelete(budget.id)}
-              className="text-destructive focus:text-destructive rounded-xl cursor-pointer"
+              className="cursor-pointer text-destructive focus:text-destructive"
             >
               <Trash2 className="mr-2 h-4 w-4" />
               {ct("delete")}
@@ -306,34 +293,16 @@ function BudgetCard({
         </DropdownMenu>
       </div>
 
-      <div className="space-y-2">
-        <div className="flex justify-between text-sm font-bold">
-          <span className={cn(isOverBudget ? "text-destructive" : "text-foreground")}>
-            {formatCurrency(spent, "IDR", locale)} <span className="text-xs font-normal text-muted-foreground">Terpakai</span>
-          </span>
-          <span className="text-muted-foreground">
-            Batas {formatCurrency(budget.amount, "IDR", locale)}
-          </span>
-        </div>
-        
-        <div className="h-3 w-full bg-secondary rounded-full overflow-hidden">
-          <div 
-            className={cn("h-full transition-all duration-1000", isOverBudget ? 'bg-destructive' : isNearLimit ? 'bg-orange-500' : 'bg-primary')}
-            style={{ width: `${Math.min(progress, 100)}%` }} 
-          />
-        </div>
-        
-        <div className="flex justify-between items-center pt-2">
-          <span className={cn(
-            "text-xs font-bold px-2 py-1 rounded-lg",
-            isOverBudget ? "bg-destructive/10 text-destructive" : isNearLimit ? "bg-orange-500/10 text-orange-500" : "bg-primary/10 text-primary"
-          )}>
-            {isOverBudget ? 'Lebih Budget!' : isNearLimit ? 'Hampir Habis' : 'Aman'}
-          </span>
-          <span className="text-xs font-bold text-muted-foreground">
-            Sisa {formatCurrency(Math.max(remaining, 0), "IDR", locale)}
-          </span>
-        </div>
+      <p className={cn("font-display text-[28px] font-bold leading-none", isOverBudget && "text-expense")}>
+        {formatCurrency(spent, "IDR", locale)}
+      </p>
+      <p className="-mt-1 text-[13px] font-extrabold text-muted-foreground">
+        dari {formatCurrency(budget.amount, "IDR", locale)} · sisa {formatCurrency(Math.max(remaining, 0), "IDR", locale)}
+      </p>
+
+      <div className="flex items-center gap-2.5">
+        <CartoonBar percent={progress} color={isOverBudget || isNearLimit ? status.color : budget.category?.color ? `color-mix(in srgb, ${budget.category.color} 55%, #ffffff)` : "#c8f031"} />
+        <span className="w-11 text-right text-sm font-black">{Math.round(progress)}%</span>
       </div>
     </div>
   );
@@ -383,10 +352,10 @@ function BudgetForm({
           value={watch("category_id")}
           onValueChange={(value) => setValue("category_id", value)}
         >
-          <SelectTrigger className="w-full mt-1.5 rounded-xl h-12 border-border/50 bg-secondary">
+          <SelectTrigger className="w-full mt-1.5 rounded-xl h-12 border-line bg-secondary">
             <SelectValue placeholder={t("form.categoryLabel")} />
           </SelectTrigger>
-          <SelectContent className="rounded-2xl border-border/50">
+          <SelectContent className="rounded-2xl border-line">
             {categories.map((cat) => (
               <SelectItem key={cat.id} value={cat.id} className="rounded-xl">
                 <span className="flex items-center">
@@ -406,7 +375,7 @@ function BudgetForm({
           {...register("amount", { valueAsNumber: true })}
           type="number"
           placeholder="0"
-          className="mt-1.5 h-12 text-lg font-bold rounded-xl border-border/50 bg-secondary"
+          className="mt-1.5 h-12 text-lg font-bold rounded-xl border-line bg-secondary"
           min="1"
         />
         {errors.amount && <p className="mt-1 text-xs text-destructive">{errors.amount.message}</p>}
@@ -418,10 +387,10 @@ function BudgetForm({
           value={watch("period")}
           onValueChange={(value) => setValue("period", value as "weekly" | "monthly" | "yearly")}
         >
-          <SelectTrigger className="w-full mt-1.5 rounded-xl h-12 border-border/50 bg-secondary">
+          <SelectTrigger className="w-full mt-1.5 rounded-xl h-12 border-line bg-secondary">
             <SelectValue placeholder={t("form.periodLabel")} />
           </SelectTrigger>
-          <SelectContent className="rounded-2xl border-border/50">
+          <SelectContent className="rounded-2xl border-line">
             <SelectItem value="weekly" className="rounded-xl">{t("list.weekly")}</SelectItem>
             <SelectItem value="monthly" className="rounded-xl">{t("list.monthly")}</SelectItem>
             <SelectItem value="yearly" className="rounded-xl">{t("list.yearly")}</SelectItem>
@@ -434,7 +403,7 @@ function BudgetForm({
         <Input
           {...register("start_date")}
           type="date"
-          className="mt-1.5 h-12 rounded-xl border-border/50 bg-secondary"
+          className="mt-1.5 h-12 rounded-xl border-line bg-secondary"
         />
         {errors.start_date && <p className="mt-1 text-xs text-destructive">{errors.start_date.message}</p>}
       </div>

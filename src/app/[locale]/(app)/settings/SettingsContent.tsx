@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useTranslations } from "next-intl";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { cn } from "@/lib/utils";
+import { PageHeader } from "@/components/common/PageHeader";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -193,15 +194,11 @@ export function SettingsContent({ locale, user, profile }: SettingsContentProps)
   };
 
   return (
-    <div className="space-y-6">
-      {/* Header */}
-      <div>
-        <h1 className="text-2xl font-bold text-foreground">{t("title")}</h1>
-        <p className="text-muted-foreground">{t("subtitle")}</p>
-      </div>
+    <div className="mx-auto max-w-4xl space-y-5 pb-4">
+      <PageHeader title={t("title")} description={t("subtitle")} />
 
-      <Tabs defaultValue="profile" className="space-y-6">
-        <TabsList className="grid w-full grid-cols-4">
+      <Tabs defaultValue="profile" className="space-y-5">
+        <TabsList className="grid w-full grid-cols-2 sm:grid-cols-4">
           <TabsTrigger value="profile">{t("profile.title")}</TabsTrigger>
           <TabsTrigger value="preferences">{t("preferences.title")}</TabsTrigger>
           <TabsTrigger value="security">{t("security.title")}</TabsTrigger>
@@ -441,7 +438,7 @@ export function SettingsContent({ locale, user, profile }: SettingsContentProps)
             </CardContent>
           </Card>
 
-          <Card className="border-destructive">
+          <Card className="border-destructive shadow-[4px_4px_0_0_rgb(var(--destructive))]">
             <CardHeader>
               <CardTitle className="flex items-center gap-2 text-destructive">
                 <AlertTriangle className="h-5 w-5" />

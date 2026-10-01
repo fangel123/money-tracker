@@ -60,14 +60,14 @@ export default function RegisterPage() {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="text-center space-y-2">
-        <h1 className="text-2xl font-bold text-foreground">Buat Akun Baru</h1>
-        <p className="text-muted-foreground">Mulai kelola keuangan Anda hari ini</p>
+      <div className="space-y-1.5">
+        <h1 className="font-display text-[32px] font-bold leading-tight text-foreground">Buat Akun Baru</h1>
+        <p className="font-bold text-muted-foreground">Mulai kelola keuangan Anda hari ini</p>
       </div>
 
       {/* Error message */}
       {errors.root && (
-        <div className="rounded-lg bg-destructive/10 p-3 text-sm text-destructive" role="alert">
+        <div className="rounded-2xl border-2.5 border-destructive bg-destructive/10 p-3 text-sm font-bold text-destructive" role="alert">
           {errors.root.message}
         </div>
       )}
@@ -78,7 +78,7 @@ export default function RegisterPage() {
         <div>
           <Label htmlFor="full_name">Nama Lengkap</Label>
           <div className="relative mt-1.5">
-            <User className="absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2 text-muted-foreground" />
+            <User className="absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2 text-foreground" strokeWidth={2.5} />
             <Input
               {...register("full_name")}
               id="full_name"
@@ -96,7 +96,7 @@ export default function RegisterPage() {
         <div>
           <Label htmlFor="email">Email</Label>
           <div className="relative mt-1.5">
-            <Mail className="absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2 text-muted-foreground" />
+            <Mail className="absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2 text-foreground" strokeWidth={2.5} />
             <Input
               {...register("email")}
               id="email"
@@ -114,7 +114,7 @@ export default function RegisterPage() {
         <div>
           <Label htmlFor="password">Kata Sandi</Label>
           <div className="relative mt-1.5">
-            <Lock className="absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2 text-muted-foreground" />
+            <Lock className="absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2 text-foreground" strokeWidth={2.5} />
             <Input
               {...register("password")}
               id="password"
@@ -140,7 +140,7 @@ export default function RegisterPage() {
         <div>
           <Label htmlFor="confirm_password">Konfirmasi Kata Sandi</Label>
           <div className="relative mt-1.5">
-            <Lock className="absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2 text-muted-foreground" />
+            <Lock className="absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2 text-foreground" strokeWidth={2.5} />
             <Input
               {...register("confirm_password")}
               id="confirm_password"
@@ -169,9 +169,9 @@ export default function RegisterPage() {
       </form>
 
       {/* Login link */}
-      <p className="text-center text-sm text-muted-foreground">
+      <p className="text-center text-sm font-bold text-muted-foreground">
         Sudah punya akun?{" "}
-        <Link href="/login" className="text-primary font-medium hover:underline">
+        <Link href="/login" className="font-black text-foreground underline decoration-primary decoration-[3px] underline-offset-4">
           Masuk di sini
         </Link>
       </p>

@@ -5,6 +5,8 @@ import { Button } from "@/components/ui/button";
 import { BarChart3, Activity, PieChart as PieChartIcon, TrendingUp, TrendingDown, ChevronLeft } from "lucide-react";
 import { Link } from "@/i18n/navigation";
 import { formatCurrency } from "@/lib/utils";
+import { PageHeader } from "@/components/common/PageHeader";
+import { Mascot } from "@/components/common/Mascot";
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell } from "recharts";
 
 export function StatisticsContent({ user, transactions }: { user: any; transactions: any[] }) {
@@ -22,6 +24,8 @@ export function StatisticsContent({ user, transactions }: { user: any; transacti
     const colors = ["#CCFF00", "#FF4560", "#00E396", "#FEB019", "#775DD0", "#FF9800", "#F44336", "#9C27B0"];
 
     transactions.forEach(tx => {
+      // Transfer antar akun bukan pemasukan/pengeluaran — uangnya hanya pindah dompet
+      if (tx.type === "transfer") return;
       const date = new Date(tx.date);
       const monthKey = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
       const monthLabel = monthNames[date.getMonth()];
@@ -63,11 +67,11 @@ export function StatisticsContent({ user, transactions }: { user: any; transacti
       if (savingsRate >= 20) {
         healthScore = Math.min(100, 80 + (savingsRate - 20));
         healthStatus = "Sangat Sehat 🌟";
-        healthColor = "text-primary";
+        healthColor = "text-income";
       } else if (savingsRate > 0) {
         healthScore = 50 + (savingsRate * 1.5);
         healthStatus = "Cukup Baik 👍";
-        healthColor = "text-orange-400";
+        healthColor = "text-orange-600 dark:text-cartoon-orange";
       } else {
         healthScore = Math.max(0, 50 - (Math.abs(savingsRate) * 2));
         healthStatus = "Bahaya ⚠️";
@@ -82,155 +86,164 @@ export function StatisticsContent({ user, transactions }: { user: any; transacti
     return { totalIncome, totalExpense, areaData, pieData, healthScore: Math.round(healthScore), healthStatus, healthColor };
   }, [transactions]);
 
+  const scoreColor = stats.healthScore >= 80 ? "#c8f031" : stats.healthScore >= 50 ? "#ffd447" : "#ff5c7a";
+  const ringCirc = 2 * Math.PI * 62;
+
   return (
-    <div className="space-y-6 pb-24 p-4 md:p-6 lg:p-8 max-w-3xl mx-auto">
-      {/* Header */}
-      <div className="flex items-center gap-3">
-        <Button variant="ghost" size="icon" asChild className="rounded-full">
-          <Link href="/dashboard"><ChevronLeft className="h-6 w-6" /></Link>
-        </Button>
-        <div>
-          <h1 className="text-2xl font-extrabold tracking-tight text-foreground flex items-center gap-2">
-            Statistik <BarChart3 className="h-6 w-6 text-primary" />
-          </h1>
-          <p className="text-muted-foreground text-sm">Analisis kesehatan finansial Anda</p>
-        </div>
-      </div>
+    <div className="space-y-5 pb-4">
+      <PageHeader title="Statistik" description="Analisis kesehatan finansial Anda" />
 
-      {/* Financial Health Card */}
-      <div className="relative overflow-hidden rounded-[2rem] bg-[#111111] p-6 text-white shadow-lg border border-border/50">
-        <div className="flex items-center justify-between mb-6">
-          <div className="flex items-center gap-2 text-xs font-semibold tracking-wider text-muted-foreground uppercase">
-            <Activity className="h-4 w-4 text-primary" />
-            <span>Kesehatan Keuangan</span>
+      <div className="grid gap-5 lg:grid-cols-3">
+        {/* Financial Health Card */}
+        <section className="flex flex-col gap-4 rounded-cartoon border-3 border-line p-5 text-ink shadow-cartoon-lg" style={{ background: scoreColor }}>
+          <div className="flex items-center gap-2 text-xs font-black uppercase tracking-[0.1em]">
+            <Activity className="h-4 w-4" strokeWidth={3} />
+            Kesehatan Keuangan
           </div>
-        </div>
-        
-        <div className="flex flex-col items-center justify-center space-y-2 mb-6">
-          <div className="relative flex items-center justify-center h-40 w-40 rounded-full border-[10px] border-white/5">
-            <div 
-              className="absolute inset-0 rounded-full border-[10px] border-primary transition-all duration-1000 ease-out"
-              style={{ clipPath: `polygon(0 0, 100% 0, 100% ${stats.healthScore}%, 0 ${stats.healthScore}%)`, transform: 'rotate(180deg)' }} 
-            />
-            <div className="text-center z-10 flex flex-col items-center justify-center">
-              <span className="text-5xl font-black">{stats.healthScore}</span>
-              <span className="text-[10px] uppercase tracking-widest text-muted-foreground mt-1">Skor</span>
+          <div className="flex items-center gap-4">
+            <svg width="150" height="150" viewBox="0 0 150 150" role="img" aria-label={`Skor ${stats.healthScore} dari 100`} className="shrink-0">
+              <circle cx="75" cy="75" r="62" fill="#ffffff" stroke="#1e1b18" strokeWidth="3" />
+              <circle cx="75" cy="75" r="62" fill="none" stroke="#fff4de" strokeWidth="16" />
+              <circle
+                cx="75"
+                cy="75"
+                r="62"
+                fill="none"
+                stroke="#1e1b18"
+                strokeWidth="16"
+                strokeLinecap="round"
+                strokeDasharray={`${(ringCirc * stats.healthScore) / 100} ${ringCirc}`}
+                transform="rotate(-90 75 75)"
+              />
+              <circle cx="75" cy="75" r="70" fill="none" stroke="#1e1b18" strokeWidth="3" />
+              <circle cx="75" cy="75" r="54" fill="none" stroke="#1e1b18" strokeWidth="3" />
+              <text x="75" y="80" textAnchor="middle" fontFamily="var(--font-fredoka)" fontWeight="700" fontSize="40" fill="#1e1b18">
+                {stats.healthScore}
+              </text>
+              <text x="75" y="100" textAnchor="middle" fontFamily="var(--font-nunito)" fontWeight="900" fontSize="10" fill="#1e1b18" letterSpacing="2">
+                SKOR
+              </text>
+            </svg>
+            <div className="min-w-0">
+              <p className="font-display text-2xl font-bold leading-tight">{stats.healthStatus}</p>
+              <Mascot size={56} mood={stats.healthScore >= 50 ? "happy" : "worried"} className="mt-2" />
             </div>
           </div>
-          <p className={`text-lg font-bold ${stats.healthColor} mt-2`}>{stats.healthStatus}</p>
-        </div>
-
-        <div className="grid grid-cols-2 gap-4 pt-4 border-t border-white/10">
-          <div>
-            <p className="text-[10px] font-bold text-gray-500 uppercase tracking-wider mb-1">Total Pemasukan</p>
-            <p className="text-sm font-bold text-primary flex items-center gap-1">
-              <TrendingUp className="h-3 w-3" /> {formatCurrency(stats.totalIncome)}
-            </p>
-          </div>
-          <div>
-            <p className="text-[10px] font-bold text-gray-500 uppercase tracking-wider mb-1">Total Pengeluaran</p>
-            <p className="text-sm font-bold text-pink-500 flex items-center gap-1">
-              <TrendingDown className="h-3 w-3" /> {formatCurrency(stats.totalExpense)}
-            </p>
-          </div>
-        </div>
-      </div>
-
-      {/* Cash Flow Chart */}
-      <div className="bg-card rounded-[2rem] p-6 shadow-sm border border-border/50">
-        <div className="flex items-center gap-2 mb-6">
-          <TrendingUp className="h-5 w-5 text-muted-foreground" />
-          <h2 className="text-lg font-bold text-foreground">Arus Kas (Tahun Ini)</h2>
-        </div>
-        
-        <div className="h-64 w-full">
-          {stats.areaData.length > 0 ? (
-            <ResponsiveContainer width="100%" height="100%">
-              <AreaChart data={stats.areaData} margin={{ top: 10, right: 0, left: -20, bottom: 0 }}>
-                <defs>
-                  <linearGradient id="colorIncome" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="5%" stopColor="#CCFF00" stopOpacity={0.3}/>
-                    <stop offset="95%" stopColor="#CCFF00" stopOpacity={0}/>
-                  </linearGradient>
-                  <linearGradient id="colorExpense" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="5%" stopColor="#ec4899" stopOpacity={0.3}/>
-                    <stop offset="95%" stopColor="#ec4899" stopOpacity={0}/>
-                  </linearGradient>
-                </defs>
-                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="hsl(var(--border))" opacity={0.5} />
-                <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fontSize: 12, fill: 'hsl(var(--muted-foreground))' }} />
-                <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 10, fill: 'hsl(var(--muted-foreground))' }} tickFormatter={(val) => `Rp${val/1000}k`} />
-                <Tooltip 
-                  contentStyle={{ backgroundColor: 'hsl(var(--card))', borderRadius: '16px', border: '1px solid hsl(var(--border))' }}
-                  itemStyle={{ fontWeight: 'bold' }}
-                />
-                <Area type="monotone" dataKey="income" name="Pemasukan" stroke="#CCFF00" strokeWidth={3} fillOpacity={1} fill="url(#colorIncome)" />
-                <Area type="monotone" dataKey="expense" name="Pengeluaran" stroke="#ec4899" strokeWidth={3} fillOpacity={1} fill="url(#colorExpense)" />
-              </AreaChart>
-            </ResponsiveContainer>
-          ) : (
-            <div className="h-full flex items-center justify-center text-muted-foreground text-sm">
-              Belum ada data transaksi tahun ini.
+          <div className="grid grid-cols-2 gap-2.5">
+            <div className="rounded-2xl border-2.5 border-ink bg-white px-3 py-2">
+              <p className="flex items-center gap-1 text-[11px] font-black uppercase tracking-wider">
+                <TrendingUp className="h-3.5 w-3.5" strokeWidth={3} /> Masuk
+              </p>
+              <p className="truncate text-sm font-black">{formatCurrency(stats.totalIncome)}</p>
             </div>
-          )}
-        </div>
-      </div>
+            <div className="rounded-2xl border-2.5 border-ink bg-white px-3 py-2">
+              <p className="flex items-center gap-1 text-[11px] font-black uppercase tracking-wider">
+                <TrendingDown className="h-3.5 w-3.5" strokeWidth={3} /> Keluar
+              </p>
+              <p className="truncate text-sm font-black">{formatCurrency(stats.totalExpense)}</p>
+            </div>
+          </div>
+        </section>
 
-      {/* Expense by Category Pie Chart */}
-      <div className="bg-card rounded-[2rem] p-6 shadow-sm border border-border/50">
-        <div className="flex items-center gap-2 mb-6">
-          <PieChartIcon className="h-5 w-5 text-muted-foreground" />
-          <h2 className="text-lg font-bold text-foreground">Distribusi Pengeluaran</h2>
-        </div>
+        {/* Cash Flow Chart */}
+        <section className="rounded-cartoon border-3 border-line bg-card p-5 shadow-cartoon lg:col-span-2">
+          <div className="mb-4 flex flex-wrap items-center justify-between gap-2">
+            <h2 className="font-display text-xl font-semibold">Arus Kas (Tahun Ini)</h2>
+            <div className="flex gap-3 text-xs font-black">
+              <span className="flex items-center gap-1.5"><span className="h-3.5 w-3.5 rounded-[5px] border-2 border-ink bg-cartoon-mint" /> Pemasukan</span>
+              <span className="flex items-center gap-1.5"><span className="h-3.5 w-3.5 rounded-[5px] border-2 border-ink bg-cartoon-pink" /> Pengeluaran</span>
+            </div>
+          </div>
 
-        <div className="flex flex-col md:flex-row items-center gap-6">
-          <div className="h-48 w-48 relative">
-            {stats.pieData.length > 0 ? (
+          <div className="h-64 w-full lg:h-[290px]">
+            {stats.areaData.length > 0 ? (
               <ResponsiveContainer width="100%" height="100%">
-                <PieChart>
-                  <Pie
-                    data={stats.pieData}
-                    cx="50%"
-                    cy="50%"
-                    innerRadius={60}
-                    outerRadius={80}
-                    paddingAngle={5}
-                    dataKey="value"
-                    stroke="none"
-                  >
-                    {stats.pieData.map((entry, index) => (
-                      <Cell key={`cell-${index}`} fill={entry.color} />
-                    ))}
-                  </Pie>
-                  <Tooltip 
-                    contentStyle={{ backgroundColor: 'hsl(var(--card))', borderRadius: '16px', border: '1px solid hsl(var(--border))' }}
-                    itemStyle={{ fontWeight: 'bold' }}
+                <AreaChart data={stats.areaData} margin={{ top: 10, right: 6, left: -12, bottom: 0 }}>
+                  <CartesianGrid strokeDasharray="4 6" vertical={false} stroke="rgb(var(--divider))" />
+                  <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fontSize: 12, fontWeight: 800, fill: "rgb(var(--muted-foreground))" }} />
+                  <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 11, fontWeight: 800, fill: "rgb(var(--muted-foreground))" }} tickFormatter={(val) => `${val / 1000}rb`} />
+                  <Tooltip
+                    contentStyle={{ backgroundColor: "rgb(var(--card))", borderRadius: "16px", border: "3px solid rgb(var(--line))", boxShadow: "4px 4px 0 rgb(var(--line))", fontWeight: 800 }}
                     formatter={(value: number) => formatCurrency(value)}
                   />
-                </PieChart>
+                  <Area type="monotone" dataKey="income" name="Pemasukan" stroke="rgb(var(--foreground))" strokeWidth={3} fill="#9be7c4" fillOpacity={0.85} />
+                  <Area type="monotone" dataKey="expense" name="Pengeluaran" stroke="rgb(var(--foreground))" strokeWidth={3} fill="#ff9ebb" fillOpacity={0.85} />
+                </AreaChart>
               </ResponsiveContainer>
             ) : (
-              <div className="absolute inset-0 flex items-center justify-center text-muted-foreground text-sm text-center">
-                Belum ada pengeluaran
+              <div className="flex h-full items-center justify-center text-sm font-bold text-muted-foreground">
+                Belum ada data transaksi tahun ini.
               </div>
             )}
           </div>
+        </section>
 
-          <div className="flex-1 w-full space-y-3">
-            {stats.pieData.map((item, idx) => (
-              <div key={idx} className="flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <div className="h-3 w-3 rounded-full" style={{ backgroundColor: item.color }} />
-                  <span className="text-sm font-medium">{item.name}</span>
+        {/* Expense by Category */}
+        <section className="rounded-cartoon border-3 border-line bg-card p-5 shadow-cartoon lg:col-span-3">
+          <h2 className="mb-4 font-display text-xl font-semibold">Distribusi Pengeluaran</h2>
+
+          <div className="flex flex-col items-center gap-6 md:flex-row">
+            <div className="relative h-52 w-52 shrink-0">
+              {stats.pieData.length > 0 ? (
+                <ResponsiveContainer width="100%" height="100%">
+                  <PieChart>
+                    <Pie
+                      data={stats.pieData}
+                      cx="50%"
+                      cy="50%"
+                      innerRadius={56}
+                      outerRadius={92}
+                      paddingAngle={0}
+                      dataKey="value"
+                      stroke="rgb(var(--line))"
+                      strokeWidth={3}
+                    >
+                      {stats.pieData.map((entry, index) => (
+                        <Cell key={`cell-${index}`} fill={pastel(entry.color)} />
+                      ))}
+                    </Pie>
+                    <Tooltip
+                      contentStyle={{ backgroundColor: "rgb(var(--card))", borderRadius: "16px", border: "3px solid rgb(var(--line))", fontWeight: 800 }}
+                      formatter={(value: number) => formatCurrency(value)}
+                    />
+                  </PieChart>
+                </ResponsiveContainer>
+              ) : (
+                <div className="absolute inset-0 flex items-center justify-center text-center text-sm font-bold text-muted-foreground">
+                  Belum ada pengeluaran
                 </div>
-                <div className="text-sm font-bold">
-                  {Math.round((item.value / stats.totalExpense) * 100)}%
+              )}
+            </div>
+
+            <div className="grid w-full flex-1 gap-x-8 gap-y-3 sm:grid-cols-2">
+              {stats.pieData.map((item, idx) => (
+                <div key={idx} className="flex items-center justify-between gap-3 border-b-2 border-dashed border-divider pb-2">
+                  <div className="flex min-w-0 items-center gap-2.5">
+                    <span className="h-4 w-4 shrink-0 rounded-[5px] border-2 border-ink" style={{ backgroundColor: pastel(item.color) }} />
+                    <span className="truncate text-sm font-black">{item.name}</span>
+                  </div>
+                  <div className="flex shrink-0 items-center gap-3 text-sm">
+                    <span className="font-bold text-muted-foreground">{formatCurrency(item.value)}</span>
+                    <span className="w-10 text-right font-black">{Math.round((item.value / stats.totalExpense) * 100)}%</span>
+                  </div>
                 </div>
-              </div>
-            ))}
+              ))}
+            </div>
           </div>
-        </div>
+        </section>
       </div>
     </div>
   );
+}
+
+/** Soften a category color into the cartoon pastel used by stickers. */
+function pastel(hex: string) {
+  const m = /^#?([0-9a-f]{6})$/i.exec(hex);
+  if (!m) return hex;
+  const n = parseInt(m[1], 16);
+  const mix = (c: number) => Math.round(c * 0.55 + 255 * 0.45);
+  const r = mix((n >> 16) & 255);
+  const g = mix((n >> 8) & 255);
+  const b = mix(n & 255);
+  return `#${((1 << 24) | (r << 16) | (g << 8) | b).toString(16).slice(1)}`;
 }

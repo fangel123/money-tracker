@@ -12,15 +12,20 @@ export function Toaster() {
       toastOptions={{
         duration: 5000,
         style: {
-          background: "hsl(var(--background))",
-          color: "hsl(var(--foreground))",
-          border: "1px solid hsl(var(--border))",
+          background: "rgb(var(--card))",
+          color: "rgb(var(--foreground))",
+          border: "3px solid rgb(var(--line))",
+          borderRadius: "18px",
+          boxShadow: "4px 4px 0 rgb(var(--line))",
+          fontFamily: "var(--font-nunito)",
+          fontWeight: 800,
         },
+        // Warna kartun dengan teks tinta supaya tetap terbaca di mode terang & gelap
         classNames: {
-          success: "bg-green-500 text-white",
-          error: "bg-red-500 text-white",
-          warning: "bg-amber-500 text-white",
-          info: "bg-blue-500 text-white",
+          success: "!bg-cartoon-mint !text-ink",
+          error: "!bg-cartoon-red !text-ink",
+          warning: "!bg-cartoon-yellow !text-ink",
+          info: "!bg-cartoon-sky !text-ink",
         },
       }}
     />

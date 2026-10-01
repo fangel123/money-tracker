@@ -81,9 +81,9 @@ export default function ResetPasswordPage() {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="text-center space-y-2">
-        <h1 className="text-2xl font-bold text-foreground">{t("title")}</h1>
-        <p className="text-muted-foreground">{t("subtitle")}</p>
+      <div className="space-y-1.5">
+        <h1 className="font-display text-[32px] font-bold leading-tight text-foreground">{t("title")}</h1>
+        <p className="font-bold text-muted-foreground">{t("subtitle")}</p>
       </div>
 
       {status === "verifying" && (
@@ -94,7 +94,7 @@ export default function ResetPasswordPage() {
 
       {status === "invalid" && (
         <div className="space-y-4">
-          <div className="rounded-lg bg-destructive/10 p-3 text-sm text-destructive" role="alert">
+          <div className="rounded-2xl border-2.5 border-destructive bg-destructive/10 p-3 text-sm font-bold text-destructive" role="alert">
             {t("invalidLink")}
           </div>
           <Button asChild className="w-full" size="lg">
@@ -104,7 +104,7 @@ export default function ResetPasswordPage() {
       )}
 
       {status === "valid" && success && (
-        <div className="rounded-lg bg-green-500/10 p-3 text-sm text-green-500" role="alert">
+        <div className="rounded-2xl border-2.5 border-income bg-income/10 p-3 text-sm font-bold text-income" role="alert">
           {t("success")}
         </div>
       )}
@@ -113,7 +113,7 @@ export default function ResetPasswordPage() {
         <>
           {/* Error message */}
           {errors.root && (
-            <div className="rounded-lg bg-destructive/10 p-3 text-sm text-destructive" role="alert">
+            <div className="rounded-2xl border-2.5 border-destructive bg-destructive/10 p-3 text-sm font-bold text-destructive" role="alert">
               {errors.root.message}
             </div>
           )}
@@ -124,7 +124,7 @@ export default function ResetPasswordPage() {
             <div>
               <Label htmlFor="password">{t("passwordLabel")}</Label>
               <div className="relative mt-1.5">
-                <Lock className="absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2 text-muted-foreground" />
+                <Lock className="absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2 text-foreground" strokeWidth={2.5} />
                 <Input
                   {...register("password")}
                   id="password"
@@ -149,7 +149,7 @@ export default function ResetPasswordPage() {
             <div>
               <Label htmlFor="confirm_password">{t("confirmLabel")}</Label>
               <div className="relative mt-1.5">
-                <Lock className="absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2 text-muted-foreground" />
+                <Lock className="absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2 text-foreground" strokeWidth={2.5} />
                 <Input
                   {...register("confirm_password")}
                   id="confirm_password"
@@ -173,8 +173,8 @@ export default function ResetPasswordPage() {
       )}
 
       {/* Back to login */}
-      <p className="text-center text-sm text-muted-foreground">
-        <Link href="/login" className="text-primary font-medium hover:underline">
+      <p className="text-center text-sm font-bold text-muted-foreground">
+        <Link href="/login" className="font-black text-foreground underline decoration-primary decoration-[3px] underline-offset-4">
           {t("backToLogin")}
         </Link>
       </p>

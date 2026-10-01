@@ -3,98 +3,75 @@
 import { useState } from "react";
 import { Link, usePathname } from "@/i18n/navigation";
 import { cn } from "@/lib/utils";
-import {
-  LayoutGrid,
-  Wallet,
-  ArrowRightLeft,
-  Plus,
-  Menu as MenuIcon,
-  Target,
-  Flag,
-  Coins,
-  LineChart,
-  BarChart3,
-  ScanLine,
-  MessageSquare,
-  Settings as SettingsIcon,
-  X,
-} from "lucide-react";
-import { Dialog, DialogContent } from "@/components/ui/dialog";
+import { LayoutGrid, Wallet, ArrowRightLeft, Plus, Menu as MenuIcon, type LucideIcon } from "lucide-react";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Sticker } from "@/components/common/Sticker";
+import { NAV_ITEMS, isNavActive } from "@/components/layout/nav-items";
 
-const navigation = [
-  { name: "dashboard", href: "/dashboard", icon: LayoutGrid },
-  { name: "accounts", href: "/accounts", icon: Wallet },
-  { name: "transactions", href: "/transactions", icon: ArrowRightLeft },
+const PRIMARY = [
+  { label: "Dashboard", href: "/dashboard", icon: LayoutGrid },
+  { label: "Akun", href: "/accounts", icon: Wallet },
+  { label: "Transaksi", href: "/transactions", icon: ArrowRightLeft },
 ] as const;
 
-const moreMenuItems = [
-  { label: "Budget", href: "/budgets", icon: Target },
-  { label: "Goals", href: "/goals", icon: Flag },
-  { label: "Utang", href: "/debts", icon: Coins },
-  { label: "Rencana", href: "/planner", icon: LineChart },
-  { label: "Statistik", href: "/statistics", icon: BarChart3 },
-  { label: "Scanner", href: "/scanner", icon: ScanLine },
-  { label: "AI Advisor", href: "/ai-advisor", icon: MessageSquare },
-  { label: "Pengaturan", href: "/settings", icon: SettingsIcon },
-] as const;
+const MORE_ITEMS = NAV_ITEMS.filter((item) => !PRIMARY.some((p) => p.href === item.href));
 
 export function BottomNav() {
   const pathname = usePathname();
   const [showMore, setShowMore] = useState(false);
+  const moreActive = MORE_ITEMS.some((item) => isNavActive(pathname, item.href));
 
   return (
     <>
       <nav
-        className="fixed bottom-6 left-6 right-6 z-50 rounded-[2rem] bg-card/90 shadow-[0_8px_30px_rgb(0,0,0,0.12)] backdrop-blur-md border border-border lg:hidden supports-[backdrop-filter]:bg-card/75"
+        className="fixed bottom-4 left-4 right-4 z-40 rounded-cartoon border-3 border-line bg-card shadow-cartoon lg:hidden"
         aria-label="Navigasi bawah"
       >
-        <div className="flex h-[4.5rem] items-center justify-around px-2 relative">
+        <div className="flex h-[72px] items-center justify-around px-2">
+          <NavItem {...PRIMARY[0]} active={isNavActive(pathname, PRIMARY[0].href)} />
+          <NavItem {...PRIMARY[1]} active={isNavActive(pathname, PRIMARY[1].href)} />
 
-          <NavItem item={navigation[0]} pathname={pathname} />
-          <NavItem item={navigation[1]} pathname={pathname} />
+          <Link
+            href="/transactions/new"
+            className="-mt-9 flex h-[62px] w-[62px] -rotate-[4deg] items-center justify-center rounded-[22px] border-3 border-ink bg-cartoon-pink text-ink shadow-cartoon transition-transform hover:scale-105 active:translate-x-1 active:translate-y-1 active:shadow-none"
+            aria-label="Tambah transaksi"
+          >
+            <Plus className="h-8 w-8" strokeWidth={3.5} />
+          </Link>
 
-          {/* Center FAB */}
-          <div className="flex flex-col items-center justify-center w-14">
-            <Link
-              href="/transactions/new"
-              className="absolute -top-3 flex h-16 w-16 items-center justify-center rounded-full bg-primary text-primary-foreground shadow-[0_8px_20px_rgba(204,255,0,0.4)] hover:bg-primary/90 transition-transform hover:scale-105 active:scale-95 border-[6px] border-background"
-              aria-label="Tambah transaksi"
-            >
-              <Plus className="h-8 w-8 stroke-[3]" />
-            </Link>
-          </div>
+          <NavItem {...PRIMARY[2]} active={isNavActive(pathname, PRIMARY[2].href)} />
 
-          <NavItem item={navigation[2]} pathname={pathname} />
-
-          {/* Lainnya: buka sheet berisi semua menu lain, supaya tidak harus lewat Dashboard dulu */}
           <button
             type="button"
             onClick={() => setShowMore(true)}
-            className="flex flex-col items-center justify-center w-12 h-12 rounded-full transition-all text-muted-foreground hover:bg-secondary"
+            className={cn(
+              "flex h-12 w-12 items-center justify-center rounded-2xl border-2.5 transition-colors",
+              moreActive ? "border-ink bg-primary text-ink" : "border-transparent text-foreground hover:bg-accent"
+            )}
             aria-label="Menu lainnya"
           >
-            <MenuIcon className="h-[22px] w-[22px]" strokeWidth={2} aria-hidden="true" />
+            <MenuIcon className="h-[22px] w-[22px]" strokeWidth={2.5} aria-hidden="true" />
           </button>
-
         </div>
       </nav>
-      {/* Spacer so content isn't hidden behind the floating nav */}
-      <div className="h-28 lg:hidden" aria-hidden="true" />
 
       <Dialog open={showMore} onOpenChange={setShowMore}>
-        <DialogContent className="sm:max-w-[425px] rounded-[2rem] p-6 border-border/50 shadow-2xl">
-          <div className="grid grid-cols-4 gap-4">
-            {moreMenuItems.map((item) => (
+        <DialogContent className="max-w-[calc(100%-2rem)] sm:max-w-[425px]">
+          <DialogHeader>
+            <DialogTitle>Menu lainnya</DialogTitle>
+          </DialogHeader>
+          <div className="grid grid-cols-4 gap-x-2 gap-y-4 pt-2">
+            {MORE_ITEMS.map((item, i) => (
               <Link
                 key={item.href}
                 href={item.href}
                 onClick={() => setShowMore(false)}
                 className="flex flex-col items-center gap-2 text-center"
               >
-                <div className="h-14 w-14 rounded-full bg-secondary flex items-center justify-center">
-                  <item.icon className="h-6 w-6" />
-                </div>
-                <span className="text-xs font-semibold">{item.label}</span>
+                <Sticker color={item.color} size="lg" tilt={i % 2 === 0 ? -4 : 4}>
+                  <item.icon />
+                </Sticker>
+                <span className="text-xs font-extrabold">{item.label}</span>
               </Link>
             ))}
           </div>
@@ -104,20 +81,18 @@ export function BottomNav() {
   );
 }
 
-function NavItem({ item, pathname }: { item: { name: string, href: string, icon: any }, pathname: string }) {
-  const isActive = pathname === item.href || (item.href !== "/dashboard" && pathname.startsWith(item.href + "/"));
+function NavItem({ label, href, icon: Icon, active }: { label: string; href: string; icon: LucideIcon; active: boolean }) {
   return (
     <Link
-      href={item.href}
+      href={href}
       className={cn(
-        "flex flex-col items-center justify-center w-12 h-12 rounded-full transition-all",
-        isActive
-          ? "text-foreground bg-secondary"
-          : "text-muted-foreground hover:bg-secondary"
+        "flex h-12 w-12 items-center justify-center rounded-2xl border-2.5 transition-colors",
+        active ? "border-ink bg-primary text-ink" : "border-transparent text-foreground hover:bg-accent"
       )}
-      aria-current={isActive ? "page" : undefined}
+      aria-label={label}
+      aria-current={active ? "page" : undefined}
     >
-      <item.icon className="h-[22px] w-[22px]" strokeWidth={isActive ? 2.5 : 2} aria-hidden="true" />
+      <Icon className="h-[22px] w-[22px]" strokeWidth={2.5} aria-hidden="true" />
     </Link>
   );
 }

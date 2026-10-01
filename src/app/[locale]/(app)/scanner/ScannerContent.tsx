@@ -6,6 +6,8 @@ import { ArrowLeft, Camera, Image as ImageIcon, Loader2, CheckCircle2, AlertCirc
 import { Link, useRouter } from "@/i18n/navigation";
 import { createBrowserSupabaseClient } from "@/lib/supabase/browser";
 import { formatCurrency } from "@/lib/utils";
+import { PageHeader } from "@/components/common/PageHeader";
+import { Mascot } from "@/components/common/Mascot";
 
 export function ScannerContent({ user, categories, accounts }: { user: any; categories: any[]; accounts: any[] }) {
   const router = useRouter();
@@ -87,34 +89,31 @@ export function ScannerContent({ user, categories, accounts }: { user: any; cate
   };
 
   return (
-    <div className="flex flex-col min-h-[calc(100vh-8rem)] bg-card rounded-[2rem] border border-border/50 shadow-sm overflow-hidden">
-      {/* Header */}
-      <div className="flex items-center gap-3 p-4 border-b bg-muted/30">
-        <Button variant="ghost" size="icon" asChild className="rounded-full">
-          <Link href="/dashboard"><ArrowLeft className="h-5 w-5" /></Link>
-        </Button>
-        <div>
-          <h2 className="font-bold">Scanner Struk AI</h2>
-          <p className="text-xs text-muted-foreground">Otomatis ekstrak total belanja</p>
-        </div>
-      </div>
+    <div className="space-y-5">
+      <PageHeader title="Scanner Struk" description="Foto struk, Koin yang baca totalnya" />
 
-      <div className="flex-1 p-6 flex flex-col items-center justify-center space-y-6">
+      <div className="flex flex-col items-center justify-center">
         
         {!image ? (
-          <div className="text-center space-y-6">
-            <div className="mx-auto h-32 w-32 rounded-full bg-primary/10 flex items-center justify-center">
-              <Camera className="h-12 w-12 text-primary" />
-            </div>
+          <div className="relative flex min-h-[420px] w-full flex-col items-center justify-center gap-4 rounded-[28px] border-3 border-dashed border-line bg-card px-6 py-10 text-center lg:min-h-[560px]">
+            {[
+              "left-4 top-4 border-l-[6px] border-t-[6px] rounded-tl-2xl",
+              "right-4 top-4 border-r-[6px] border-t-[6px] rounded-tr-2xl",
+              "bottom-4 left-4 border-b-[6px] border-l-[6px] rounded-bl-2xl",
+              "bottom-4 right-4 border-b-[6px] border-r-[6px] rounded-br-2xl",
+            ].map((pos) => (
+              <span key={pos} className={`absolute h-11 w-11 border-cartoon-lime ${pos}`} aria-hidden="true" />
+            ))}
+            <Mascot size={130} className="-rotate-6" />
             <div>
-              <h3 className="font-bold text-lg">Scan Struk Belanja</h3>
-              <p className="text-sm text-muted-foreground max-w-[250px] mx-auto mt-2">
+              <h3 className="font-display text-2xl font-bold lg:text-[28px]">Arahkan kamera ke struk</h3>
+              <p className="mx-auto mt-1.5 max-w-xs text-sm font-bold text-muted-foreground">
                 Foto struk kamu dan AI akan mencari nominal yang harus dicatat.
               </p>
             </div>
-            <div className="flex gap-4 justify-center">
-              <Button onClick={() => fileInputRef.current?.click()} className="rounded-full" size="lg">
-                <Camera className="mr-2 h-5 w-5" /> Ambil Foto / Galeri
+            <div className="flex justify-center gap-4">
+              <Button onClick={() => fileInputRef.current?.click()} size="lg">
+                <Camera className="mr-2 h-5 w-5" strokeWidth={2.5} /> Ambil Foto / Galeri
               </Button>
               <input 
                 type="file" 
@@ -127,51 +126,51 @@ export function ScannerContent({ user, categories, accounts }: { user: any; cate
             </div>
           </div>
         ) : (
-          <div className="w-full max-w-sm space-y-6">
-            <div className="relative rounded-2xl overflow-hidden border border-border bg-black aspect-[3/4] flex items-center justify-center">
+          <div className="grid w-full items-start gap-5 md:grid-cols-2">
+            <div className="relative flex aspect-[3/4] items-center justify-center overflow-hidden rounded-cartoon border-3 border-line bg-ink shadow-cartoon">
               <img src={image} alt="Struk" className="max-h-full max-w-full object-contain opacity-80" />
               
               {isLoading && (
-                <div className="absolute inset-0 bg-black/60 backdrop-blur-sm flex flex-col items-center justify-center text-white">
-                  <Loader2 className="h-10 w-10 animate-spin text-primary mb-4" />
-                  <p className="font-medium animate-pulse">AI sedang membaca struk...</p>
+                <div className="absolute inset-0 flex flex-col items-center justify-center bg-ink/70 text-cream backdrop-blur-sm">
+                  <Mascot size={80} className="mb-3 animate-bounce" />
+                  <p className="font-display text-lg font-semibold">Koin sedang membaca struk...</p>
                 </div>
               )}
             </div>
 
             {error && (
-              <div className="bg-destructive/10 text-destructive p-4 rounded-2xl flex items-start gap-3">
+              <div className="flex items-start gap-3 rounded-2xl border-2.5 border-destructive bg-destructive/10 p-4 font-bold text-destructive">
                 <AlertCircle className="h-5 w-5 shrink-0 mt-0.5" />
                 <p className="text-sm">{error}</p>
               </div>
             )}
 
             {result && !isLoading && (
-              <div className="bg-secondary p-5 rounded-2xl space-y-4 border border-border/50">
-                <div className="flex items-center gap-2 text-primary font-semibold mb-2">
-                  <CheckCircle2 className="h-5 w-5" />
+              <div className="space-y-4 rounded-cartoon border-3 border-line bg-cartoon-mint p-5 text-ink shadow-cartoon">
+                <div className="flex items-center gap-2 font-display text-lg font-semibold">
+                  <CheckCircle2 className="h-5 w-5" strokeWidth={3} />
                   Berhasil Terbaca!
                 </div>
                 
                 <div>
-                  <p className="text-xs text-muted-foreground uppercase tracking-wider font-bold">Total Ditemukan</p>
-                  <p className="text-3xl font-black text-foreground mt-1">
+                  <p className="text-xs font-black uppercase tracking-wider">Total Ditemukan</p>
+                  <p className="mt-1 font-display text-4xl font-bold">
                     {formatCurrency(result.amount)}
                   </p>
                 </div>
                 
                 {result.note && (
                   <div>
-                    <p className="text-xs text-muted-foreground uppercase tracking-wider font-bold">Ringkasan</p>
-                    <p className="text-sm font-medium mt-1">{result.note}</p>
+                    <p className="text-xs font-black uppercase tracking-wider">Ringkasan</p>
+                    <p className="mt-1 text-sm font-bold">{result.note}</p>
                   </div>
                 )}
 
                 <div className="pt-2 flex gap-3">
-                  <Button variant="outline" className="flex-1 rounded-full" onClick={() => {setImage(null); setResult(null)}}>
+                  <Button variant="outline" className="flex-1" onClick={() => {setImage(null); setResult(null)}}>
                     Ulangi
                   </Button>
-                  <Button className="flex-1 rounded-full" onClick={saveTransaction}>
+                  <Button className="flex-1" onClick={saveTransaction}>
                     Simpan
                   </Button>
                 </div>
