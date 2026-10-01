@@ -118,7 +118,8 @@ export function TransactionsContent({ locale, userId, initialSearchParams }: Tra
       if (error) throw error;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["transactions"] });
+      // Menghapus transaksi mengubah saldo akun, budget, statistik — segarkan semuanya
+      queryClient.invalidateQueries();
     },
   });
 
