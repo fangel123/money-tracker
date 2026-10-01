@@ -12,7 +12,7 @@ import { Plus, Search, Filter, ChevronRight, MoreVertical, Edit, Trash2, ArrowLe
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { Label } from "@/components/ui/label";
 import { Link } from "@/i18n/navigation";
-import { useRouter, useSearchParams } from "next/navigation";
+import { useRouter, useSearchParams, usePathname } from "next/navigation";
 import { Transaction, Category, Account } from "@/types/domain";
 import { createBrowserSupabaseClient } from "@/lib/supabase/browser";
 import { CategorySticker } from "@/components/common/CategorySticker";
@@ -27,6 +27,8 @@ interface TransactionsContentProps {
 
 export function TransactionsContent({ locale, userId, initialSearchParams }: TransactionsContentProps) {
   const router = useRouter();
+  // Path lengkap termasuk locale (/id/transactions), supaya query filter tidak hilang
+  const pathname = usePathname();
   const searchParams = useSearchParams();
   const t = useTranslations("transactions");
   const ct = useTranslations("common");
@@ -127,7 +129,7 @@ export function TransactionsContent({ locale, userId, initialSearchParams }: Tra
       newParams.delete(key);
     }
     newParams.set("page", "1"); // reset page on filter
-    router.push(`/transactions?${newParams.toString()}`);
+    router.push(`${pathname}?${newParams.toString()}`);
   };
 
   // Escape satu field CSV: bungkus dengan tanda kutip kalau mengandung koma, kutip, atau baris baru
@@ -349,7 +351,7 @@ export function TransactionsContent({ locale, userId, initialSearchParams }: Tra
                     const newParams = new URLSearchParams(searchParams.toString());
                     newParams.set("sort", s);
                     newParams.set("order", o);
-                    router.push(`/transactions?${newParams.toString()}`);
+                    router.push(`${pathname}?${newParams.toString()}`);
                   }}
                 >
                   <SelectTrigger className="rounded-xl border-line bg-secondary h-10">
@@ -371,7 +373,7 @@ export function TransactionsContent({ locale, userId, initialSearchParams }: Tra
                 size="sm"
                 onClick={() => {
                   setSearchQuery("");
-                  router.push("/transactions");
+                  router.push(pathname);
                   setShowFilters(false);
                 }}
                 className="text-muted-foreground text-xs font-bold hover:text-foreground rounded-full"
@@ -394,7 +396,7 @@ export function TransactionsContent({ locale, userId, initialSearchParams }: Tra
               titleKey="transactions.empty.title"
               descriptionKey="transactions.empty.description"
               actionKey="transactions.empty.action"
-              onAction={() => router.push("/transactions/new")}
+              onAction={() => router.push(`${pathname}/new`)}
             />
           </div>
         ) : (

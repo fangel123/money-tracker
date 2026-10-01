@@ -10,6 +10,7 @@ import {
   ScanLine,
   MessageSquare,
   Settings,
+  Tags,
   type LucideIcon,
 } from "lucide-react";
 
@@ -28,6 +29,7 @@ export const NAV_ITEMS: NavItem[] = [
   { label: "Akun", href: "/accounts", icon: Wallet, color: "#c8f031" },
   { label: "Goals", href: "/goals", icon: Flag, color: "#9be7c4" },
   { label: "Utang", href: "/debts", icon: Coins, color: "#ff9ebb" },
+  { label: "Kategori", href: "/categories", icon: Tags, color: "#ff9ebb" },
   { label: "Rencana", href: "/planner", icon: CalendarDays, color: "#c9b6ff" },
   { label: "Statistik", href: "/statistics", icon: BarChart3, color: "#ffb86b" },
   { label: "Scanner", href: "/scanner", icon: ScanLine, color: "#8fd3ff" },

@@ -13,8 +13,9 @@ export async function middleware(request: NextRequest) {
   // Redirect if no locale prefix
   if (!pathnameHasLocale) {
     const locale = defaultLocale;
+    // Pertahankan query string (?type=income&page=2) saat menambahkan prefix locale
     return NextResponse.redirect(
-      new URL(`/${locale}${pathname}`, request.url)
+      new URL(`/${locale}${pathname}${request.nextUrl.search}`, request.url)
     );
   }
 
