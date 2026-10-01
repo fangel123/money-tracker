@@ -67,3 +67,21 @@ export const forgotPasswordSchema = z.object({
 });
 
 export type ForgotPasswordFormData = z.infer<typeof forgotPasswordSchema>;
+
+export const resetPasswordSchema = z
+  .object({
+    password: z
+      .string()
+      .min(8, "Kata sandi minimal 8 karakter")
+      .regex(/[A-Z]/, "Harus ada huruf besar")
+      .regex(/[a-z]/, "Harus ada huruf kecil")
+      .regex(/[0-9]/, "Harus ada angka")
+      .regex(/[^A-Za-z0-9]/, "Harus ada simbol"),
+    confirm_password: z.string().min(1, "Konfirmasi kata sandi wajib diisi"),
+  })
+  .refine((data) => data.password === data.confirm_password, {
+    message: "Kata sandi tidak cocok",
+    path: ["confirm_password"],
+  });
+
+export type ResetPasswordFormData = z.infer<typeof resetPasswordSchema>;

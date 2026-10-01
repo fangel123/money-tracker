@@ -102,6 +102,22 @@
       "submit": "Send Reset Link",
       "success": "Reset link sent to your email",
       "backToLogin": "Back to login"
+    },
+    "resetPassword": {
+      "title": "Reset Password",
+      "subtitle": "Enter a new password for your account",
+      "passwordLabel": "New Password",
+      "confirmLabel": "Confirm Password",
+      "submit": "Save Password",
+      "submitting": "Saving...",
+      "verifying": "Verifying link...",
+      "invalidLink": "This reset link is invalid or has expired. Please request a new one.",
+      "requestNewLink": "Request a new link",
+      "success": "Password updated. Redirecting to dashboard...",
+      "error": "Failed to update password. Please try again.",
+      "showPassword": "Show password",
+      "hidePassword": "Hide password",
+      "backToLogin": "Back to login"
     }
   },
   "dashboard": {
