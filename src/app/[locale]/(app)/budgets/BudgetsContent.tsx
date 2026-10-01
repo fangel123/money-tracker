@@ -8,7 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { EmptyState } from "@/components/common/EmptyState";
-import { Plus, Edit, Trash2, AlertTriangle, Calendar, Target, MoreVertical } from "lucide-react";
+import { Plus, Edit, Trash2, AlertTriangle, Calendar, Target, MoreVertical, BarChart3, Wallet } from "lucide-react";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -21,6 +21,7 @@ import { DynamicIcon } from "@/components/common/DynamicIcon";
 import { CategorySticker } from "@/components/common/CategorySticker";
 import { PageHeader } from "@/components/common/PageHeader";
 import { HeroCard, CartoonBar } from "@/components/common/HeroCard";
+import { StatCard } from "@/components/common/StatCard";
 
 interface BudgetsContentProps {
   locale: "id" | "en";
@@ -119,6 +120,29 @@ export function BudgetsContent({ locale, userId, initialBudgets, initialCategori
   const totalBudgetAmount = filteredBudgets.reduce((sum, b) => sum + Number(b.amount || 0), 0);
   const totalBudgetSpent = filteredBudgets.reduce((sum, b) => sum + Number(b.spent || 0), 0);
   const totalBudgetProgress = totalBudgetAmount > 0 ? (totalBudgetSpent / totalBudgetAmount) * 100 : 0;
+  const totalRemaining = Math.max(totalBudgetAmount - totalBudgetSpent, 0);
+  // Sisa hari di periode berjalan (termasuk hari ini), untuk saran jatah harian
+  const periodEnd = new Date(`${getPeriodRange(currentPeriod).end}T00:00:00`);
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  const daysLeft = Math.max(1, Math.round((periodEnd.getTime() - today.getTime()) / 86_400_000));
+
+  const periodPills = (
+    <div className="flex gap-2 overflow-x-auto scrollbar-hide">
+      {(["weekly", "monthly", "yearly"] as const).map((period) => (
+        <Button
+          key={period}
+          variant={currentPeriod === period ? "default" : "outline"}
+          onClick={() => setCurrentPeriod(period)}
+          size="sm"
+          aria-pressed={currentPeriod === period}
+          className="rounded-full px-5"
+        >
+          {t(`list.${period}`)}
+        </Button>
+      ))}
+    </div>
+  );
 
   return (
     <div className="space-y-5 pb-4">
@@ -126,10 +150,13 @@ export function BudgetsContent({ locale, userId, initialBudgets, initialCategori
         title="Budget"
         description={t("header.description")}
         action={
+          <>
+          <div className="hidden lg:block">{periodPills}</div>
           <Button onClick={() => { setEditingBudget(null); setShowForm(true); }} aria-label={t("addTitle")}>
             <Plus className="h-5 w-5 sm:mr-1.5" strokeWidth={3} />
             <span className="hidden sm:inline">Buat Budget</span>
           </Button>
+          </>
         }
       />
 
@@ -139,6 +166,7 @@ export function BudgetsContent({ locale, userId, initialBudgets, initialCategori
           color="#ffd447"
           label={`Total budget ${t(`list.${currentPeriod}`).toLowerCase()}`}
           value={formatCurrency(totalBudgetSpent, "IDR", locale)}
+          className="lg:hidden"
         >
           <p className="mt-1.5 text-sm font-extrabold">dari total {formatCurrency(totalBudgetAmount, "IDR", locale)}</p>
           <div className="mt-4 flex items-center gap-3">
@@ -148,23 +176,38 @@ export function BudgetsContent({ locale, userId, initialBudgets, initialCategori
         </HeroCard>
       )}
 
-      {/* Tabs */}
-      <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-hide">
-        {(["weekly", "monthly", "yearly"] as const).map((period) => (
-          <Button
-            key={period}
-            variant={currentPeriod === period ? "default" : "outline"}
-            onClick={() => setCurrentPeriod(period)}
-            size="sm"
-            className="rounded-full px-5"
-          >
-            {t(`list.${period}`)}
-          </Button>
-        ))}
-      </div>
+      {/* Desktop stats */}
+      {filteredBudgets.length > 0 && (
+        <div className="hidden gap-5 lg:grid lg:grid-cols-3">
+          <StatCard
+            color="#ffd447"
+            label="Total budget"
+            value={formatCurrency(totalBudgetAmount, "IDR", locale)}
+            note={`${filteredBudgets.length} kategori dianggarkan`}
+            icon={<Target />}
+          />
+          <StatCard
+            label="Terpakai"
+            value={formatCurrency(totalBudgetSpent, "IDR", locale)}
+            note={`${Math.round(totalBudgetProgress)}% dari total`}
+            icon={<BarChart3 />}
+            valueClassName={totalBudgetProgress > 100 ? "text-expense" : undefined}
+          />
+          <StatCard
+            color="#9be7c4"
+            label="Sisa"
+            value={formatCurrency(totalRemaining, "IDR", locale)}
+            note={`± ${formatCurrency(Math.floor(totalRemaining / daysLeft), "IDR", locale)} per hari`}
+            icon={<Wallet />}
+          />
+        </div>
+      )}
+
+      {/* Tabs (mobile) */}
+      <div className="pb-2 lg:hidden">{periodPills}</div>
 
       {/* List */}
-      <div className="space-y-4 lg:grid lg:grid-cols-2 lg:gap-5 lg:space-y-0 2xl:grid-cols-3">
+      <div className="space-y-4 lg:grid lg:grid-cols-2 lg:gap-5 lg:space-y-0 xl:grid-cols-3">
         {filteredBudgets.length === 0 ? (
           <div className="bg-card rounded-cartoon border-3 border-line p-8 shadow-cartoon lg:col-span-full">
             <EmptyState

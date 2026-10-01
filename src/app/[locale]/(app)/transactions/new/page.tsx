@@ -32,7 +32,7 @@ export default async function TransactionNewPage({
     <TransactionFormContent
       locale={locale as "id" | "en"}
       userId={user.id}
-      initialType={(type as "income" | "expense") || "expense"}
+      initialType={type === "income" || type === "transfer" ? type : "expense"}
       categories={categories || []}
       accounts={accounts || []}
       isEdit={false}

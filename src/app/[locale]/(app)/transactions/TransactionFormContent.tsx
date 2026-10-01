@@ -25,7 +25,7 @@ import { useRouter, usePathname } from "next/navigation";
 interface TransactionFormContentProps {
   locale: "id" | "en";
   userId: string;
-  initialType: "income" | "expense";
+  initialType: "income" | "expense" | "transfer";
   categories: Category[];
   accounts: Account[];
   isEdit: boolean;
