@@ -26,7 +26,7 @@ export async function POST(req: Request) {
       supabase.from("categories").select("*"),
       supabase.from("accounts").select("*"),
       supabase.from("budgets").select("*, category:categories(name)"),
-      supabase.from("transactions").select("*, category:categories(name), account:accounts(name)").order("date", { ascending: false }).limit(50),
+      supabase.from("transactions").select("*, category:categories(name), account:accounts!transactions_account_id_fkey(name)").order("date", { ascending: false }).limit(50),
       supabase.from("goals").select("*"),
       supabase.from("debts").select("*"),
       supabase.from("planners").select("*"),
