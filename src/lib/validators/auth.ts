@@ -9,7 +9,6 @@ export type ProfileFormData = z.infer<typeof profileSchema>;
 
 export const preferencesSchema = z.object({
   locale: z.enum(["id", "en", "zh", "ja", "ko"]).default("id"),
-  currency: z.string().length(3).default("IDR"),
   theme: z.enum(["light", "dark", "system"]).default("system"),
 });
 
