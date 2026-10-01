@@ -4,7 +4,8 @@ import { useState } from "react";
 import { formatCurrency, cn } from "@/lib/utils";
 import { PageHeader } from "@/components/common/PageHeader";
 import { Mascot } from "@/components/common/Mascot";
-import { CheckSquare, Plus, Trash2, CheckCircle2, ChevronRight, Activity, MoreVertical, Edit } from "lucide-react";
+import { CheckSquare, Plus, Trash2, CheckCircle2, ChevronRight, Activity, MoreVertical, Edit, Copy } from "lucide-react";
+import { CartoonBar } from "@/components/common/HeroCard";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button";
@@ -324,6 +325,24 @@ export function PlannerContent({ user, initialPlanners, initialItems, accounts, 
   const totalIncome = activeItems.filter((i:any) => i.type === 'income').reduce((s:number, i:any) => s + Number(i.amount), 0);
   const totalExpense = activeItems.filter((i:any) => i.type === 'expense').reduce((s:number, i:any) => s + Number(i.amount), 0);
   const sisa = totalIncome - totalExpense;
+  const doneCount = activeItems.length - unpaidCount;
+  const compact = (n: number) =>
+    n >= 1_000_000 ? `Rp ${(n / 1_000_000).toLocaleString("id-ID", { maximumFractionDigits: 1 })} jt` : formatCurrency(n);
+  const breakdown = [
+    { key: "wajib", label: "Wajib" },
+    { key: "tabungan", label: "Tabungan & Investasi" },
+    { key: "kebutuhan", label: "Kebutuhan Pribadi" },
+  ].map((g) => {
+    const amount = activeItems.filter((i: any) => i.category === g.key).reduce((sum: number, i: any) => sum + Number(i.amount), 0);
+    return { ...g, amount, percent: totalIncome > 0 ? Math.round((amount / totalIncome) * 100) : 0 };
+  });
+
+  const openDuplicateModal = () => {
+    if (!activePlanner) return;
+    setTabTitle(guessNextMonthTitle(activePlanner.title));
+    setDuplicateFromId(activeTab);
+    setIsAddTabOpen(true);
+  };
 
   return (
     <div className="space-y-5 pb-4">
@@ -343,7 +362,7 @@ export function PlannerContent({ user, initialPlanners, initialItems, accounts, 
             {p.title}
           </button>
         ))}
-        <button onClick={() => setIsAddTabOpen(true)} className="flex h-10 shrink-0 items-center gap-1 rounded-full border-2.5 border-dashed border-line px-4 text-sm font-black hover:bg-accent">
+        <button onClick={() => { setTabTitle(""); setDuplicateFromId("none"); setIsAddTabOpen(true); }} className="flex h-10 shrink-0 items-center gap-1 rounded-full border-2.5 border-dashed border-line px-4 text-sm font-black hover:bg-accent">
           <Plus className="h-4 w-4" strokeWidth={3} /> Bulan Baru
         </button>
       </div>
@@ -358,6 +377,8 @@ export function PlannerContent({ user, initialPlanners, initialItems, accounts, 
         </div>
       ) : (
         <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
+          <div className="space-y-6 lg:grid lg:grid-cols-[minmax(0,1fr)_340px] lg:items-start lg:gap-5 lg:space-y-0">
+          <div className="min-w-0 space-y-6">
           
           {/* Header & Options */}
           <div className="flex items-center justify-between rounded-cartoon border-3 border-line bg-card px-5 py-3.5 shadow-cartoon">
@@ -382,8 +403,8 @@ export function PlannerContent({ user, initialPlanners, initialItems, accounts, 
             </DropdownMenu>
           </div>
 
-          {/* Summaries */}
-          <div className="grid grid-cols-3 gap-3 lg:gap-5">
+          {/* Summaries (mobile) */}
+          <div className="grid grid-cols-3 gap-3 lg:hidden">
             {[
               { label: "Pemasukan", value: formatCurrency(totalIncome), color: "#9be7c4" },
               { label: "Pengeluaran", value: formatCurrency(totalExpense), color: "#ff9ebb" },
@@ -396,11 +417,70 @@ export function PlannerContent({ user, initialPlanners, initialItems, accounts, 
             ))}
           </div>
 
-          <div className="grid gap-5 lg:grid-cols-2">
+          <div className="grid gap-5 2xl:grid-cols-2">
           {renderGroup("Pemasukan", "income", "income")}
           {renderGroup("Wajib — Prioritas", "wajib", "expense")}
           {renderGroup("Tabungan & Investasi", "tabungan", "expense")}
           {renderGroup("Kebutuhan Pribadi", "kebutuhan", "expense")}
+          </div>
+          </div>
+
+          {/* Desktop side panel */}
+          <aside className="sticky top-6 hidden flex-col gap-4 lg:flex">
+            <section className="rounded-cartoon border-3 border-line bg-cartoon-lilac p-5 text-ink shadow-cartoon-lg">
+              <div className="grid grid-cols-2 gap-3">
+                <div className="min-w-0">
+                  <p className="text-[11px] font-black uppercase tracking-[0.08em]">Rencana masuk</p>
+                  <p className="mt-1.5 truncate font-display text-[26px] font-bold leading-none">{compact(totalIncome)}</p>
+                </div>
+                <div className="min-w-0">
+                  <p className="text-[11px] font-black uppercase tracking-[0.08em]">Rencana keluar</p>
+                  <p className="mt-1.5 truncate font-display text-[26px] font-bold leading-none">{compact(totalExpense)}</p>
+                </div>
+              </div>
+              <p className="mt-3 text-[13px] font-extrabold">
+                Sisa proyeksi {sisa >= 0 ? "+" : ""}
+                {formatCurrency(sisa)}
+              </p>
+              <div className="mt-3 flex items-center gap-2.5">
+                <CartoonBar
+                  percent={activeItems.length ? (doneCount / activeItems.length) * 100 : 0}
+                  color="#1e1b18"
+                  className="h-4 border-ink bg-white"
+                />
+                <span className="shrink-0 text-[13px] font-black">
+                  {doneCount}/{activeItems.length} beres
+                </span>
+              </div>
+            </section>
+
+            <section className="flex flex-col gap-3.5 rounded-cartoon border-3 border-line bg-card p-5 shadow-cartoon">
+              <h2 className="font-display text-xl font-semibold">Per jenis</h2>
+              {breakdown.map((g) => (
+                <div key={g.key} className="space-y-1.5">
+                  <div className="flex items-center justify-between gap-2 text-sm font-black">
+                    <span>{g.label}</span>
+                    <span>
+                      {formatCurrency(g.amount)} · {g.percent}%
+                    </span>
+                  </div>
+                  <CartoonBar percent={g.percent} color={GROUP_COLORS[g.key]} className="h-4" />
+                </div>
+              ))}
+              <p className="text-[13px] font-extrabold text-muted-foreground">
+                {sisa >= 0 ? `Sisa tak teralokasi ${formatCurrency(sisa)}` : `Kelebihan rencana ${formatCurrency(-sisa)}`}
+              </p>
+            </section>
+
+            <Button variant="outline" size="lg" onClick={openDuplicateModal}>
+              <Copy className="mr-2 h-4 w-4" strokeWidth={3} /> Duplikat ke bulan baru
+            </Button>
+            {unpaidCount > 0 && (
+              <Button size="lg" className="bg-cartoon-yellow text-ink hover:bg-cartoon-yellow" onClick={openCarryOverModal}>
+                Bawa {unpaidCount} item belum beres <ChevronRight className="ml-1 h-4 w-4" strokeWidth={3} />
+              </Button>
+            )}
+          </aside>
           </div>
 
       {/* MODAL EDIT ITEM */}
