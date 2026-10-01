@@ -289,7 +289,8 @@ function MonthBars({ months }: { months: { label: string; income: number; expens
                   title={`${key === "income" ? "Masuk" : "Keluar"} ${m.label}: ${formatCurrency(m[key])}`}
                   className={cn(
                     "flex-1 rounded-t-[10px] rounded-b-[4px] border-2.5 border-ink",
-                    key === "income" ? "bg-cartoon-mint" : isCurrent ? "bg-cartoon-red" : "bg-cartoon-pink"
+                    key === "income" ? "bg-cartoon-mint" : isCurrent ? "bg-cartoon-red" : "bg-cartoon-pink",
+                    m[key] === 0 && "invisible"
                   )}
                   style={{ height: `${Math.max(m[key] > 0 ? 4 : 0, (m[key] / max) * 100)}%` }}
                 />
