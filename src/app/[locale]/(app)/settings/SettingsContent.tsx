@@ -20,6 +20,7 @@ import { useRouter, usePathname } from "next/navigation";
 import { useLocaleStore, useThemeStore } from "@/store";
 import { toast } from "@/store";
 import { deleteAccount } from "./actions";
+import { downloadCsv } from "@/lib/csv";
 
 interface SettingsContentProps {
   locale: "id" | "en";
@@ -162,12 +163,14 @@ export function SettingsContent({ locale, user, profile }: SettingsContentProps)
     try {
       const { data, error } = await supabase
         .from("transactions")
-        .select("date, type, amount, note, category:categories(name), account:accounts!transactions_account_id_fkey(name)")
+        .select(
+          "date, type, amount, note, category:categories(name), account:accounts!transactions_account_id_fkey(name), to_account:accounts!transactions_to_account_id_fkey(name)"
+        )
         .eq("user_id", user.id)
         .order("date", { ascending: false });
       if (error) throw error;
 
-      const escape = (v: unknown) => `"${String(v ?? "").replace(/"/g, '""')}"`;
+      const typeLabel: Record<string, string> = { income: "Pemasukan", expense: "Pengeluaran", transfer: "Transfer" };
       const rows = ((data || []) as unknown as {
         date: string;
         type: string;
@@ -175,15 +178,20 @@ export function SettingsContent({ locale, user, profile }: SettingsContentProps)
         note: string | null;
         category: { name: string } | null;
         account: { name: string } | null;
-      }[]).map((tx) => [tx.date.slice(0, 10), tx.type, tx.amount, tx.category?.name, tx.account?.name, tx.note].map(escape).join(","));
-      const csv = ["Tanggal,Tipe,Jumlah,Kategori,Akun,Catatan", ...rows].join("\n");
-
-      const url = window.URL.createObjectURL(new Blob([csv], { type: "text/csv;charset=utf-8;" }));
-      const a = document.createElement("a");
-      a.href = url;
-      a.download = `koin-export-${new Date().toISOString().split("T")[0]}.csv`;
-      a.click();
-      window.URL.revokeObjectURL(url);
+        to_account: { name: string } | null;
+      }[]).map((tx) => [
+        tx.date.slice(0, 10),
+        typeLabel[tx.type] ?? tx.type,
+        tx.category?.name,
+        tx.account?.name,
+        tx.to_account?.name,
+        tx.note,
+        Number(tx.amount),
+      ]);
+      downloadCsv(`koin-export-${new Date().toISOString().split("T")[0]}.csv`, [
+        ["Tanggal", "Tipe", "Kategori", "Akun", "Akun Tujuan", "Catatan", "Jumlah"],
+        ...rows,
+      ]);
       toast.success(t("data.exportSuccess"));
     } catch {
       toast.error(t("data.exportError"));

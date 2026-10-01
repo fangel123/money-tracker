@@ -12,6 +12,13 @@ export async function POST(req: Request) {
 
     const { text, imageBase64 } = await req.json();
 
+    // Tanggal hari ini (WIB) + awal bulan ini & bulan lalu, untuk ringkasan yang dihitung di server
+    const todayStr = new Intl.DateTimeFormat("en-CA", { timeZone: "Asia/Jakarta" }).format(new Date());
+    const [year, month] = todayStr.split("-").map(Number);
+    const monthStart = (y: number, m: number) => `${y}-${String(m).padStart(2, "0")}-01`;
+    const thisMonthStart = monthStart(year, month);
+    const lastMonthStart = month === 1 ? monthStart(year - 1, 12) : monthStart(year, month - 1);
+
     // 1. Fetch All Context (RAG)
     const [
       { data: categories },
@@ -21,7 +28,8 @@ export async function POST(req: Request) {
       { data: goals },
       { data: debts },
       { data: planners },
-      { data: plannerItems }
+      { data: plannerItems },
+      { data: monthTxs }
     ] = await Promise.all([
       supabase.from("categories").select("*"),
       supabase.from("accounts").select("*"),
@@ -30,11 +38,35 @@ export async function POST(req: Request) {
       supabase.from("goals").select("*"),
       supabase.from("debts").select("*"),
       supabase.from("planners").select("*"),
-      supabase.from("planner_items").select("*")
+      supabase.from("planner_items").select("*"),
+      supabase
+        .from("transactions")
+        .select("type, amount, date, category:categories(name)")
+        .eq("user_id", user.id)
+        .gte("date", lastMonthStart)
     ]);
+
+    // Total per bulan dihitung di sini — jangan biarkan AI menjumlahkan sendiri dari daftar transaksi
+    const summarize = (from: string, to?: string) => {
+      const rows = (monthTxs || []).filter((t) => {
+        const d = String(t.date).slice(0, 10);
+        return d >= from && (!to || d < to);
+      });
+      const sum = (type: string) => rows.filter((t) => t.type === type).reduce((s, t) => s + Number(t.amount), 0);
+      const byCategory: Record<string, number> = {};
+      for (const t of rows) {
+        if (t.type !== "expense") continue;
+        const name = (t.category as any)?.name || "Tanpa kategori";
+        byCategory[name] = (byCategory[name] || 0) + Number(t.amount);
+      }
+      return { from, income: sum("income"), expense: sum("expense"), expense_by_category: byCategory, transaction_count: rows.length };
+    };
 
     // Format data for AI context
     const contextData = {
+      today: todayStr,
+      this_month_summary: summarize(thisMonthStart),
+      last_month_summary: summarize(lastMonthStart, thisMonthStart),
       accounts: accounts?.map(a => ({ id: a.id, name: a.name, balance: a.balance })),
       categories: categories?.map(c => ({ id: c.id, name: c.name, type: c.type })),
       budgets: budgets?.map(b => ({ id: b.id, category: (b.category as any)?.name, amount: b.amount })),
@@ -82,6 +114,10 @@ You MUST respond in ONLY valid JSON format matching this schema (NO markdown blo
 }
 
 Rules:
+- Today is ${todayStr} (Asia/Jakarta). "Bulan ini" means the month of today.
+- For totals of income/expense per month or per category, ALWAYS use this_month_summary / last_month_summary. Never add up recent_transactions yourself — that list only holds the latest 50 transactions.
+- Transfers between accounts are not income or expense.
+- Format money as Indonesian Rupiah, e.g. "Rp 112.000".
 - For add_transaction, if category or account is not specified, use the ID of the first available one.
 - Always use the UUIDs provided in the context for category_id, account_id, and transaction_id.
 - Never wrap the response in \`\`\`json. Return pure JSON.`;
