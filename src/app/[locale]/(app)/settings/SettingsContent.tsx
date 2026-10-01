@@ -35,14 +35,6 @@ const LOCALES = [
   { code: "en", name: "English", flag: "🇺🇸" },
 ] as const;
 
-const CURRENCIES = [
-  { code: "IDR", name: "Rupiah Indonesia (Rp)" },
-  { code: "USD", name: "US Dollar ($)" },
-  { code: "EUR", name: "Euro (€)" },
-  { code: "SGD", name: "Singapore Dollar (S$)" },
-  { code: "MYR", name: "Malaysian Ringgit (RM)" },
-] as const;
-
 export function SettingsContent({ locale, user, profile }: SettingsContentProps) {
   const t = useTranslations("settings");
   const ct = useTranslations("common");
@@ -317,26 +309,6 @@ export function SettingsContent({ locale, user, profile }: SettingsContentProps)
                             <span>{l.flag}</span>
                             <span>{l.name}</span>
                           </span>
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-
-                {/* Currency */}
-                <div>
-                  <Label htmlFor="currency">{t("preferences.currencyLabel")}</Label>
-                  <Select
-                    value={preferencesForm.watch("currency")}
-                    onValueChange={(value) => preferencesForm.setValue("currency", value)}
-                  >
-                    <SelectTrigger className="w-full mt-1.5">
-                      <SelectValue placeholder={t("preferences.currencyLabel")} />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {CURRENCIES.map((c) => (
-                        <SelectItem key={c.code} value={c.code}>
-                          {c.name}
                         </SelectItem>
                       ))}
                     </SelectContent>
