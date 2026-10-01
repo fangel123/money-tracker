@@ -13,7 +13,7 @@ interface I18nProviderProps {
 
 export function I18nProvider({ children, locale, messages }: I18nProviderProps) {
   return (
-    <NextIntlClientProvider locale={locale} messages={messages}>
+    <NextIntlClientProvider locale={locale} messages={messages} timeZone="Asia/Jakarta">
       {children}
     </NextIntlClientProvider>
   );

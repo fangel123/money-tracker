@@ -44,7 +44,7 @@ export function Sidebar() {
           </button>
         </div>
 
-        <nav className="flex flex-1 flex-col gap-1 overflow-y-auto scrollbar-hide" aria-label="Menu navigasi">
+        <nav className="-mx-1 flex min-h-0 flex-1 flex-col gap-1 overflow-y-auto px-1 py-1 scrollbar-hide short:gap-0.5 short:py-2.5 short:[mask-image:linear-gradient(to_bottom,transparent,black_10px,black_calc(100%-10px),transparent)]" aria-label="Menu navigasi">
           {NAV_ITEMS.map((item) => {
             const isActive = isNavActive(pathname, item.href);
             return (
@@ -53,7 +53,7 @@ export function Sidebar() {
                 href={item.href}
                 onClick={() => setSidebarOpen(false)}
                 className={cn(
-                  "flex h-[42px] shrink-0 items-center gap-3 rounded-[14px] border-2.5 px-3 text-sm font-black transition-colors",
+                  "flex h-[42px] shrink-0 items-center gap-3 short:h-9 rounded-[14px] border-2.5 px-3 text-sm font-black transition-colors",
                   isActive
                     ? "border-ink bg-primary text-ink"
                     : "border-transparent text-foreground hover:bg-accent"
