@@ -21,8 +21,11 @@ import { useLocaleStore, useThemeStore } from "@/store";
 import { toast } from "@/store";
 import { deleteAccount } from "./actions";
 import { downloadCsv } from "@/lib/csv";
+import { Switch } from "@/components/ui/switch";
+import type { ReminderPrefs } from "@/lib/reminders";
 
 interface SettingsContentProps {
+  reminders: ReminderPrefs;
   locale: "id" | "en";
   user: { id: string; email: string };
   profile: {
@@ -40,12 +43,27 @@ const LOCALES = [
   { code: "en", name: "English", flag: "🇺🇸" },
 ] as const;
 
-export function SettingsContent({ locale, user, profile }: SettingsContentProps) {
+export function SettingsContent({ locale, user, profile, reminders: initialReminders }: SettingsContentProps) {
   const t = useTranslations("settings");
   const ct = useTranslations("common");
   const router = useRouter();
   const pathname = usePathname();
   const queryClient = useQueryClient();
+  const [reminders, setReminders] = useState<ReminderPrefs>(initialReminders);
+
+  // Disimpan langsung ke user_metadata akun Supabase, tanpa tombol simpan
+  const toggleReminder = async (key: keyof ReminderPrefs, value: boolean) => {
+    const previous = reminders;
+    const next = { ...reminders, [key]: value };
+    setReminders(next);
+    const { error } = await createBrowserSupabaseClient().auth.updateUser({ data: { reminders: next } });
+    if (error) {
+      setReminders(previous);
+      toast.error("Gagal menyimpan pengingat");
+      return;
+    }
+    queryClient.invalidateQueries({ queryKey: ["reminders"] });
+  };
   const { setLocale } = useLocaleStore();
   const { setTheme, theme } = useThemeStore();
 
@@ -380,6 +398,24 @@ export function SettingsContent({ locale, user, profile }: SettingsContentProps)
                       );
                     })}
                   </div>
+                </div>
+                <div className="space-y-3 border-t-2 border-dashed border-divider pt-4">
+                  {([
+                    ["budget", "Pengingat budget", "Kabari kalau budget sudah lewat batas peringatannya"],
+                    ["debt", "Pengingat utang", "H-1 sebelum jatuh tempo, dan saat sudah lewat"],
+                  ] as const).map(([key, label, hint]) => (
+                    <div key={key} className="flex items-center gap-3">
+                      <div className="min-w-0 flex-1">
+                        <p id={`reminder-${key}`} className="text-[15px] font-black">{label}</p>
+                        <p className="text-xs font-bold text-muted-foreground">{hint}</p>
+                      </div>
+                      <Switch
+                        aria-labelledby={`reminder-${key}`}
+                        checked={reminders[key]}
+                        onCheckedChange={(v) => toggleReminder(key, v)}
+                      />
+                    </div>
+                  ))}
                 </div>
                 <Button type="submit" className="self-end" disabled={preferencesMutation.isPending}>
                   <Check className="mr-1.5 h-4 w-4" strokeWidth={3} />
