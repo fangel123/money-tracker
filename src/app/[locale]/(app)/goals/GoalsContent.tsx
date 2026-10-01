@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { useMutation } from "@tanstack/react-query";
+import { useMutation, useQuery } from "@tanstack/react-query";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -12,7 +12,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Flag, Plus, CheckCircle2, ChevronRight, Target } from "lucide-react";
+import { Flag, Plus, CheckCircle2, ChevronRight, Target, PiggyBank } from "lucide-react";
 import { formatCurrency } from "@/lib/utils";
 import { PageHeader } from "@/components/common/PageHeader";
 import { CartoonBar } from "@/components/common/HeroCard";
@@ -20,6 +20,7 @@ import { Sticker } from "@/components/common/Sticker";
 import { Mascot } from "@/components/common/Mascot";
 import { DynamicIcon } from "@/components/common/DynamicIcon";
 import { EmptyState } from "@/components/common/EmptyState";
+import { StatCard } from "@/components/common/StatCard";
 import {
   goalSchema,
   type GoalFormData,
@@ -44,6 +45,43 @@ export function GoalsContent({ user, initialGoals, dbReady, accounts, categories
 
   const totalCurrent = displayGoals.reduce((sum, g) => sum + Number(g.current_amount), 0);
   const totalTarget = displayGoals.reduce((sum, g) => sum + Number(g.target_amount), 0);
+
+  // Setoran tabungan dicatat sebagai transaksi bernote "(Tabungan) <nama goal>"
+  const SAVING_PREFIX = "(Tabungan) ";
+  const { data: deposits = [] } = useQuery({
+    queryKey: ["transactions", user.id, "goal-deposits"],
+    queryFn: async () => {
+      const supabase = createBrowserSupabaseClient();
+      const { data } = await supabase
+        .from("transactions")
+        .select("id, amount, date, note, account_id")
+        .eq("user_id", user.id)
+        .like("note", `${SAVING_PREFIX}%`)
+        .order("date", { ascending: false })
+        .limit(50);
+      return ((data || []) as { id: string; amount: number; date: string; note: string | null; account_id: string }[]).filter((tx) =>
+        tx.note?.startsWith(SAVING_PREFIX)
+      );
+    },
+    enabled: dbReady,
+  });
+
+  const now = new Date();
+  const monthPrefix = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
+  const depositsThisMonth = deposits.filter((d) => d.date.startsWith(monthPrefix));
+  const savedThisMonth = depositsThisMonth.reduce((sum, d) => sum + Number(d.amount), 0);
+
+  const nearestGoal = displayGoals
+    .filter((g) => g.deadline && Number(g.current_amount) < Number(g.target_amount))
+    .sort((a, b) => String(a.deadline).localeCompare(String(b.deadline)))[0];
+  const goalPercent = (g: { current_amount: number; target_amount: number }) =>
+    Number(g.target_amount) > 0 ? Math.min(100, Math.round((Number(g.current_amount) / Number(g.target_amount)) * 100)) : 0;
+  const monthYear = (date: string) => new Date(date).toLocaleDateString("id-ID", { month: "short", year: "numeric" });
+  const accountName = (id: string) => accounts.find((a) => a.id === id)?.name ?? "akun";
+  const goalColor = (name: string) => {
+    const idx = displayGoals.findIndex((g) => g.name === name);
+    return GOAL_COLORS[(idx < 0 ? 0 : idx) % GOAL_COLORS.length];
+  };
 
   const createMutation = useMutation({
     mutationFn: async (data: GoalFormData) => {
@@ -125,7 +163,8 @@ export function GoalsContent({ user, initialGoals, dbReady, accounts, categories
 
       {/* Total Ringkasan */}
       {displayGoals.length > 0 && (
-        <section className="relative flex items-center gap-4 overflow-hidden rounded-cartoon border-3 border-line bg-cartoon-mint p-5 text-ink shadow-cartoon-lg lg:p-6">
+        <div className="lg:grid lg:grid-cols-4 lg:gap-5">
+        <section className="relative lg:col-span-2 flex items-center gap-4 overflow-hidden rounded-cartoon border-3 border-line bg-cartoon-mint p-5 text-ink shadow-cartoon-lg lg:p-6">
           <Mascot size={88} className="hidden shrink-0 sm:block" />
           <div className="min-w-0 flex-1">
             <p className="text-xs font-black uppercase tracking-[0.1em]">Sudah terkumpul</p>
@@ -140,10 +179,26 @@ export function GoalsContent({ user, initialGoals, dbReady, accounts, categories
             />
           </div>
         </section>
+        <StatCard
+          className="hidden lg:flex"
+          color="#ffd447"
+          label="Goal terdekat"
+          value={<span className="text-[26px]">{nearestGoal ? nearestGoal.name : "—"}</span>}
+          note={nearestGoal ? `${monthYear(nearestGoal.deadline)} · ${goalPercent(nearestGoal)}%` : "Belum ada tenggat"}
+          icon={<Flag />}
+        />
+        <StatCard
+          className="hidden lg:flex"
+          label="Nabung bulan ini"
+          value={formatCurrency(savedThisMonth)}
+          note={`${depositsThisMonth.length} kali setor`}
+          icon={<PiggyBank />}
+        />
+        </div>
       )}
 
       {/* Daftar Goals */}
-      <div className="grid gap-4 md:grid-cols-2 lg:gap-5 xl:grid-cols-3">
+      <div className="grid gap-4 md:grid-cols-2 lg:gap-5 xl:grid-cols-4">
         {displayGoals.length === 0 ? (
           <div className="bg-card rounded-cartoon border-3 border-line shadow-cartoon md:col-span-full">
             <EmptyState titleKey="goals.empty.title" descriptionKey="goals.empty.description" />
@@ -153,6 +208,14 @@ export function GoalsContent({ user, initialGoals, dbReady, accounts, categories
             const progress = Math.min(100, Math.round((goal.current_amount / goal.target_amount) * 100));
             const isCompleted = progress >= 100;
             const color = GOAL_COLORS[index % GOAL_COLORS.length];
+            // Setoran per bulan yang dibutuhkan supaya tepat waktu
+            const monthsLeft = goal.deadline
+              ? Math.max(
+                  1,
+                  (new Date(goal.deadline).getFullYear() - now.getFullYear()) * 12 + new Date(goal.deadline).getMonth() - now.getMonth()
+                )
+              : null;
+            const perMonth = monthsLeft ? Math.ceil((Number(goal.target_amount) - Number(goal.current_amount)) / monthsLeft) : null;
 
             return (
               <div key={goal.id} className="flex flex-col gap-3 rounded-cartoon border-3 border-line bg-card p-5 shadow-cartoon">
@@ -172,7 +235,8 @@ export function GoalsContent({ user, initialGoals, dbReady, accounts, categories
                   <h3 className="truncate font-display text-xl font-semibold">{goal.name}</h3>
                   {goal.deadline && (
                     <p className="text-[13px] font-bold text-muted-foreground">
-                      Target {new Date(goal.deadline).toLocaleDateString("id-ID", { month: "short", year: "numeric" })}
+                      Target {monthYear(goal.deadline)}
+                      {!isCompleted && perMonth !== null && perMonth > 0 && ` · ${formatCurrency(perMonth)}/bln lagi`}
                     </p>
                   )}
                 </div>
@@ -192,7 +256,46 @@ export function GoalsContent({ user, initialGoals, dbReady, accounts, categories
             );
           })
         )}
+        {displayGoals.length > 0 && (
+          <button
+            type="button"
+            onClick={() => setShowForm(true)}
+            className="hidden min-h-[220px] flex-col items-center justify-center gap-3 rounded-cartoon border-3 border-dashed border-line p-6 text-center transition-colors hover:bg-card lg:flex"
+          >
+            <Sticker color="#c8f031" size="lg" tilt={-6}>
+              <Plus />
+            </Sticker>
+            <span className="font-display text-lg font-semibold">Impian baru</span>
+            <span className="text-[13px] font-bold text-muted-foreground">Rumah, nikah, motor…</span>
+          </button>
+        )}
       </div>
+
+      {/* Riwayat nabung */}
+      {deposits.length > 0 && (
+        <section className="rounded-cartoon border-3 border-line bg-card p-5 shadow-cartoon">
+          <h2 className="mb-2 font-display text-xl font-semibold">Riwayat nabung</h2>
+          <ul className="grid gap-x-7 md:grid-cols-2">
+            {deposits.slice(0, 8).map((d) => {
+              const name = (d.note || "").slice(SAVING_PREFIX.length);
+              return (
+                <li key={d.id} className="flex items-center gap-2.5 border-b-2 border-dashed border-divider py-2">
+                  <Sticker color={goalColor(name)} size="sm">
+                    <Flag />
+                  </Sticker>
+                  <div className="min-w-0 flex-1">
+                    <p className="truncate text-sm font-black">{name}</p>
+                    <p className="text-xs font-bold text-muted-foreground">
+                      {new Date(d.date).toLocaleDateString("id-ID", { day: "numeric", month: "short" })} · dari {accountName(d.account_id)}
+                    </p>
+                  </div>
+                  <span className="text-sm font-black text-income">+{formatCurrency(d.amount)}</span>
+                </li>
+              );
+            })}
+          </ul>
+        </section>
+      )}
 
       <GoalFormDialog
         open={showForm}
