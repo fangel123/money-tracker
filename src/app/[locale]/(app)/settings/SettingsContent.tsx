@@ -84,7 +84,6 @@ export function SettingsContent({ locale, user, profile }: SettingsContentProps)
     resolver: zodResolver(preferencesSchema),
     defaultValues: {
       locale: (profile?.locale as "id" | "en") || "id",
-      currency: profile?.default_currency || "IDR",
       theme: profile?.theme || "system",
     },
   });
