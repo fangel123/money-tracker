@@ -23,7 +23,10 @@ const jetbrainsMono = JetBrains_Mono({
   display: "swap",
 });
 
+const siteUrl = process.env.NEXT_PUBLIC_APP_URL || "https://koin-mikha.vercel.app";
+
 export const metadata: Metadata = {
+  metadataBase: new URL(siteUrl),
   title: "Koin - Catat. Kelola. Tumbuh.",
   description: "Aplikasi pencatat keuangan pribadi yang sederhana, cepat, dan aman",
   keywords: ["finance", "money tracker", "expense tracker", "budget", "personal finance"],
@@ -34,7 +37,7 @@ export const metadata: Metadata = {
   openGraph: {
     type: "website",
     locale: "id_ID",
-    url: "https://moneytracker.app",
+    url: siteUrl,
     title: "Koin - Catat. Kelola. Tumbuh.",
     description: "Aplikasi pencatat keuangan pribadi yang sederhana, cepat, dan aman",
     siteName: "Koin",
