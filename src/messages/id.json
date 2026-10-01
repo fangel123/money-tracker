@@ -102,6 +102,22 @@
       "submit": "Kirim Link Reset",
       "success": "Link reset telah dikirim ke email Anda",
       "backToLogin": "Kembali ke masuk"
+    },
+    "resetPassword": {
+      "title": "Atur Ulang Kata Sandi",
+      "subtitle": "Masukkan kata sandi baru untuk akun Anda",
+      "passwordLabel": "Kata Sandi Baru",
+      "confirmLabel": "Konfirmasi Kata Sandi",
+      "submit": "Simpan Kata Sandi",
+      "submitting": "Menyimpan...",
+      "verifying": "Memverifikasi link...",
+      "invalidLink": "Link reset tidak valid atau sudah kedaluwarsa. Silakan minta link baru.",
+      "requestNewLink": "Minta link baru",
+      "success": "Kata sandi berhasil diubah. Mengalihkan ke dashboard...",
+      "error": "Gagal mengubah kata sandi. Silakan coba lagi.",
+      "showPassword": "Tampilkan kata sandi",
+      "hidePassword": "Sembunyikan kata sandi",
+      "backToLogin": "Kembali ke masuk"
     }
   },
   "dashboard": {

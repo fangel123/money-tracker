@@ -68,9 +68,13 @@ export async function middleware(request: NextRequest) {
     return NextResponse.redirect(new URL(`/${locale}/dashboard`, request.url));
   }
 
+  // Reset password: dibuka dari link email (belum ada sesi saat request pertama),
+  // dan tetap boleh diakses setelah sesi recovery terbentuk.
+  const isPublicRoute = /^\/[a-z]{2}\/reset-password(\/|$)/.test(pathname);
+
   // Protected routes - semua halaman di bawah /[locale]/ kecuali halaman auth
   // butuh login (termasuk goals, debts, planner, statistics, scanner, ai-advisor)
-  if (!isAuthRoute && !user) {
+  if (!isAuthRoute && !isPublicRoute && !user) {
     const locale = pathname.split("/")[1];
     return NextResponse.redirect(new URL(`/${locale}/login`, request.url));
   }

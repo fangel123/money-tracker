@@ -22,6 +22,7 @@ import { createBrowserSupabaseClient } from "@/lib/supabase/browser";
 import { useRouter, usePathname } from "next/navigation";
 import { useLocaleStore, useThemeStore } from "@/store";
 import { toast } from "@/store";
+import { deleteAccount } from "./actions";
 
 interface SettingsContentProps {
   locale: "id" | "en";
@@ -186,15 +187,13 @@ export function SettingsContent({ locale, user, profile }: SettingsContentProps)
     }
 
     try {
-      // Delete all user data first
-      await supabase.from("transactions").delete().eq("user_id", user.id);
-      await supabase.from("categories").delete().eq("user_id", user.id);
-      await supabase.from("budgets").delete().eq("user_id", user.id);
-      await supabase.from("accounts").delete().eq("user_id", user.id);
-      await supabase.from("profiles").delete().eq("id", user.id);
-      await supabase.auth.admin.deleteUser(user.id); // Requires service role key
-      
-      await supabase.auth.signOut();
+      // Hapus akun lewat server action (butuh service role key, tidak bisa dari browser)
+      const result = await deleteAccount();
+      if (!result.success) {
+        toast.error(t("dangerZone.deleteError"));
+        return;
+      }
+
       router.push(`/${locale}/login`);
       router.refresh();
     } catch {
@@ -493,7 +492,7 @@ export function SettingsContent({ locale, user, profile }: SettingsContentProps)
               </div>
               <AlertDialog>
                 <AlertDialogTrigger asChild>
-                  <Button variant="destructive" onClick={handleDeleteAccount} disabled={deleteConfirm !== t("dangerZone.confirmDeleteWord")}>
+                  <Button variant="destructive" disabled={deleteConfirm !== t("dangerZone.confirmDeleteWord")}>
                     <Trash2 className="mr-2 h-4 w-4" />
                     {t("dangerZone.deleteAccountButton")}
                   </Button>
