@@ -15,6 +15,7 @@ import { Link, usePathname, useRouter } from "@/i18n/navigation";
 import { createBrowserSupabaseClient } from "@/lib/supabase/browser";
 import { Mascot } from "@/components/common/Mascot";
 import { pageTitleFor } from "@/components/layout/nav-items";
+import { NotificationBell } from "@/components/layout/NotificationBell";
 
 const locales = [
   { code: "id", name: "Indonesia", short: "ID" },
@@ -68,6 +69,8 @@ export function Header() {
         </div>
 
         <div className="flex items-center gap-2 lg:gap-3">
+          <NotificationBell buttonClassName={iconButton} />
+
           {/* Theme */}
           <DropdownMenu>
             <DropdownMenuTrigger asChild>

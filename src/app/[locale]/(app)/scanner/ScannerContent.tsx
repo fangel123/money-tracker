@@ -8,11 +8,13 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Camera, Upload, Check, AlertCircle, Sparkles, RotateCcw } from "lucide-react";
 import { useRouter } from "@/i18n/navigation";
 import { createBrowserSupabaseClient } from "@/lib/supabase/browser";
-import { cn } from "@/lib/utils";
+import { cn, formatCurrency } from "@/lib/utils";
 import { PageHeader } from "@/components/common/PageHeader";
 import { Mascot } from "@/components/common/Mascot";
 import { Sticker } from "@/components/common/Sticker";
+import { CategorySticker } from "@/components/common/CategorySticker";
 import type { Account, Category } from "@/types/domain";
+import { SCAN_PREFIX, type RecentScan } from "@/lib/scan";
 
 interface ScanForm {
   note: string;
@@ -26,11 +28,12 @@ interface ScannerContentProps {
   userId: string;
   categories: Category[];
   accounts: Account[];
+  recentScans: RecentScan[];
 }
 
 const today = () => new Date().toISOString().split("T")[0];
 
-export function ScannerContent({ userId, categories, accounts }: ScannerContentProps) {
+export function ScannerContent({ userId, categories, accounts, recentScans }: ScannerContentProps) {
   const router = useRouter();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const cameraInputRef = useRef<HTMLInputElement>(null);
@@ -109,7 +112,7 @@ export function ScannerContent({ userId, categories, accounts }: ScannerContentP
         type: "expense",
         category_id: form.categoryId || null,
         account_id: form.accountId,
-        note: form.note,
+        note: `${SCAN_PREFIX}${form.note.replace(/^\(Scan\)\s*/, "")}`,
         date: form.date,
       });
       if (insertError) throw insertError;
@@ -172,6 +175,7 @@ export function ScannerContent({ userId, categories, accounts }: ScannerContentP
           </div>
         )}
 
+        <div className="flex flex-col gap-5">
         {/* Result */}
         <section className="flex flex-col gap-4 rounded-cartoon border-3 border-line bg-card p-5 shadow-cartoon">
           <div className="flex items-center gap-2.5">
@@ -273,6 +277,34 @@ export function ScannerContent({ userId, categories, accounts }: ScannerContentP
             </Button>
           )}
         </section>
+
+        {/* Riwayat scan */}
+        <section className="flex flex-col gap-3 rounded-cartoon border-3 border-line bg-card p-5 shadow-cartoon">
+          <h2 className="font-display text-xl font-semibold">Scan sebelumnya</h2>
+          {recentScans.length === 0 ? (
+            <p className="text-sm font-bold text-muted-foreground">Belum ada struk yang disimpan dari scanner.</p>
+          ) : (
+            <ul>
+              {recentScans.map((scan) => (
+                <li key={scan.id} className="flex items-center gap-2.5 border-b-2 border-dashed border-divider py-2.5 last:border-0">
+                  <CategorySticker category={scan.category} size="sm" />
+                  <div className="min-w-0 flex-1">
+                    <p className="truncate text-sm font-black">{(scan.note || "").replace(SCAN_PREFIX, "") || "Struk"}</p>
+                    <p className="text-xs font-bold text-muted-foreground">
+                      {new Date(scan.date).toLocaleDateString("id-ID", { day: "numeric", month: "short" })}
+                      {scan.category?.name && ` · ${scan.category.name}`}
+                    </p>
+                  </div>
+                  <span className="text-sm font-black">{formatCurrency(Number(scan.amount))}</span>
+                  <span className="hidden rounded-full border-2 border-ink bg-cartoon-mint px-2 py-0.5 text-[11px] font-black text-ink sm:inline">
+                    Tersimpan
+                  </span>
+                </li>
+              ))}
+            </ul>
+          )}
+        </section>
+        </div>
       </div>
     </div>
   );

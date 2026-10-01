@@ -2,6 +2,7 @@ import { createServerSupabaseClient } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
 import { getTranslations } from "next-intl/server";
 import { getPeriodRange } from "@/lib/utils";
+import { readReminderPrefs } from "@/lib/reminders";
 import { DashboardContent } from "./DashboardContent";
 
 export default async function DashboardPage({
@@ -85,6 +86,9 @@ export default async function DashboardPage({
   const in7DaysStr = `${in7Days.getFullYear()}-${String(in7Days.getMonth() + 1).padStart(2, "0")}-${String(in7Days.getDate()).padStart(2, "0")}`;
   const debtReminders = (debts || []).filter((d) => d.due_date && d.due_date <= in7DaysStr);
 
+  // Banner peringatan ikut pengaturan Pengingat di halaman Pengaturan
+  const reminderPrefs = readReminderPrefs(user.user_metadata);
+
   return (
     <DashboardContent
       locale={locale as "id" | "en"}
@@ -94,8 +98,8 @@ export default async function DashboardPage({
       accounts={accounts || []}
       budgets={budgets || []}
       categories={categories || []}
-      budgetAlerts={budgetAlerts}
-      debtReminders={debtReminders}
+      budgetAlerts={reminderPrefs.budget ? budgetAlerts : []}
+      debtReminders={reminderPrefs.debt ? debtReminders : []}
     />
   );
 }
