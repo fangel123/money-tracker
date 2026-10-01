@@ -3,22 +3,24 @@
 import { useState } from "react";
 import { useTranslations } from "next-intl";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { cn, formatCurrency, ACCOUNT_TYPES } from "@/lib/utils";
+import { cn, formatCurrency, formatDate, ACCOUNT_TYPES } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { EmptyState } from "@/components/common/EmptyState";
 import { PageHeader } from "@/components/common/PageHeader";
 import { HeroCard } from "@/components/common/HeroCard";
+import { StatCard } from "@/components/common/StatCard";
+import { Link } from "@/i18n/navigation";
 import { Sticker } from "@/components/common/Sticker";
-import { Plus, Edit, Trash2, CreditCard, Wallet, Building2, Smartphone, TrendingUp, Briefcase, MoreVertical } from "lucide-react";
+import { Plus, Edit, Trash2, CreditCard, Wallet, Building2, Smartphone, TrendingUp, Briefcase, MoreVertical, ArrowLeftRight, ArrowDownLeft, ArrowUpRight } from "lucide-react";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { accountSchema, type AccountFormData } from "@/lib/validators/account";
-import { Account } from "@/types/domain";
+import { Account, Transaction } from "@/types/domain";
 import { createBrowserSupabaseClient } from "@/lib/supabase/browser";
 import { toast } from "sonner";
 
@@ -53,6 +55,49 @@ export function AccountsContent({ locale, userId, initialAccounts }: AccountsCon
     },
     initialData: initialAccounts,
   });
+
+  // Transaksi terbaru: aktivitas terakhir per akun + daftar transfer terakhir
+  const { data: recent = [] } = useQuery({
+    queryKey: ["transactions", userId, "recent-for-accounts"],
+    queryFn: async () => {
+      const supabase = createBrowserSupabaseClient();
+      const { data } = await supabase
+        .from("transactions")
+        .select("id, type, amount, date, note, account_id, to_account_id")
+        .eq("user_id", userId)
+        .order("date", { ascending: false })
+        .order("created_at", { ascending: false })
+        .limit(100);
+      return (data || []) as Pick<Transaction, "id" | "type" | "amount" | "date" | "note" | "account_id" | "to_account_id">[];
+    },
+  });
+
+  const monthStart = (() => {
+    const d = new Date();
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-01`;
+  })();
+  const { data: monthTotals } = useQuery({
+    queryKey: ["transactions", userId, "month-totals", monthStart],
+    queryFn: async () => {
+      const supabase = createBrowserSupabaseClient();
+      const { data } = await supabase
+        .from("transactions")
+        .select("type, amount")
+        .eq("user_id", userId)
+        .gte("date", monthStart);
+      const totals = { income: 0, incomeCount: 0, expense: 0, expenseCount: 0 };
+      for (const tx of data || []) {
+        if (tx.type === "income") { totals.income += Number(tx.amount); totals.incomeCount++; }
+        if (tx.type === "expense") { totals.expense += Number(tx.amount); totals.expenseCount++; }
+      }
+      return totals;
+    },
+  });
+
+  const accountName = (id: string | null) => accounts.find((a) => a.id === id)?.name ?? "Akun";
+  const transfers = recent.filter((tx) => tx.type === "transfer").slice(0, 5);
+  const lastActivity = (accountId: string) =>
+    recent.find((tx) => tx.account_id === accountId || tx.to_account_id === accountId);
 
   const saveMutation = useMutation({
     mutationFn: async (data: AccountFormData) => {
@@ -111,12 +156,40 @@ export function AccountsContent({ locale, userId, initialAccounts }: AccountsCon
 
       {/* Summary Card */}
       {accounts.length > 0 && (
-        <HeroCard color="#8fd3ff" label="Total kekayaan bersih" value={formatCurrency(totalBalance, "IDR", locale)}>
+        <HeroCard className="lg:hidden" color="#8fd3ff" label="Total kekayaan bersih" value={formatCurrency(totalBalance, "IDR", locale)}>
           <p className="mt-2 text-sm font-extrabold">Saldo semua akun dikurangi utang kartu kredit</p>
           <div className="mt-3 flex flex-wrap gap-2">
             <span className="rounded-full border-2 border-ink bg-white px-2.5 py-0.5 text-xs font-black">{accounts.length} akun aktif</span>
           </div>
         </HeroCard>
+      )}
+
+      {/* Desktop stats */}
+      {accounts.length > 0 && (
+        <div className="hidden gap-5 lg:grid lg:grid-cols-4">
+          <StatCard
+            className="col-span-2"
+            color="#8fd3ff"
+            label="Total kekayaan bersih"
+            value={formatCurrency(totalBalance, "IDR", locale)}
+            note={`${accounts.length} akun aktif · kartu kredit dihitung sebagai utang`}
+            icon={<Wallet />}
+          />
+          <StatCard
+            label="Masuk bulan ini"
+            value={formatCurrency(monthTotals?.income ?? 0, "IDR", locale)}
+            note={`${monthTotals?.incomeCount ?? 0} transaksi`}
+            icon={<ArrowDownLeft />}
+            valueClassName="text-income"
+          />
+          <StatCard
+            label="Keluar bulan ini"
+            value={formatCurrency(monthTotals?.expense ?? 0, "IDR", locale)}
+            note={`${monthTotals?.expenseCount ?? 0} transaksi`}
+            icon={<ArrowUpRight />}
+            valueClassName="text-expense"
+          />
+        </div>
       )}
 
       {/* List */}
@@ -138,12 +211,62 @@ export function AccountsContent({ locale, userId, initialAccounts }: AccountsCon
               index={index}
               account={account}
               locale={locale}
+              lastActivity={lastActivity(account.id)}
               onEdit={handleEdit}
               onDelete={(id) => deleteMutation.mutate(id)}
             />
           ))
         )}
       </div>
+
+      {/* Transfers + add account */}
+      {accounts.length > 0 && (
+        <div className="grid gap-5 lg:grid-cols-[minmax(0,2fr)_minmax(0,1fr)]">
+          <section className="rounded-cartoon border-3 border-line bg-card p-5 shadow-cartoon">
+            <div className="mb-2 flex items-center justify-between gap-3">
+              <h2 className="font-display text-xl font-semibold">Transfer terakhir</h2>
+              <Button asChild size="sm" className="bg-cartoon-sky text-ink hover:bg-cartoon-sky">
+                <Link href="/transactions/new?type=transfer">
+                  <ArrowLeftRight className="mr-1.5 h-4 w-4" strokeWidth={3} />
+                  Transfer
+                </Link>
+              </Button>
+            </div>
+            {transfers.length === 0 ? (
+              <p className="py-4 text-sm font-bold text-muted-foreground">Belum ada transfer antar akun.</p>
+            ) : (
+              <ul>
+                {transfers.map((tx) => (
+                  <li key={tx.id} className="flex items-center gap-3 border-b-2 border-dashed border-divider py-2.5 last:border-0">
+                    <Sticker color="#8fd3ff" size="sm">
+                      <ArrowLeftRight />
+                    </Sticker>
+                    <div className="min-w-0 flex-1">
+                      <p className="truncate font-black">
+                        {accountName(tx.account_id)} → {accountName(tx.to_account_id)}
+                      </p>
+                      {tx.note && <p className="truncate text-xs font-bold text-muted-foreground">{tx.note}</p>}
+                    </div>
+                    <span className="text-[13px] font-extrabold text-muted-foreground">{formatDate(tx.date, locale, { day: "numeric", month: "short" })}</span>
+                    <span className="w-32 text-right font-black">{formatCurrency(tx.amount, "IDR", locale)}</span>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </section>
+          <button
+            type="button"
+            onClick={() => { setEditingAccount(null); setShowForm(true); }}
+            className="hidden flex-col items-center justify-center gap-3 rounded-cartoon border-3 border-dashed border-line p-6 text-center transition-colors hover:bg-card lg:flex"
+          >
+            <Sticker color="#c8f031" size="lg" tilt={-6}>
+              <Plus />
+            </Sticker>
+            <span className="font-display text-lg font-semibold">Tambah akun baru</span>
+            <span className="text-[13px] font-bold text-muted-foreground">Bank, e-wallet, kartu kredit, investasi</span>
+          </button>
+        </div>
+      )}
 
       {/* Form Modal */}
       <Dialog open={showForm} onOpenChange={setShowForm}>
@@ -184,12 +307,14 @@ function AccountCard({
   account,
   index,
   locale,
+  lastActivity,
   onEdit,
   onDelete,
 }: {
   account: Account;
   index: number;
   locale: "id" | "en";
+  lastActivity?: Pick<Transaction, "type" | "amount" | "date" | "note" | "account_id" | "to_account_id">;
   onEdit: (account: Account) => void;
   onDelete: (id: string) => void;
 }) {
@@ -239,6 +364,25 @@ function AccountCard({
         <p className={cn("mt-1 truncate font-display text-[28px] font-bold leading-none", isDebt && "text-expense")}>
           {formatCurrency(account.balance, account.currency, locale)}
         </p>
+      </div>
+      <p className="-mt-1 truncate text-xs font-bold text-muted-foreground">
+        {lastActivity ? (
+          <>
+            {lastActivity.note || formatDate(lastActivity.date, locale, { day: "numeric", month: "short" })} ·{" "}
+            {lastActivity.type === "income" || (lastActivity.type === "transfer" && lastActivity.to_account_id === account.id) ? "+" : "−"}
+            {formatCurrency(lastActivity.amount, "IDR", locale)}
+          </>
+        ) : (
+          "Belum ada transaksi"
+        )}
+      </p>
+      <div className="mt-auto flex gap-2">
+        <Button asChild variant="outline" size="sm" className="flex-1">
+          <Link href={`/transactions?account_id=${account.id}`}>Detail</Link>
+        </Button>
+        <Button asChild size="sm" className="flex-1 text-ink" style={{ background: `color-mix(in srgb, ${color} 55%, #ffffff)` }}>
+          <Link href="/transactions/new?type=transfer">Transfer</Link>
+        </Button>
       </div>
     </div>
   );
