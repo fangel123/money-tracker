@@ -11,6 +11,7 @@ import { EmptyState } from "@/components/common/EmptyState";
 import { Plus, Search, Filter, MoreVertical, Edit, Trash2, X, Download, Check } from "lucide-react";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { Link } from "@/i18n/navigation";
+import { downloadCsv } from "@/lib/csv";
 import { useRouter, useSearchParams, usePathname } from "next/navigation";
 import { Transaction, Category, Account } from "@/types/domain";
 import { createBrowserSupabaseClient } from "@/lib/supabase/browser";
@@ -164,14 +165,6 @@ export function TransactionsContent({ locale, userId, initialSearchParams }: Tra
     !!searchParams.get("type") || selectedAccounts.length > 0 || selectedCategories.length > 0 ||
     !!searchParams.get("date_from") || !!searchParams.get("date_to") || !!searchQuery;
 
-  // Escape satu field CSV: bungkus dengan tanda kutip kalau mengandung koma, kutip, atau baris baru
-  const csvEscape = (value: string) => {
-    if (/[",\n]/.test(value)) {
-      return `"${value.replace(/"/g, '""')}"`;
-    }
-    return value;
-  };
-
   const handleExport = async () => {
     setIsExporting(true);
     try {
@@ -186,38 +179,22 @@ export function TransactionsContent({ locale, userId, initialSearchParams }: Tra
 
       const rows = (data || []) as Transaction[];
       const header = ["Tanggal", "Tipe", "Kategori", "Akun", "Akun Tujuan", "Catatan", "Jumlah"];
-      const lines = [header.join(",")];
-
-      for (const tx of rows) {
+      const lines = rows.map((tx) => {
         const cat = categories.find((c) => c.id === tx.category_id);
         const acc = accounts.find((a) => a.id === tx.account_id);
         const toAcc = accounts.find((a) => a.id === tx.to_account_id);
         const typeLabel = tx.type === "income" ? "Pemasukan" : tx.type === "expense" ? "Pengeluaran" : "Transfer";
-        lines.push(
-          [
-            tx.date,
-            typeLabel,
-            tx.type === "transfer" ? "" : cat?.name || "",
-            acc?.name || "",
-            tx.type === "transfer" ? toAcc?.name || "" : "",
-            csvEscape(tx.note || ""),
-            tx.amount.toString(),
-          ].join(",")
-        );
-      }
-
-      // BOM di depan supaya Excel membaca karakter non-ASCII (mis. huruf é, tanda kutip pintar) dengan benar
-      const csvContent = "﻿" + lines.join("\n");
-      const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
-      const url = URL.createObjectURL(blob);
-      const link = document.createElement("a");
-      const todayStr = new Date().toISOString().split("T")[0];
-      link.href = url;
-      link.download = `transaksi-${todayStr}.csv`;
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-      URL.revokeObjectURL(url);
+        return [
+          tx.date.slice(0, 10),
+          typeLabel,
+          tx.type === "transfer" ? "" : cat?.name,
+          acc?.name,
+          tx.type === "transfer" ? toAcc?.name : "",
+          tx.note,
+          Number(tx.amount),
+        ];
+      });
+      downloadCsv(`transaksi-${new Date().toISOString().split("T")[0]}.csv`, [header, ...lines]);
     } catch (e: any) {
       alert("Gagal export: " + e.message);
     } finally {
