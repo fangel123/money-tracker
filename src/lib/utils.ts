@@ -106,20 +106,6 @@ export function sleep(ms: number): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
-export const CURRENCIES = [
-  { code: "IDR", name: "Indonesian Rupiah", symbol: "Rp", locale: "id-ID" },
-  { code: "USD", name: "US Dollar", symbol: "$", locale: "en-US" },
-  { code: "EUR", name: "Euro", symbol: "€", locale: "de-DE" },
-  { code: "SGD", name: "Singapore Dollar", symbol: "S$", locale: "en-SG" },
-  { code: "MYR", name: "Malaysian Ringgit", symbol: "RM", locale: "ms-MY" },
-  { code: "THB", name: "Thai Baht", symbol: "฿", locale: "th-TH" },
-  { code: "JPY", name: "Japanese Yen", symbol: "¥", locale: "ja-JP" },
-  { code: "CNY", name: "Chinese Yuan", symbol: "¥", locale: "zh-CN" },
-  { code: "KRW", name: "South Korean Won", symbol: "₩", locale: "ko-KR" },
-] as const;
-
-export type CurrencyCode = (typeof CURRENCIES)[number]["code"];
-
 export const DEFAULT_CATEGORIES = {
   income: [
     { name: "Gaji", icon: "briefcase", color: "#059669" },

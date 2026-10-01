@@ -328,15 +328,6 @@ function AccountForm({
         />
         {errors.balance && <p className="mt-1 text-xs text-destructive">{errors.balance.message}</p>}
       </div>
-
-      <div>
-        <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">{t("form.currencyLabel")}</Label>
-        <Input
-          {...register("currency")}
-          placeholder="IDR"
-          className="mt-1.5 h-12 rounded-xl border-border/50 bg-secondary"
-        />
-      </div>
     </form>
   );
 }
