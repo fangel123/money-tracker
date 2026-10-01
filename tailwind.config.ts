@@ -8,6 +8,10 @@ module.exports = {
   ],
   theme: {
     extend: {
+      screens: {
+        // Layar pendek (laptop kecil, jendela browser rendah)
+        short: { raw: "(max-height: 760px)" },
+      },
       colors: {
         border: "rgb(var(--border) / <alpha-value>)",
         input: "rgb(var(--input) / <alpha-value>)",

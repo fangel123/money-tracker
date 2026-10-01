@@ -49,7 +49,7 @@ export function Header() {
 
   return (
     <header className="sticky top-0 z-30 w-full bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/80 lg:static lg:bg-transparent lg:backdrop-blur-none">
-      <div className="flex h-[72px] items-center justify-between gap-3 px-4 lg:h-[56px] lg:px-0">
+      <div className="flex h-[72px] items-center justify-between gap-3 px-4 lg:h-[60px] lg:pl-0 lg:pr-1.5 lg:pt-1">
         {/* Mobile: menu + brand */}
         <div className="flex items-center gap-3 lg:hidden">
           <button onClick={() => useUIStore.getState().toggleSidebar()} className={iconButton} aria-label="Buka menu">
