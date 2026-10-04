@@ -23,9 +23,11 @@ import { deleteAccount } from "./actions";
 import { downloadCsv } from "@/lib/csv";
 import { Switch } from "@/components/ui/switch";
 import type { ReminderPrefs } from "@/lib/reminders";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 interface SettingsContentProps {
   reminders: ReminderPrefs;
+  payday: number | null;
   locale: "id" | "en";
   user: { id: string; email: string };
   profile: {
@@ -43,7 +45,7 @@ const LOCALES = [
   { code: "en", name: "English", flag: "🇺🇸" },
 ] as const;
 
-export function SettingsContent({ locale, user, profile, reminders: initialReminders }: SettingsContentProps) {
+export function SettingsContent({ locale, user, profile, reminders: initialReminders, payday: initialPayday }: SettingsContentProps) {
   const t = useTranslations("settings");
   const ct = useTranslations("common");
   const router = useRouter();
@@ -63,6 +65,21 @@ export function SettingsContent({ locale, user, profile, reminders: initialRemin
       return;
     }
     queryClient.invalidateQueries({ queryKey: ["reminders"] });
+  };
+
+  const [payday, setPayday] = useState<number | null>(initialPayday);
+  const changePayday = async (value: string) => {
+    const previous = payday;
+    const next = value === "none" ? null : Number(value);
+    setPayday(next);
+    const { error } = await createBrowserSupabaseClient().auth.updateUser({ data: { payday: next } });
+    if (error) {
+      setPayday(previous);
+      toast.error("Gagal menyimpan tanggal gajian");
+      return;
+    }
+    toast.success(next ? `Tanggal gajian: ${next}` : "Tanggal gajian dihapus");
+    router.refresh();
   };
   const { setLocale } = useLocaleStore();
   const { setTheme, theme } = useThemeStore();
@@ -397,6 +414,27 @@ export function SettingsContent({ locale, user, profile, reminders: initialRemin
                         </button>
                       );
                     })}
+                  </div>
+                </div>
+                <div className="border-t-2 border-dashed border-divider pt-4">
+                  <p className={fieldLabel}>Tanggal gajian</p>
+                  <div className="mt-2 flex flex-wrap items-center gap-3">
+                    <Select value={payday ? String(payday) : "none"} onValueChange={changePayday}>
+                      <SelectTrigger className="w-[150px] shrink-0" aria-label="Tanggal gajian">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent className="max-h-72">
+                        <SelectItem value="none">Tidak diatur</SelectItem>
+                        {Array.from({ length: 31 }, (_, i) => i + 1).map((d) => (
+                          <SelectItem key={d} value={String(d)}>
+                            Tanggal {d}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <p className="min-w-[180px] flex-1 text-xs font-bold text-muted-foreground">
+                      Budget harian dihitung dari gajian ke gajian. Sabtu/Minggu otomatis maju ke Jumat; gaji yang cair lebih awal ikut terbaca.
+                    </p>
                   </div>
                 </div>
                 <div className="space-y-3 border-t-2 border-dashed border-divider pt-4">

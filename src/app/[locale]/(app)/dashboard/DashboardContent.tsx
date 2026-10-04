@@ -11,6 +11,7 @@ import { Mascot } from "@/components/common/Mascot";
 import { Sticker, stickerTilt } from "@/components/common/Sticker";
 import { CategorySticker } from "@/components/common/CategorySticker";
 import { NAV_ITEMS } from "@/components/layout/nav-items";
+import { getPayCycle, toDateStr } from "@/lib/payday";
 
 interface DashboardContentProps {
   locale: "id" | "en";
@@ -22,6 +23,8 @@ interface DashboardContentProps {
   categories: Category[];
   budgetAlerts: (Budget & { spent: number; percent: number })[];
   debtReminders: any[];
+  /** Tanggal gajian (1–31) dari Pengaturan; null = pakai bulan kalender. */
+  payday: number | null;
 }
 
 const MENU_HREFS = ["/budgets", "/scanner", "/goals", "/debts", "/planner", "/statistics", "/ai-advisor", "/accounts"];
@@ -39,6 +42,7 @@ export function DashboardContent({
   categories,
   budgetAlerts,
   debtReminders,
+  payday,
 }: DashboardContentProps) {
   const ct = useTranslations("common");
   const [selectedDay, setSelectedDay] = useState<string | null>(null);
@@ -47,12 +51,26 @@ export function DashboardContent({
 
   // Calculate summary
   const currentMonth = new Date().toISOString().slice(0, 7);
+  // Kalender tetap per bulan kalender
   const monthlyTransactions = transactions.filter((tx) => tx.date.startsWith(currentMonth));
-  const income = monthlyTransactions.filter((tx) => tx.type === "income").reduce((sum, tx) => sum + tx.amount, 0);
-  const expense = monthlyTransactions.filter((tx) => tx.type === "expense").reduce((sum, tx) => sum + tx.amount, 0);
 
-  // Real daily budget calculation (Total Income - Total Expense) / 30 days
-  const dailyBudgetRemaining = Math.max(0, Math.round(income / 30) - Math.round(expense / 30));
+  // Ringkasan & budget harian per siklus gajian (atau per bulan kalender kalau tanggal gajian belum diatur),
+  // supaya gaji tanggal 25 tetap terhitung sampai gajian berikutnya
+  const cycle = getPayCycle(
+    new Date(),
+    payday,
+    transactions.filter((tx) => tx.type === "income").map((tx) => ({ date: tx.date, amount: Number(tx.amount) }))
+  );
+  const cycleStart = toDateStr(cycle.start);
+  const cycleEnd = toDateStr(cycle.end);
+  const cycleTransactions = transactions.filter((tx) => tx.date.slice(0, 10) >= cycleStart && tx.date.slice(0, 10) < cycleEnd);
+  const income = cycleTransactions.filter((tx) => tx.type === "income").reduce((sum, tx) => sum + Number(tx.amount), 0);
+  const expense = cycleTransactions.filter((tx) => tx.type === "expense").reduce((sum, tx) => sum + Number(tx.amount), 0);
+  const periodLabel = payday ? "Siklus gajian ini" : "Bulan ini";
+  const nextPaydayLabel = new Intl.DateTimeFormat(locale === "id" ? "id-ID" : "en-US", { day: "numeric", month: "short" }).format(cycle.end);
+
+  // Sisa uang siklus ini dibagi sisa hari sampai gajian berikutnya (termasuk hari ini)
+  const dailyBudgetRemaining = Math.max(0, Math.floor((income - expense) / cycle.daysLeft));
 
   // Progres Pengeluaran (Needs, Wants, Savings) — mapping sederhana dari nama kategori; sisanya dihitung sebagai kebutuhan
   const wantsKeywords = ["hiburan", "belanja", "hobi", "liburan", "jajan", "keinginan"];
@@ -62,7 +80,7 @@ export function DashboardContent({
   let wantsTotal = 0;
   let savingsTotal = 0;
 
-  monthlyTransactions.forEach((tx) => {
+  cycleTransactions.forEach((tx) => {
     if (tx.type === "expense") {
       const catName = categories.find((c) => c.id === tx.category_id)?.name?.toLowerCase() || "";
       if (savingsKeywords.some((k) => catName.includes(k))) {
@@ -107,7 +125,7 @@ export function DashboardContent({
 
   const mascotLine =
     expense === 0
-      ? "Suppeeerrr! Belum ada pengeluaran bulan ini."
+      ? `Suppeeerrr! Belum ada pengeluaran ${payday ? "siklus ini" : "bulan ini"}.`
       : dailyBudgetRemaining > 0
         ? "Sisa jajan hari ini masih aman. Yuk, tahan checkout dulu!"
         : "Pengeluaran sudah menyalip pemasukan. Pelan-pelan dulu, ya!";
@@ -186,7 +204,7 @@ export function DashboardContent({
         <div className="flex items-center justify-between gap-3 lg:justify-start">
           <span className="text-xs font-black uppercase tracking-[0.1em]">Budget harian tersisa</span>
           <span className="rounded-full border-2.5 border-ink bg-white px-2.5 py-0.5 text-xs font-black">
-            Hari {today.getDate()}/{daysInMonth}
+            Hari {cycle.dayIndex}/{cycle.length}
           </span>
         </div>
         <p className="mt-3 font-display text-[44px] font-bold leading-none lg:mt-0 lg:text-[52px]">
@@ -203,11 +221,11 @@ export function DashboardContent({
       </section>
 
       {/* Income / expense cards (desktop) */}
-      <StatCard label="Pemasukan" value={formatCurrency(income, "IDR", intlLocale)} note="Bulan ini" color="#9be7c4" up />
+      <StatCard label="Pemasukan" value={formatCurrency(income, "IDR", intlLocale)} note={periodLabel} color="#9be7c4" up />
       <StatCard
         label="Pengeluaran"
         value={formatCurrency(expense, "IDR", intlLocale)}
-        note={income > 0 ? `${Math.round((expense / income) * 100)}% dari pemasukan` : "Bulan ini"}
+        note={income > 0 ? `${Math.round((expense / income) * 100)}% dari pemasukan` : periodLabel}
         color="#ff9ebb"
       />
 
@@ -280,12 +298,13 @@ export function DashboardContent({
           <div className="mb-4 flex items-center gap-3.5">
             <div className="flex h-14 w-14 flex-col items-center justify-center rounded-full border-3 border-line bg-background">
               <span className="text-[10px] font-black uppercase leading-none text-muted-foreground">Hari</span>
-              <span className="font-display text-lg font-bold leading-none">{today.getDate()}</span>
+              <span className="font-display text-lg font-bold leading-none">{cycle.dayIndex}</span>
             </div>
             <div>
               <h2 className="font-display text-xl font-semibold">Progres Pengeluaran</h2>
               <p className="text-xs font-bold text-muted-foreground">
-                Hari {today.getDate()} dari {daysInMonth} · target 50/30/20
+                Hari {cycle.dayIndex} dari {cycle.length}
+                {payday ? ` · gajian ${nextPaydayLabel}` : ""} · target 50/30/20
               </p>
             </div>
           </div>
