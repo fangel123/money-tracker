@@ -3,6 +3,7 @@ import { redirect } from "next/navigation";
 import { getTranslations } from "next-intl/server";
 import { getPeriodRange } from "@/lib/utils";
 import { readReminderPrefs } from "@/lib/reminders";
+import { readPayday, toDateStr } from "@/lib/payday";
 import { DashboardContent } from "./DashboardContent";
 
 export default async function DashboardPage({
@@ -29,6 +30,8 @@ export default async function DashboardPage({
   const monthStart = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-01`;
   const nextMonth = new Date(now.getFullYear(), now.getMonth() + 1, 1);
   const monthEnd = `${nextMonth.getFullYear()}-${String(nextMonth.getMonth() + 1).padStart(2, "0")}-01`;
+  // Siklus gajian bisa mulai di bulan lalu; ambil ~70 hari supaya gaji siklus ini & sebelumnya ikut terbaca
+  const fetchStart = toDateStr(new Date(now.getFullYear(), now.getMonth(), now.getDate() - 70));
 
   // Fetch dashboard data
   const [
@@ -43,7 +46,7 @@ export default async function DashboardPage({
       .from("transactions")
       .select("*")
       .eq("user_id", user.id)
-      .gte("date", monthStart)
+      .gte("date", fetchStart)
       .lt("date", monthEnd)
       .order("date", { ascending: false })
       .order("created_at", { ascending: false }),
@@ -100,6 +103,7 @@ export default async function DashboardPage({
       categories={categories || []}
       budgetAlerts={reminderPrefs.budget ? budgetAlerts : []}
       debtReminders={reminderPrefs.debt ? debtReminders : []}
+      payday={readPayday(user.user_metadata)}
     />
   );
 }

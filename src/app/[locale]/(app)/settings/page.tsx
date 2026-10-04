@@ -2,6 +2,7 @@ import { createServerSupabaseClient } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
 import { SettingsContent } from "./SettingsContent";
 import { readReminderPrefs } from "@/lib/reminders";
+import { readPayday } from "@/lib/payday";
 
 export default async function SettingsPage({
   params,
@@ -31,6 +32,7 @@ export default async function SettingsPage({
       user={{ id: user.id, email: user.email || "" }}
       profile={profile}
       reminders={readReminderPrefs(user.user_metadata)}
+      payday={readPayday(user.user_metadata)}
     />
   );
 }
