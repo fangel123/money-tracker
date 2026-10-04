@@ -1,7 +1,7 @@
 "use client";
 
 import { useRefreshData } from "@/hooks/use-refresh-data";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useMutation } from "@tanstack/react-query";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -13,7 +13,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Coins, Plus, TrendingDown, TrendingUp, HandCoins, ChevronRight, CalendarClock, CheckCircle2 } from "lucide-react";
+import { Coins, Plus, TrendingDown, TrendingUp, HandCoins, ChevronRight, CalendarClock, CheckCircle2, MoreVertical, Edit, Trash2 } from "lucide-react";
 import { formatCurrency, cn } from "@/lib/utils";
 import { PageHeader } from "@/components/common/PageHeader";
 import { CartoonBar } from "@/components/common/HeroCard";
@@ -25,6 +25,8 @@ import {
   type DebtFormData,
 } from "@/lib/validators/debt";
 import { createBrowserSupabaseClient } from "@/lib/supabase/browser";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 
 interface DebtsContentProps {
   user: any;
@@ -40,14 +42,20 @@ export function DebtsContent({ user, initialDebts, dbReady, accounts, categories
   const displayDebts = initialDebts;
   const [showForm, setShowForm] = useState(false);
   const [payingDebt, setPayingDebt] = useState<any | null>(null);
-  const [statusFilter, setStatusFilter] = useState<"all" | "active" | "paid">("all");
+  // Default hanya yang masih aktif; yang lunas tetap bisa dilihat lewat filter "Lunas" (riwayat)
+  const [statusFilter, setStatusFilter] = useState<"all" | "active" | "paid">("active");
+  const [editingDebt, setEditingDebt] = useState<any | null>(null);
+  const [deletingDebt, setDeletingDebt] = useState<any | null>(null);
 
   const today = new Date().toISOString().split("T")[0];
   const inAWeek = new Date(Date.now() + 7 * 86_400_000).toISOString().split("T")[0];
   const active = displayDebts.filter((d) => d.status === "active");
   const dueSoon = active.filter((d) => d.due_date && d.due_date <= inAWeek);
   const paidCount = displayDebts.filter((d) => d.status === "paid").length;
-  const visible = displayDebts.filter((d) => statusFilter === "all" || d.status === statusFilter);
+  const visible = displayDebts
+    .filter((d) => statusFilter === "all" || d.status === statusFilter)
+    // Di "Semua", yang masih aktif tampil lebih dulu
+    .sort((a, b) => (a.status === b.status ? 0 : a.status === "active" ? -1 : 1));
   const payables = visible.filter((d) => d.type === "payable");
   const receivables = visible.filter((d) => d.type === "receivable");
 
@@ -57,6 +65,48 @@ export function DebtsContent({ user, initialDebts, dbReady, accounts, categories
   const totalReceivable = displayDebts
     .filter((d) => d.type === "receivable" && d.status === "active")
     .reduce((sum, d) => sum + Number(d.remaining_amount), 0);
+
+  const updateMutation = useMutation({
+    mutationFn: async ({ debt, data }: { debt: any; data: DebtFormData }) => {
+      // Sisa ikut bergeser sebesar perubahan total, supaya pembayaran yang sudah tercatat tetap terhitung
+      const paid = Number(debt.amount) - Number(debt.remaining_amount);
+      const remaining = Math.max(0, Number(data.amount) - paid);
+      const supabase = createBrowserSupabaseClient();
+      const { error } = await supabase
+        .from("debts")
+        .update({
+          name: data.name,
+          type: data.type,
+          amount: data.amount,
+          remaining_amount: remaining,
+          due_date: data.due_date || null,
+          status: remaining === 0 ? "paid" : "active",
+        })
+        .eq("id", debt.id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      setEditingDebt(null);
+      setShowForm(false);
+      refreshData();
+      toast.success("Perubahan disimpan");
+    },
+    onError: (error: any) => toast.error(error.message || "Gagal menyimpan perubahan"),
+  });
+
+  const deleteMutation = useMutation({
+    mutationFn: async (id: string) => {
+      const supabase = createBrowserSupabaseClient();
+      const { error } = await supabase.from("debts").delete().eq("id", id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      setDeletingDebt(null);
+      refreshData();
+      toast.success("Data dihapus. Riwayat pembayarannya tetap ada di Transaksi.");
+    },
+    onError: (error: any) => toast.error(error.message || "Gagal menghapus"),
+  });
 
   const createMutation = useMutation({
     mutationFn: async (data: DebtFormData) => {
@@ -131,9 +181,9 @@ export function DebtsContent({ user, initialDebts, dbReady, accounts, categories
   const statusPills = (
     <div className="flex gap-2">
       {([
-        ["all", "Semua"],
         ["active", "Aktif"],
         ["paid", "Lunas"],
+        ["all", "Semua"],
       ] as const).map(([value, label]) => (
         <Button
           key={value}
@@ -185,6 +235,22 @@ export function DebtsContent({ user, initialDebts, dbReady, accounts, categories
               {isPayable ? "Bayar" : "Terima"}
             </Button>
           )}
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <button className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border-2 border-line bg-card" aria-label={`Aksi untuk ${debt.name}`}>
+                <MoreVertical className="h-4 w-4" strokeWidth={3} />
+              </button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              <DropdownMenuItem onClick={() => { setEditingDebt(debt); setShowForm(true); }} className="cursor-pointer">
+                <Edit className="mr-2 h-4 w-4" /> Ubah
+              </DropdownMenuItem>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem onClick={() => setDeletingDebt(debt)} className="cursor-pointer text-destructive focus:text-destructive">
+                <Trash2 className="mr-2 h-4 w-4" /> Hapus
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
         </div>
         {!isPaid && debt.due_date && (
           <span
@@ -230,7 +296,7 @@ export function DebtsContent({ user, initialDebts, dbReady, accounts, categories
         action={
           <>
             <div className="hidden lg:block">{statusPills}</div>
-            <Button onClick={() => setShowForm(true)} aria-label="Tambah utang">
+            <Button onClick={() => { setEditingDebt(null); setShowForm(true); }} aria-label="Tambah utang">
               <Plus className="h-5 w-5 sm:mr-1.5" strokeWidth={3} />
               <span className="hidden sm:inline">Tambah</span>
             </Button>
@@ -289,12 +355,12 @@ export function DebtsContent({ user, initialDebts, dbReady, accounts, categories
         </div>
       ) : (
         <div className="grid gap-5 lg:grid-cols-2">
-          {column("Utang saya", "#ff9ebb", payables, "Tidak ada utang di sini.")}
+          {column("Utang saya", "#ff9ebb", payables, statusFilter === "active" ? "Tidak ada utang aktif. Mantap!" : "Tidak ada utang di sini.")}
           {column(
             "Piutang",
             "#9be7c4",
             receivables,
-            "Tidak ada piutang di sini.",
+            statusFilter === "active" ? "Tidak ada piutang aktif." : "Tidak ada piutang di sini.",
             receivables.some((d) => d.status === "active") && (
               <div className="mt-auto flex items-center gap-3 rounded-[18px] border-2.5 border-dashed border-line px-3.5 py-3">
                 <Mascot size={44} className="shrink-0" />
@@ -305,11 +371,37 @@ export function DebtsContent({ user, initialDebts, dbReady, accounts, categories
         </div>
       )}
 
+      <AlertDialog open={!!deletingDebt} onOpenChange={(open) => !open && setDeletingDebt(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Hapus “{deletingDebt?.name}”?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Data utang/piutang ini akan dihapus. Transaksi pembayaran yang sudah tercatat tetap ada di halaman Transaksi,
+              jadi saldo akun tidak berubah.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Batal</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => deletingDebt && deleteMutation.mutate(deletingDebt.id)}
+              disabled={deleteMutation.isPending}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive"
+            >
+              Hapus
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
       <DebtFormDialog
         open={showForm}
-        onOpenChange={setShowForm}
-        onSubmit={(data) => createMutation.mutate(data)}
-        isPending={createMutation.isPending}
+        onOpenChange={(open) => {
+          setShowForm(open);
+          if (!open) setEditingDebt(null);
+        }}
+        initialData={editingDebt}
+        onSubmit={(data) => (editingDebt ? updateMutation.mutate({ debt: editingDebt, data }) : createMutation.mutate(data))}
+        isPending={createMutation.isPending || updateMutation.isPending}
       />
       <PayDebtDialog
         debt={payingDebt}
@@ -337,11 +429,13 @@ export function DebtsContent({ user, initialDebts, dbReady, accounts, categories
 function DebtFormDialog({
   open,
   onOpenChange,
+  initialData,
   onSubmit,
   isPending,
 }: {
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  initialData: any | null;
   onSubmit: (data: DebtFormData) => void;
   isPending: boolean;
 }) {
@@ -357,16 +451,25 @@ function DebtFormDialog({
     defaultValues: { name: "", type: "payable", amount: 0, due_date: "" },
   });
 
+  // Isi ulang form tiap kali dibuka: data lama saat mengubah, kosong saat menambah
+  useEffect(() => {
+    if (!open) return;
+    reset(
+      initialData
+        ? { name: initialData.name, type: initialData.type, amount: Number(initialData.amount), due_date: initialData.due_date || "" }
+        : { name: "", type: "payable", amount: 0, due_date: "" }
+    );
+  }, [open, initialData, reset]);
+
   const submit = (data: DebtFormData) => {
     onSubmit(data);
-    reset();
   };
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-[425px] rounded-cartoon p-6 border-line shadow-2xl">
         <DialogHeader>
-          <DialogTitle className="text-xl font-bold">Catat Utang / Piutang</DialogTitle>
+          <DialogTitle className="text-xl font-bold">{initialData ? "Ubah Utang / Piutang" : "Catat Utang / Piutang"}</DialogTitle>
         </DialogHeader>
         <form id="debt-form" onSubmit={handleSubmit(submit)} className="space-y-5 py-4">
           <div>
