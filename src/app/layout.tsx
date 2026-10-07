@@ -56,6 +56,13 @@ export const metadata: Metadata = {
     apple: "/icon-192.png?v=koin",
   },
   manifest: "/site.webmanifest",
+  // Saat dipasang di layar utama iPhone: buka layar penuh dengan nama "Koin"
+  appleWebApp: {
+    capable: true,
+    title: "Koin",
+    statusBarStyle: "default",
+  },
+  formatDetection: { telephone: false },
 };
 
 export const viewport: Viewport = {

@@ -44,6 +44,14 @@ export function QuickAdd({ accounts, categories, history, initialFavorites, clas
   const [saving, setSaving] = useState<string | null>(null);
   const [favorites, setFavorites] = useState<QuickFavorite[]>(initialFavorites);
   const [editing, setEditing] = useState(false);
+  // Dari pintasan ikon aplikasi (PWA): /dashboard?quick=1 → langsung fokus ke kotak Catat cepat
+  useEffect(() => {
+    if (new URLSearchParams(window.location.search).get("quick") !== "1") return;
+    const input = document.getElementById("quick-add");
+    input?.scrollIntoView({ block: "center" });
+    input?.focus();
+  }, []);
+
   // Saran yang disembunyikan (termasuk favorit yang dihapus) — supaya tidak langsung muncul lagi sebagai saran
   const [dismissed, setDismissed] = useState<string[]>([]);
   useEffect(() => {

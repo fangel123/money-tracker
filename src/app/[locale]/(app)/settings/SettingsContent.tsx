@@ -21,6 +21,7 @@ import { useLocaleStore, useThemeStore } from "@/store";
 import { toast } from "@/store";
 import { deleteAccount } from "./actions";
 import { downloadCsv } from "@/lib/csv";
+import { InstallCard } from "@/components/settings/InstallCard";
 import { Switch } from "@/components/ui/switch";
 import type { ReminderPrefs } from "@/lib/reminders";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -331,6 +332,7 @@ export function SettingsContent({ locale, user, profile, reminders: initialRemin
             </Link>
           </nav>
           {dataCard("data-panel")}
+          <InstallCard className={card} />
         </div>
 
         <div className="space-y-5">
@@ -537,7 +539,10 @@ export function SettingsContent({ locale, user, profile, reminders: initialRemin
             </section>
           </div>
 
-          <div className="lg:hidden">{dataCard("data")}</div>
+          <div className="space-y-5 lg:hidden">
+            <InstallCard className={card} />
+            {dataCard("data")}
+          </div>
         </div>
       </div>
     </div>
