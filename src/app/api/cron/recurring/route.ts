@@ -1,34 +1,10 @@
 import { NextResponse } from "next/server";
 import { createAdminSupabaseClient } from "@/lib/supabase/admin";
+import { anchorDayOf, dueOccurrences, todayJakarta, type RecurringRuleConfig } from "@/lib/recurring";
 
 // Route ini dipanggil otomatis oleh Vercel Cron (lihat vercel.json).
 // Jangan cache — harus selalu jalan fresh tiap dipanggil.
 export const dynamic = "force-dynamic";
-
-type RecurringRule = {
-  frequency: "daily" | "weekly" | "monthly" | "yearly";
-  interval: number;
-  end_date?: string;
-};
-
-function addInterval(dateStr: string, frequency: RecurringRule["frequency"], interval: number): string {
-  const d = new Date(dateStr + "T00:00:00Z");
-  switch (frequency) {
-    case "daily":
-      d.setUTCDate(d.getUTCDate() + interval);
-      break;
-    case "weekly":
-      d.setUTCDate(d.getUTCDate() + interval * 7);
-      break;
-    case "monthly":
-      d.setUTCMonth(d.getUTCMonth() + interval);
-      break;
-    case "yearly":
-      d.setUTCFullYear(d.getUTCFullYear() + interval);
-      break;
-  }
-  return d.toISOString().split("T")[0];
-}
 
 export async function GET(request: Request) {
   // Lindungi endpoint ini dari akses publik — Vercel Cron otomatis mengirim
@@ -40,7 +16,8 @@ export async function GET(request: Request) {
   }
 
   const supabase = createAdminSupabaseClient();
-  const today = new Date().toISOString().split("T")[0];
+  // Cron jalan 18:00 UTC = 01:00 WIB; pakai tanggal WIB supaya tidak telat sehari
+  const today = todayJakarta();
 
   // Ambil semua transaksi ROOT (induk) yang berulang, dari SEMUA user
   const { data: roots, error } = await supabase
@@ -59,8 +36,8 @@ export async function GET(request: Request) {
 
   for (const root of roots || []) {
     try {
-      const rule = root.recurring_rule as RecurringRule;
-      if (!rule?.frequency) continue;
+      const rule = root.recurring_rule as RecurringRuleConfig;
+      if (!rule?.frequency || rule.paused) continue;
 
       // Cari tanggal PALING BARU dalam rantai ini (transaksi induk + semua anak
       // hasil generate sebelumnya), supaya cron yang jalan berkali-kali tidak
@@ -72,17 +49,11 @@ export async function GET(request: Request) {
         .order("date", { ascending: false })
         .limit(1);
 
-      let lastDate: string = chain?.[0]?.date || root.date;
-      let nextDate = addInterval(lastDate, rule.frequency, rule.interval || 1);
-      let iterations = 0;
+      const lastDate = String(chain?.[0]?.date || root.date).slice(0, 10);
 
-      // Catch-up: kalau cron sempat tidak jalan beberapa hari, semua occurrence
-      // yang terlewat tetap dibuat satu-satu (maks 366 supaya tidak infinite loop).
-      while (
-        nextDate <= today &&
-        (!rule.end_date || nextDate <= rule.end_date) &&
-        iterations < 366
-      ) {
+      // Catch-up: kalau cron sempat tidak jalan beberapa hari, semua tanggal yang
+      // terlewat tetap dibuat (kecuali sebelum resume_from setelah dijeda).
+      for (const date of dueOccurrences(lastDate, rule, anchorDayOf(String(root.date)), today)) {
         const { error: insertError } = await supabase.from("transactions").insert({
           user_id: root.user_id,
           account_id: root.account_id,
@@ -90,17 +61,13 @@ export async function GET(request: Request) {
           to_account_id: root.to_account_id,
           amount: root.amount,
           type: root.type,
-          date: nextDate,
+          date,
           note: root.note,
           is_recurring: false,
           parent_transaction_id: root.id,
         });
         if (insertError) throw insertError;
-
         created++;
-        lastDate = nextDate;
-        nextDate = addInterval(lastDate, rule.frequency, rule.interval || 1);
-        iterations++;
       }
     } catch (e: unknown) {
       errors.push(`${root.id}: ${e instanceof Error ? e.message : String(e)}`);

@@ -1,13 +1,18 @@
 import { createServerSupabaseClient } from "@/lib/supabase/server";
 import { redirect, notFound } from "next/navigation";
 import { TransactionFormContent } from "../../TransactionFormContent";
+import { readPayday } from "@/lib/payday";
 
 export default async function TransactionEditPage({
   params,
+  searchParams,
 }: {
   params: Promise<{ locale: string; id: string }>;
+  searchParams: Promise<{ recurring?: string; payday?: string }>;
 }) {
   const { locale, id } = await params;
+  // ?recurring=1&payday=1 — dari halaman Rutin: jadikan transaksi ini (mis. gaji terakhir) rutin ikut tanggal gajian
+  const { recurring, payday: followPayday } = await searchParams;
   const supabase = createServerSupabaseClient();
 
   const {
@@ -50,6 +55,7 @@ export default async function TransactionEditPage({
       accounts={accounts || []}
       isEdit={true}
       transactionId={transaction.id}
+      payday={readPayday(user.user_metadata)}
       initialData={{
         type: transaction.type,
         amount: transaction.amount,
@@ -58,8 +64,18 @@ export default async function TransactionEditPage({
         to_account_id: transaction.to_account_id,
         date: transaction.date,
         note: transaction.note || "",
-        is_recurring: transaction.is_recurring,
-        recurring_rule: transaction.recurring_rule || undefined,
+        is_recurring: recurring === "1" || transaction.is_recurring,
+        recurring_rule:
+          transaction.recurring_rule ||
+          (recurring === "1"
+            ? {
+                frequency: "monthly" as const,
+                interval: 1,
+                ...(followPayday === "1" && readPayday(user.user_metadata)
+                  ? { follow_payday: true, day: readPayday(user.user_metadata) as number }
+                  : {}),
+              }
+            : undefined),
       }}
     />
   );

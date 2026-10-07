@@ -1,16 +1,17 @@
 import { createServerSupabaseClient } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
 import { TransactionFormContent } from "../TransactionFormContent";
+import { readPayday } from "@/lib/payday";
 
 export default async function TransactionNewPage({
   params,
   searchParams,
 }: {
   params: Promise<{ locale: string }>;
-  searchParams: Promise<{ type?: string }>;
+  searchParams: Promise<{ type?: string; recurring?: string; payday?: string }>;
 }) {
   const { locale } = await params;
-  const { type } = await searchParams;
+  const { type, recurring, payday } = await searchParams;
   const supabase = createServerSupabaseClient();
 
   const {
@@ -36,6 +37,9 @@ export default async function TransactionNewPage({
       categories={categories || []}
       accounts={accounts || []}
       isEdit={false}
+      initialRecurring={recurring === "1"}
+      initialFollowPayday={payday === "1"}
+      payday={readPayday(user.user_metadata)}
     />
   );
 }

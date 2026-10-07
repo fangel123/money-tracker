@@ -32,6 +32,12 @@ interface TransactionFormContentProps {
   isEdit: boolean;
   transactionId?: string;
   initialData?: TransactionFormData & { date: string; category_id: string; account_id: string };
+  /** Dari /transactions/new?recurring=1 — langsung aktifkan transaksi rutin. */
+  initialRecurring?: boolean;
+  /** Dari ?payday=1 — rutin bulanan mengikuti tanggal gajian. */
+  initialFollowPayday?: boolean;
+  /** Tanggal gajian pengguna (Pengaturan), untuk opsi "ikuti tanggal gajian". */
+  payday?: number | null;
 }
 
 export function TransactionFormContent({
@@ -43,13 +49,16 @@ export function TransactionFormContent({
   isEdit,
   transactionId,
   initialData,
+  initialRecurring = false,
+  initialFollowPayday = false,
+  payday = null,
 }: TransactionFormContentProps) {
   const router = useRouter();
   const refreshData = useRefreshData();
   const pathname = usePathname();
   const t = useTranslations("transactions");
   const ct = useTranslations("common");
-  const [showRecurring, setShowRecurring] = useState(false);
+  const [showRecurring, setShowRecurring] = useState(Boolean(initialRecurring || initialData?.is_recurring));
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
 
@@ -65,8 +74,10 @@ export function TransactionFormContent({
     to_account_id: undefined,
     date: new Date().toISOString().split("T")[0],
     note: "",
-    is_recurring: false,
-    recurring_rule: undefined,
+    is_recurring: initialRecurring,
+    recurring_rule: initialRecurring
+      ? { frequency: "monthly", interval: 1, ...(initialFollowPayday && payday ? { follow_payday: true, day: payday } : {}) }
+      : undefined,
   };
 
   if (initialData) {
@@ -334,6 +345,10 @@ export function TransactionFormContent({
                 onCheckedChange={(checked) => {
                   setValue("is_recurring", checked);
                   setShowRecurring(checked);
+                  // Tanpa ini recurring_rule kosong kalau frekuensi tidak diubah → cron tidak pernah membuatnya
+                  if (checked && !watch("recurring_rule.frequency")) {
+                    setValue("recurring_rule", { frequency: "monthly", interval: 1 });
+                  }
                 }}
                 aria-label={t("form.recurringLabel")}
               />
@@ -368,6 +383,26 @@ export function TransactionFormContent({
                     min={today}
                   />
                 </div>
+                {(watch("recurring_rule.frequency") || "monthly") === "monthly" && (
+                  <label className="flex cursor-pointer items-start gap-3 rounded-2xl border-2.5 border-line bg-background p-3.5 sm:col-span-2">
+                    <input
+                      type="checkbox"
+                      className="mt-0.5 h-5 w-5 shrink-0 accent-[rgb(var(--primary))]"
+                      checked={Boolean(watch("recurring_rule.follow_payday"))}
+                      onChange={(e) => {
+                        const on = e.target.checked;
+                        setValue("recurring_rule.follow_payday", on || undefined);
+                        setValue("recurring_rule.day", on ? payday || Number(String(watch("date")).slice(8, 10)) : undefined);
+                      }}
+                    />
+                    <span>
+                      <span className="block text-sm font-black">Ikuti tanggal gajian</span>
+                      <span className="block text-xs font-bold text-muted-foreground">
+                        Tiap bulan tanggal {watch("recurring_rule.day") || payday || Number(String(watch("date")).slice(8, 10))}; kalau Sabtu/Minggu maju ke Jumat. Cocok untuk gaji. Transaksi ini sendiri tercatat di tanggal yang dipilih di atas, berikutnya dibuat otomatis.
+                      </span>
+                    </span>
+                  </label>
+                )}
               </div>
             )}
           </div>

@@ -4,6 +4,7 @@ import { getTranslations } from "next-intl/server";
 import { getPeriodRange } from "@/lib/utils";
 import { readReminderPrefs } from "@/lib/reminders";
 import { readPayday, toDateStr } from "@/lib/payday";
+import { readFavorites } from "@/lib/quick-add";
 import { DashboardContent } from "./DashboardContent";
 
 export default async function DashboardPage({
@@ -104,6 +105,7 @@ export default async function DashboardPage({
       budgetAlerts={reminderPrefs.budget ? budgetAlerts : []}
       debtReminders={reminderPrefs.debt ? debtReminders : []}
       payday={readPayday(user.user_metadata)}
+      favorites={readFavorites(user.user_metadata)}
     />
   );
 }
