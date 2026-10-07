@@ -3,6 +3,7 @@
 import { QueryProvider } from "./QueryProvider";
 import { ThemeProvider } from "./ThemeProvider";
 import { Toaster } from "./Toaster";
+import { PwaRegister } from "./PwaRegister";
 import { ReactNode } from "react";
 
 export function Providers({ children }: { children: ReactNode }) {
@@ -11,6 +12,7 @@ export function Providers({ children }: { children: ReactNode }) {
       <ThemeProvider>
         {children}
         <Toaster />
+        <PwaRegister />
       </ThemeProvider>
     </QueryProvider>
   );

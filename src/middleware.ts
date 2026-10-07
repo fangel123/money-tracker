@@ -85,6 +85,7 @@ export async function middleware(request: NextRequest) {
 
 export const config = {
   matcher: [
-    "/((?!api|_next/static|_next/image|favicon.ico|.*\\.webmanifest$|.*\\.ico$|.*\\.png$|.*\\.svg$).*)",
+    // sw.js & offline.html (PWA) harus disajikan apa adanya, tanpa prefix locale/cek login
+    "/((?!api|_next/static|_next/image|favicon.ico|sw\\.js$|offline\\.html$|.*\\.webmanifest$|.*\\.ico$|.*\\.png$|.*\\.svg$).*)",
   ],
 };
