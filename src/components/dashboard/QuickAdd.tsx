@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
 import { Zap, Star, X, ChevronDown, Check } from "lucide-react";
 import { cn, formatCurrency } from "@/lib/utils";
@@ -30,6 +30,10 @@ interface QuickAddProps {
 }
 
 const MAX_FAVORITES = 8;
+const DISMISSED_KEY = "koin-dismissed-suggestions";
+/** Kunci yang sama dengan id saran di frequentEntries. */
+const suggestionKey = (f: Pick<QuickFavorite, "type" | "note" | "amount" | "accountId">) =>
+  `${f.type}|${f.note.trim().toLowerCase()}|${f.amount}|${f.accountId}`;
 const chip = "inline-flex h-8 items-center gap-1 rounded-full border-2 px-3 text-xs font-black";
 
 /** Kartu "Catat cepat" di Dashboard: ketik sekali → transaksi, plus tombol favorit sekali klik. */
@@ -40,10 +44,31 @@ export function QuickAdd({ accounts, categories, history, initialFavorites, clas
   const [saving, setSaving] = useState<string | null>(null);
   const [favorites, setFavorites] = useState<QuickFavorite[]>(initialFavorites);
   const [editing, setEditing] = useState(false);
+  // Saran yang disembunyikan (termasuk favorit yang dihapus) — supaya tidak langsung muncul lagi sebagai saran
+  const [dismissed, setDismissed] = useState<string[]>([]);
+  useEffect(() => {
+    try {
+      setDismissed(JSON.parse(localStorage.getItem(DISMISSED_KEY) || "[]"));
+    } catch {
+      setDismissed([]);
+    }
+  }, []);
+  const dismiss = (key: string) => {
+    const next = [...new Set([...dismissed, key])].slice(-50);
+    setDismissed(next);
+    try {
+      localStorage.setItem(DISMISSED_KEY, JSON.stringify(next));
+    } catch {
+      // abaikan storage diblokir
+    }
+  };
 
   const parsed = useMemo(() => parseQuickEntry(text, { accounts, categories, history }), [text, accounts, categories, history]);
   const draft = parsed ? { ...parsed, ...override } : null;
-  const suggestions = useMemo(() => frequentEntries(history, favorites, Math.max(0, 4 - favorites.length)), [history, favorites]);
+  const suggestions = useMemo(
+    () => frequentEntries(history, favorites, 8).filter((s) => !dismissed.includes(s.id)).slice(0, Math.max(0, 4 - favorites.length)),
+    [history, favorites, dismissed]
+  );
 
   const accountName = (id: string | null) => accounts.find((a) => a.id === id)?.name ?? "Pilih akun";
   const categoryName = (id: string | null) => categories.find((c) => c.id === id)?.name ?? "Pilih kategori";
@@ -193,15 +218,14 @@ export function QuickAdd({ accounts, categories, history, initialFavorites, clas
       {(favorites.length > 0 || suggestions.length > 0) && (
         <div className="mt-3 flex flex-wrap items-center gap-2 border-t-2 border-dashed border-divider pt-3">
           {favorites.map((f) => (
-            <span key={f.id} className="inline-flex">
+            <span key={f.id} className="inline-flex items-center gap-1.5">
               <button
                 type="button"
                 disabled={saving === f.id || editing}
                 onClick={() => save(f, f.id)}
                 className={cn(
                   chip,
-                  "border-ink bg-cartoon-lime text-ink shadow-cartoon-sm transition-transform active:translate-x-[2px] active:translate-y-[2px] active:shadow-none disabled:opacity-70",
-                  editing && "pr-1.5"
+                  "border-ink bg-cartoon-lime text-ink shadow-cartoon-sm transition-transform active:translate-x-[2px] active:translate-y-[2px] active:shadow-none disabled:opacity-70"
                 )}
                 title="Catat sekarang"
               >
@@ -211,11 +235,16 @@ export function QuickAdd({ accounts, categories, history, initialFavorites, clas
               {editing && (
                 <button
                   type="button"
-                  onClick={() => persistFavorites(favorites.filter((x) => x.id !== f.id))}
-                  className="-ml-2 flex h-6 w-6 items-center justify-center self-center rounded-full border-2 border-ink bg-cartoon-red text-ink"
+                  onClick={() => {
+                    dismiss(suggestionKey(f));
+                    persistFavorites(favorites.filter((x) => x.id !== f.id));
+                    toast.success("Dihapus dari favorit");
+                  }}
+                  className="mr-1 flex h-7 w-7 shrink-0 items-center justify-center rounded-full border-2 border-ink bg-cartoon-red text-ink"
                   aria-label={`Hapus favorit ${f.note}`}
+                  title="Hapus dari favorit"
                 >
-                  <X className="h-3 w-3" strokeWidth={3} />
+                  <X className="h-3.5 w-3.5" strokeWidth={3} />
                 </button>
               )}
             </span>
@@ -235,11 +264,20 @@ export function QuickAdd({ accounts, categories, history, initialFavorites, clas
                 >
                   <Star className="h-3 w-3" strokeWidth={3} />
                 </button>
+                <button
+                  type="button"
+                  onClick={() => dismiss(s.id)}
+                  className="flex h-6 w-6 items-center justify-center rounded-full text-muted-foreground hover:bg-accent"
+                  aria-label={`Sembunyikan saran: ${s.note}`}
+                  title="Sembunyikan saran"
+                >
+                  <X className="h-3 w-3" strokeWidth={3} />
+                </button>
               </span>
             ))}
           {favorites.length > 0 && (
             <button type="button" onClick={() => setEditing((e) => !e)} className="ml-auto text-xs font-black text-muted-foreground hover:text-foreground">
-              {editing ? "Selesai" : "Atur"}
+              {editing ? "Selesai" : "Atur favorit"}
             </button>
           )}
         </div>
