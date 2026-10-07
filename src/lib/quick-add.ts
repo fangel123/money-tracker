@@ -150,12 +150,16 @@ export function parseQuickEntry(
   }
   if (categoryId && !ofType.some((c) => c.id === categoryId)) categoryId = null;
 
-  // 3) Akun: yang disebut > dari riwayat yang mirip > yang paling sering dipakai
+  // 3) Akun: yang disebut > dari riwayat yang mirip > paling sering dipakai untuk kategori ini
+  //    (mis. Transport biasanya Gopay) > paling sering dipakai secara umum
   if (!accountId) accountId = historyAccount;
   if (!accountId) {
-    const counts = new Map<string, number>();
-    for (const h of history) counts.set(h.account_id, (counts.get(h.account_id) || 0) + 1);
-    accountId = [...counts.entries()].sort((a, b) => b[1] - a[1])[0]?.[0] ?? accounts[0]?.id ?? null;
+    const mostUsed = (items: QuickHistory[]) => {
+      const counts = new Map<string, number>();
+      for (const h of items) counts.set(h.account_id, (counts.get(h.account_id) || 0) + 1);
+      return [...counts.entries()].sort((a, b) => b[1] - a[1])[0]?.[0] ?? null;
+    };
+    accountId = (categoryId && mostUsed(history.filter((h) => h.category_id === categoryId))) || mostUsed(history) || accounts[0]?.id || null;
   }
   if (accountId && !accounts.some((a) => a.id === accountId)) accountId = accounts[0]?.id ?? null;
 
