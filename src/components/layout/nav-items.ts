@@ -11,6 +11,7 @@ import {
   MessageSquare,
   Settings,
   Tags,
+  Repeat,
   type LucideIcon,
 } from "lucide-react";
 
@@ -25,6 +26,7 @@ export interface NavItem {
 export const NAV_ITEMS: NavItem[] = [
   { label: "Dashboard", href: "/dashboard", icon: LayoutGrid, color: "#c8f031" },
   { label: "Transaksi", href: "/transactions", icon: ArrowRightLeft, color: "#8fd3ff" },
+  { label: "Rutin", href: "/recurring", icon: Repeat, color: "#c9b6ff" },
   { label: "Budget", href: "/budgets", icon: Target, color: "#ffd447" },
   { label: "Akun", href: "/accounts", icon: Wallet, color: "#c8f031" },
   { label: "Goals", href: "/goals", icon: Flag, color: "#9be7c4" },

@@ -12,6 +12,8 @@ import { Sticker, stickerTilt } from "@/components/common/Sticker";
 import { CategorySticker } from "@/components/common/CategorySticker";
 import { NAV_ITEMS } from "@/components/layout/nav-items";
 import { getPayCycle, toDateStr } from "@/lib/payday";
+import { QuickAdd } from "@/components/dashboard/QuickAdd";
+import type { QuickFavorite } from "@/lib/quick-add";
 
 interface DashboardContentProps {
   locale: "id" | "en";
@@ -25,6 +27,7 @@ interface DashboardContentProps {
   debtReminders: any[];
   /** Tanggal gajian (1–31) dari Pengaturan; null = pakai bulan kalender. */
   payday: number | null;
+  favorites: QuickFavorite[];
 }
 
 const MENU_HREFS = ["/budgets", "/scanner", "/goals", "/debts", "/planner", "/statistics", "/ai-advisor", "/accounts"];
@@ -43,6 +46,7 @@ export function DashboardContent({
   budgetAlerts,
   debtReminders,
   payday,
+  favorites,
 }: DashboardContentProps) {
   const ct = useTranslations("common");
   const [selectedDay, setSelectedDay] = useState<string | null>(null);
@@ -198,6 +202,15 @@ export function DashboardContent({
           })}
         </div>
       )}
+
+      {/* Catat cepat + favorit */}
+      <QuickAdd
+        className="lg:col-span-4"
+        accounts={accounts}
+        categories={categories}
+        history={transactions}
+        initialFavorites={favorites}
+      />
 
       {/* Hero: daily budget */}
       <section className="relative overflow-hidden rounded-cartoon border-3 border-line bg-primary p-5 text-ink shadow-cartoon-lg lg:col-span-2 lg:flex lg:min-h-[176px] lg:flex-col lg:justify-between lg:px-6">

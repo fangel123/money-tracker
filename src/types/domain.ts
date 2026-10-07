@@ -25,6 +25,10 @@ export interface RecurringRule {
   frequency: "daily" | "weekly" | "monthly" | "yearly";
   interval: number;
   end_date?: string;
+  day?: number;
+  follow_payday?: boolean;
+  paused?: boolean;
+  resume_from?: string;
 }
 
 export interface Category {

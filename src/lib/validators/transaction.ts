@@ -15,6 +15,12 @@ export const transactionSchema = z
         frequency: z.enum(["daily", "weekly", "monthly", "yearly"]),
         interval: z.number().int().positive().default(1),
         end_date: z.string().optional(),
+        // Bulanan: tanggal patokan & ikut aturan gajian (Sab/Min → Jumat)
+        day: z.number().int().min(1).max(31).optional(),
+        follow_payday: z.boolean().optional(),
+        // Diatur dari halaman Rutin
+        paused: z.boolean().optional(),
+        resume_from: z.string().optional(),
       })
       .nullish(),
   })
