@@ -1,12 +1,16 @@
 import { z } from "zod";
 
+// Form mengirim "" untuk pilihan kosong (mis. kategori saat Transfer) — perlakukan sebagai null
+const optionalId = (message: string) =>
+  z.preprocess((v) => (v === "" ? null : v), z.string().uuid(message).nullish());
+
 export const transactionSchema = z
   .object({
     type: z.enum(["income", "expense", "transfer"]),
     amount: z.coerce.number().positive("Jumlah harus lebih dari 0").max(999999999999, "Jumlah terlalu besar"),
-    category_id: z.string().uuid("Kategori tidak valid").nullish(),
+    category_id: optionalId("Kategori tidak valid"),
     account_id: z.string().uuid("Akun tidak valid"),
-    to_account_id: z.string().uuid("Akun tujuan tidak valid").nullish(),
+    to_account_id: optionalId("Akun tujuan tidak valid"),
     date: z.string().refine((val) => !isNaN(Date.parse(val)), "Tanggal tidak valid"),
     note: z.string().max(500, "Catatan maksimal 500 karakter").optional(),
     is_recurring: z.boolean().default(false),

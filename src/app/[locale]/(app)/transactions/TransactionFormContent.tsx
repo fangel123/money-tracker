@@ -145,14 +145,24 @@ export function TransactionFormContent({
     setValue("type", type);
     // Kategori harus sesuai tipe: pilih kategori pertama dari tipe baru
     const first = categories.find((c) => c.type === type);
-    setValue("category_id", type === "transfer" ? "" : first?.id || "");
+    // Transfer tidak punya kategori: kirim null (bukan "") supaya lolos validasi
+    setValue("category_id", type === "transfer" ? null : first?.id || "");
+    if (type !== "transfer") setValue("to_account_id", undefined);
   };
 
   const section = "rounded-cartoon border-3 border-line bg-card p-5 shadow-cartoon";
   const sectionLabel = "mb-2.5 block text-xs font-black uppercase tracking-[0.1em] text-muted-foreground";
 
   return (
-    <form onSubmit={handleSubmit(onSubmit)} className="space-y-5 pb-4" noValidate>
+    <form
+      onSubmit={handleSubmit(onSubmit, (formErrors) => {
+        // Error di kolom yang sedang tersembunyi (mis. kategori saat Transfer) tetap harus terlihat
+        const first = Object.values(formErrors)[0];
+        setSubmitError((first && "message" in first && typeof first.message === "string" && first.message) || t("form.error"));
+      })}
+      className="space-y-5 pb-4"
+      noValidate
+    >
       <PageHeader
         title={isEdit ? "Ubah Transaksi" : "Catat Transaksi"}
         description={isEdit ? "Perbarui detail transaksi" : "Catat langsung setelah bayar biar nggak lupa"}
